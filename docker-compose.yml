@@ -1,0 +1,47 @@
+services:
+  db-sudolife:
+    image: postgres:16.2-alpine3.18
+    restart: always
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_ROOT_USER}", "-d", "postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    container_name: sudolife-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_ROOT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - sudolife-db-data:/var/lib/postgresql/data
+    networks:
+      - sudolife-network
+
+  app-sudolife:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gabriel/sudolife:latest
+    container_name: sudolife-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: ${DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+    depends_on:
+      db-sudolife:
+        condition: service_healthy
+    networks:
+      - sudolife-network
+
+networks:
+  sudolife-network:
+    driver: bridge
+
+volumes:
+  sudolife-db-data:
