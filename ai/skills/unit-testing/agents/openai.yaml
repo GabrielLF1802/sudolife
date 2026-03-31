@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unit Testing"
+  short_description: "Write and review robust unit tests"
+  default_prompt: "Use $unit-testing to write or review unit tests with clear exit-point coverage and maintainable structure."
