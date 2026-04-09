@@ -85,11 +85,11 @@ adapter/
 
 - Domain models live in `application/model/**`
 - Domain code must be **pure**
-    - No Spring annotations
-    - No JPA annotations
-    - Only allow the following Lombok annotations (@ToString, @AllArgsConstructor. @RequiredArgsConstructor,
-      @NoArgsConstructor, @Getter)
-    - Avoid weak construction patterns like the lombok @Builder/@SuperBuilder, to avoid entities invalid state
+  - No Spring annotations
+  - No JPA annotations
+  - Only allow the following Lombok annotations (@ToString, @AllArgsConstructor. @RequiredArgsConstructor,
+    @NoArgsConstructor, @Getter)
+  - Avoid weak construction patterns like the lombok @Builder/@SuperBuilder, to avoid entities invalid state
 
 This structure represents **one cohesive application, not multiple mini-applications**.
 Hexagonal boundaries are enforced by **ports**, not by folder duplication.
@@ -99,25 +99,25 @@ Hexagonal boundaries are enforced by **ports**, not by folder duplication.
 - Use cases live in `application/service/**`.
 - Every use case is exposed via a **provided port** (interface).
 - Naming rules:
-    - Use intention-revealing names (`CreateSomethingUseCase`, `ExecuteSomethingUseCase`)
+  - Use intention-revealing names (`CreateSomethingUseCase`, `ExecuteSomethingUseCase`)
 - Use cases accept **command DTOs** as input:
-    - Commands live in the **application layer**
-    - Prefer **records**
-    - Pattern:
+  - Commands live in the **application layer**
+  - Prefer **records**
+  - Pattern:
 
-      ```java
-      public interface SomeUseCase {
-          Output execute(SomeCommand command);
-      }
-      ```
+    ```java
+    public interface SomeUseCase {
+        Output execute(SomeCommand command);
+    }
+    ```
 
 - Dependencies required by use cases are expressed as **required ports**:
-    - External systems
-    - Persistence
-    - Message publishers
+  - External systems
+  - Persistence
+  - Message publishers
 - Exceptions:
-    - Use case exceptions belong to the application layer
-    - Do not throw framework exceptions outside adapters
+  - Use case exceptions belong to the application layer
+  - Do not throw framework exceptions outside adapters
 
 ---
 
@@ -128,17 +128,24 @@ DTOs **must not leak across architectural boundaries**.
 ### Allowed
 
 - **Application DTOs**:
-    - Input commands
-    - Output results returned by use cases
+  - Input commands
+  - Output results returned by use cases
+
+### Record Duplication Exception (DRY Policy)
+
+- **Never create duplicate records** with the exact same fields across different layers (e.g., a REST request DTO and an application command).
+- If the parameters are identical, declare a single `record` inside the **application layer**.
+- Give this record a generic, context-independent name (e.g., avoid HTTP-specific suffixes like `Request`).
+- The adapter layer must reuse this application `record` directly to prevent redundant mapping and boilerplate.
 
 ### Not Allowed
 
 - Boundary-specific DTOs must stay inside their adapter:
-    - REST request/response DTOs
-    - Messaging payload DTOs
+  - REST request/response DTOs
+  - Messaging payload DTOs
 - Adapters are responsible for mapping:
-    - Boundary DTO → application command
-    - Application result → boundary DTO
+  - Boundary DTO → application command
+  - Application result → boundary DTO
 
 ---
 
@@ -148,16 +155,16 @@ This is a **consumer-first** messaging project.
 
 - Entry points live in `adapter/driving/**`.
 - Listener responsibilities:
-    - Deserialize message
-    - Validate message *shape* (required fields)
-    - Map to an application command
-    - Call a use case
-    - Handle ack/nack
+  - Deserialize message
+  - Validate message *shape* (required fields)
+  - Map to an application command
+  - Call a use case
+  - Handle ack/nack
 
 - **Idempotency is mandatory**:
-    - Messages may be delivered more than once
-    - Use cases must be idempotent
-    - Prefer a persisted idempotency key
+  - Messages may be delivered more than once
+  - Use cases must be idempotent
+  - Prefer a persisted idempotency key
 
 - No business logic in listeners.
 
@@ -168,9 +175,9 @@ This is a **consumer-first** messaging project.
 - Persistence is an adapter.
 - JPA entities live only in `adapter/driven/persistence/**`.
 - Domain models:
-    - No persistence annotations
+  - No persistence annotations
 - Repositories:
-    - Spring Data interfaces are allowed
+  - Spring Data interfaces are allowed
 - Mapping between entity and domain is **manual**, don't use mapping frameworks
 - Never expose JPA entities outside persistence adapters.
 
@@ -180,9 +187,9 @@ This is a **consumer-first** messaging project.
 
 - Use **Flyway**.
 - Rules:
-    - Every schema change requires a migration
-    - Migrations are immutable
-    - Prefer small, incremental changes
+  - Every schema change requires a migration
+  - Migrations are immutable
+  - Prefer small, incremental changes
 
 ---
 
@@ -192,42 +199,42 @@ This is a **consumer-first** messaging project.
 - **Always** suffixes tests with (*UnitTest, *IntegrationTest, *WebMvcTest) so they're easy to identify
 
 - **Style**:
-    - **AAA** (Arrange / Act / Assert)
-    - Separate the 3 A's with a blank line
-    - The Act session should only have one line (the method execution)
-    - The tests should be small and focused
-    - Avoid multiple mocks per test. But a test can have multiple stubs/spies
-    - avoid having more than 4 lines for the Arrange if needed use meaningfully named factory methods to create the
-      state
+  - **AAA** (Arrange / Act / Assert)
+  - Separate the 3 A's with a blank line
+  - The Act session should only have one line (the method execution)
+  - The tests should be small and focused
+  - Avoid multiple mocks per test. But a test can have multiple stubs/spies
+  - avoid having more than 4 lines for the Arrange if needed use meaningfully named factory methods to create the
+    state
 
 ### Unit Tests
 
 - Minimal setup
 - Test method naming: **snake_case**
 - Unit tests cover:
-    - Use cases
-    - Domain behavior
-    - Non-trivial mappers
+  - Use cases
+  - Domain behavior
+  - Non-trivial mappers
 
 ### Test Data Strategy
 
 - Central helper:
-    - `/src/test/**/helper/TestHelper.java`
+  - `/src/test/**/helper/TestHelper.java`
 - Feature helpers:
-    - `/src/test/**/helper/<Feature>TestHelper.java`
+  - `/src/test/**/helper/<Feature>TestHelper.java`
 - Rules:
-    - No random data
-    - Prefer deterministic factory methods
-    - Test helper methods that use persistence must only be accessed through: `TestHelper`
+  - No random data
+  - Prefer deterministic factory methods
+  - Test helper methods that use persistence must only be accessed through: `TestHelper`
 
 ### Integration Tests
 
 - Disable flyway for integration tests
 - Prefer **H2** for speed
 - Integration tests cover:
-    - Persistence adapters
-    - Repository behavior
-    - Flyway migrations (smoke test only)
+  - Persistence adapters
+  - Repository behavior
+  - Flyway migrations (smoke test only)
 - Integration tests exist for **every use case** (happy path + key failure paths)
 
 ---
@@ -235,9 +242,9 @@ This is a **consumer-first** messaging project.
 ## 8) Lombok Policy
 
 - Lombok is allowed everywhere **except**:
-    - Avoid setters on domain-heavy objects
+  - Avoid setters on domain-heavy objects
 - DTOs:
-    - Prefer Java **records**
+  - Prefer Java **records**
 
 ---
 
@@ -245,8 +252,8 @@ This is a **consumer-first** messaging project.
 
 - Mapping is **manual by default** (not generated by frameworks)
 - Prefer:
-    - Explicit constructors
-    - Static factory methods
+  - Explicit constructors
+  - Static factory methods
 - Introduce mapping frameworks only when necessary and documented
 
 ---
@@ -254,13 +261,13 @@ This is a **consumer-first** messaging project.
 ## 10) Logging & Configuration
 
 - Logging:
-    - Use `@Slf4j`
-    - Log I/O at adapters
-    - Avoid logging inside domain for normal flows
+  - Use `@Slf4j`
+  - Log I/O at adapters
+  - Avoid logging inside domain for normal flows
 
 - Configuration:
-    - Use Spring profiles
-    - Configuration injected via environment variables
+  - Use Spring profiles
+  - Configuration injected via environment variables
 
 ---
 
@@ -289,23 +296,11 @@ This is a **consumer-first** messaging project.
 
 - ALWAYS run all tests before finish a task
 - Time and Clock access:
-    - Application code must never access system time directly and must rely exclusively on TimeProvider.
-    - Integration tests that assert or depend on time must use @Import(FixedTimeProvider.class).
-    - Integration tests that do not depend on time must not import or reference FixedTimeProvider.
+  - Application code must never access system time directly and must rely exclusively on TimeProvider.
+  - Integration tests that assert or depend on time must use @Import(FixedTimeProvider.class).
+  - Integration tests that do not depend on time must not import or reference FixedTimeProvider.
 - Application Properties File:
-    - Sections should be grouped by commented headers, framed with lines of # to create visual blocks (
-      e.g., ############################## plus a # Section Name line).
-    - Comments start with # and are used both for section headers and separators.
-    - No indentation or multiline values; each property is on its own line.
-  
-## 14) API Documentation (Swagger/OpenAPI) Rules
-
-- Swagger is an inbound delivery concern and belongs exclusively to the adapter layer.
-- OpenAPI annotations (such as `@Operation`, `@Schema`, `@ApiResponse`, `@Tag`) are **strictly allowed only** in the `adapter/driving/rest/**` packages.
-- Allowed locations for Swagger annotations:
-  - REST Controllers (e.g., `FeatureAController.java`)
-  - Boundary Web DTOs (e.g., `FeatureARequest.java`, `FeatureAResponse.java`)
-- **Never** leak Swagger/OpenAPI annotations into the application layer:
-  - Domain models (`application/model/**`) must remain 100% pure.
-  - Application Commands and Output DTOs used by Use Cases must not contain `@Schema` or any API documentation metadata.
-- Keep the documentation focused solely on the HTTP contract (endpoints, HTTP status codes, and web payload shapes) without exposing internal business rules or domain logic.
+  - Sections should be grouped by commented headers, framed with lines of # to create visual blocks (
+    e.g., ############################## plus a # Section Name line).
+  - Comments start with # and are used both for section headers and separators.
+  - No indentation or multiline values; each property is on its own line.
