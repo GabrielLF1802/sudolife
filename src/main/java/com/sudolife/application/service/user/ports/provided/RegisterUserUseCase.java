@@ -1,4 +1,4 @@
-package com.sudolife.application.service.user.provided;
+package com.sudolife.application.service.user.ports.provided;
 
 import com.sudolife.application.model.user.User;
 
