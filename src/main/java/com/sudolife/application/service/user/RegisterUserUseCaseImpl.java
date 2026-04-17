@@ -1,11 +1,14 @@
 package com.sudolife.application.service.user;
 
 import com.sudolife.application.model.user.User;
-import com.sudolife.application.service.user.provided.RegisterUserUseCase;
-import com.sudolife.application.service.user.required.UserHashPassword;
-import com.sudolife.application.service.user.required.UserRepository;
+import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
+import com.sudolife.application.service.user.ports.required.UserHashPassword;
+import com.sudolife.application.service.user.ports.required.UserRepository;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.stereotype.Service;
+
+@Service
 @RequiredArgsConstructor
 public class RegisterUserUseCaseImpl implements RegisterUserUseCase {
     private final UserRepository userRepository;
