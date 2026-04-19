@@ -1,9 +1,12 @@
 package com.sudolife.adapter.driven.security;
 
 import com.sudolife.application.service.user.ports.required.UserHashPassword;
+import lombok.AllArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@AllArgsConstructor
 public class UserHashPasswordAdapter implements UserHashPassword {
 
     private final PasswordEncoder passwordEncoder;
