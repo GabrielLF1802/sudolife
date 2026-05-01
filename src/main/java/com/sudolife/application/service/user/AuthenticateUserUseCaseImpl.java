@@ -1,15 +1,16 @@
 package com.sudolife.application.service.user;
 
 import com.sudolife.application.model.user.User;
+import com.sudolife.application.service.user.exception.InvalidCredentialsException;
 import com.sudolife.application.service.user.ports.provided.AuthenticateUserUseCase;
 import com.sudolife.application.service.user.ports.required.UserHashPassword;
 import com.sudolife.application.service.user.ports.required.UserRepository;
 import com.sudolife.application.service.user.ports.required.UserToken;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AuthenticateUserUseCaseImpl implements AuthenticateUserUseCase {
 
     private final UserRepository userRepository;
@@ -17,12 +18,14 @@ public class AuthenticateUserUseCaseImpl implements AuthenticateUserUseCase {
     private final UserHashPassword userHashPassword;
 
     @Override
-    public String login(String email, String password) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found "));
+    public AuthenticationResult execute(AuthenticateUserCommand command) {
+        User user = userRepository.findByEmail(command.email())
+                .orElseThrow(InvalidCredentialsException::new);
 
-        if (!userHashPassword.matches(password, user.getPassword())) throw new RuntimeException("Password is invalid");
+        if (!userHashPassword.matches(command.password(), user.getPassword())) {
+            throw new InvalidCredentialsException();
+        }
 
-        return userToken.generateToken(user);
+        return new AuthenticationResult(userToken.generateToken(user));
     }
 }

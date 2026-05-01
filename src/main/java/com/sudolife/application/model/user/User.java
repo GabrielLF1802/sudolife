@@ -1,22 +1,20 @@
 package com.sudolife.application.model.user;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
+
     private Long id;
     private String name;
     private String email;
     private String password;
 
-    public User(){}
-
-    public User (Long id, String name, String email, String password) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.password = password;
+    public User withPassword(String password) {
+        return new User(id, name, email, password);
     }
 }
-
-

@@ -1,6 +1,7 @@
 package com.sudolife.adapter.driving.rest.auth.controller;
 
-import com.sudolife.adapter.driving.rest.auth.webmodel.LoginRequest;
+import com.sudolife.application.service.user.AuthenticateUserCommand;
+import com.sudolife.application.service.user.AuthenticationResult;
 import com.sudolife.application.service.user.ports.provided.AuthenticateUserUseCase;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +18,9 @@ public class AuthenticationController {
     private final AuthenticateUserUseCase authenticateUserUseCase;
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest login) {
-        String authToken = authenticateUserUseCase.login(login.getEmail(), login.getPassword());
+    public ResponseEntity<AuthenticationResult> login(@RequestBody AuthenticateUserCommand command) {
+        AuthenticationResult result = authenticateUserUseCase.execute(command);
 
-        return ResponseEntity.ok(authToken);
+        return ResponseEntity.ok(result);
     }
 }

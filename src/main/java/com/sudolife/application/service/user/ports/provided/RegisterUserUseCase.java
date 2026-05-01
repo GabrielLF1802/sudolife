@@ -1,7 +1,7 @@
 package com.sudolife.application.service.user.ports.provided;
 
-import com.sudolife.application.model.user.User;
+import com.sudolife.application.service.user.RegisterUserCommand;
 
 public interface RegisterUserUseCase {
-    User execute(User user);
+    void execute(RegisterUserCommand command);
 }
