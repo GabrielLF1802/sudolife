@@ -14,14 +14,14 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./Docker/create_database.sql:/docker-entrypoint-initdb.d/create_database.sql
+      - ./create_database.sql:/docker-entrypoint-initdb.d/create_database.sql
       - sudolife-db-data:/var/lib/postgresql/data
     networks:
       - sudolife-network
 
   app-sudolife:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     image: gabriel/sudolife:latest
     container_name: sudolife-backend
