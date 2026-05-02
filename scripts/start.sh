@@ -1,6 +1,7 @@
 #!/bin/bash
 
-cd ../docker
+set -e
 
-docker compose up -d
+cd "$(dirname "$0")/.."
 
+docker compose --env-file .env -f docker/docker-compose.yml up -d

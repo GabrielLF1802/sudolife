@@ -2,6 +2,6 @@
 
 set -e
 
-cd ..
+cd "$(dirname "$0")/.."
 
-docker compose down
+docker compose --env-file .env -f docker/docker-compose.yml down
