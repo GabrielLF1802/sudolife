@@ -45,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .flatMap(userRepository::findByEmail)
                 .ifPresent(user -> {
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(user.getEmail(), null, List.of());
+                            new UsernamePasswordAuthenticationToken(user.getEmail().value(), null, List.of());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 });
     }

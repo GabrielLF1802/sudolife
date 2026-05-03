@@ -36,7 +36,7 @@ public class UserTokenAdapter implements UserToken {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             return JWT.create()
                     .withIssuer(issuer)
-                    .withSubject(user.getEmail())
+                    .withSubject(user.getEmail().value())
                     .withExpiresAt(expirationDate())
                     .sign(algorithm);
         } catch (JWTCreationException exception) {

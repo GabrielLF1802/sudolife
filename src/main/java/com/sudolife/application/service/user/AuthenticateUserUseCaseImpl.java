@@ -22,7 +22,7 @@ public class AuthenticateUserUseCaseImpl implements AuthenticateUserUseCase {
         User user = userRepository.findByEmail(command.email())
                 .orElseThrow(InvalidCredentialsException::new);
 
-        if (!userHashPassword.matches(command.password(), user.getPassword())) {
+        if (!userHashPassword.matches(command.password(), user.getPassword().value())) {
             throw new InvalidCredentialsException();
         }
 

@@ -1,5 +1,7 @@
 package com.sudolife.application.service.user;
 
+import com.sudolife.application.model.user.Email;
+import com.sudolife.application.model.user.Password;
 import com.sudolife.application.model.user.User;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
 import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
@@ -22,7 +24,7 @@ public class RegisterUserUseCaseImpl implements RegisterUserUseCase {
         }
 
         String hashedPassword = userHashPassword.hash(command.password());
-        User user = new User(null, command.name(), command.email(), hashedPassword);
+        User user = new User(null, command.name(), new Email(command.email()), new Password(hashedPassword));
 
         userRepository.save(user);
     }

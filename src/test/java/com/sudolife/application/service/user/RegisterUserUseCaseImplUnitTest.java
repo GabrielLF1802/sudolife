@@ -46,8 +46,8 @@ class RegisterUserUseCaseImplUnitTest {
 
         User savedUser = capturedSavedUser();
         assertThat(savedUser.getName()).isEqualTo(NAME);
-        assertThat(savedUser.getEmail()).isEqualTo(EMAIL);
-        assertThat(savedUser.getPassword()).isEqualTo(HASHED_PASSWORD);
+        assertThat(savedUser.getEmail().value()).isEqualTo(EMAIL);
+        assertThat(savedUser.getPassword().value()).isEqualTo(HASHED_PASSWORD);
     }
 
     @Test

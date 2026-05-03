@@ -1,5 +1,7 @@
 package com.sudolife.adapter.driven.persistence.user;
 
+import com.sudolife.application.model.user.Email;
+import com.sudolife.application.model.user.Password;
 import com.sudolife.application.model.user.User;
 
 import org.springframework.stereotype.Component;
@@ -10,8 +12,8 @@ public class UserPersistenceMapper {
         UserEntity entity = new UserEntity();
         entity.setId(domain.getId());
         entity.setName(domain.getName());
-        entity.setPassword(domain.getPassword());
-        entity.setEmail(domain.getEmail());
+        entity.setPassword(domain.getPassword().value());
+        entity.setEmail(domain.getEmail().value());
 
         return entity;
     }
@@ -20,7 +22,7 @@ public class UserPersistenceMapper {
         return new User(
             entity.getId(),
             entity.getName(),
-            entity.getEmail(),
-            entity.getPassword());
+            new Email(entity.getEmail()),
+            new Password(entity.getPassword()));
     }
 }

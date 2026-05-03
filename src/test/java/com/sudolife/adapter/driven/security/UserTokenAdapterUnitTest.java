@@ -32,7 +32,7 @@ class UserTokenAdapterUnitTest {
 
         Optional<String> subject = userTokenAdapter.subjectFrom(userTokenAdapter.generateToken(user));
 
-        assertThat(subject).contains(user.getEmail());
+        assertThat(subject).contains(user.getEmail().value());
     }
 
     @Test
