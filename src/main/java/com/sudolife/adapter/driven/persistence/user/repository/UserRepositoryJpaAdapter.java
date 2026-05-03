@@ -1,8 +1,8 @@
 package com.sudolife.adapter.driven.persistence.user.repository;
 
-import com.sudolife.adapter.driven.persistence.SpringDataUserRepository;
-import com.sudolife.adapter.driven.persistence.UserEntity;
-import com.sudolife.adapter.driven.persistence.UserPersistenceMapper;
+import com.sudolife.adapter.driven.persistence.user.SpringDataUserRepository;
+import com.sudolife.adapter.driven.persistence.user.UserEntity;
+import com.sudolife.adapter.driven.persistence.user.UserPersistenceMapper;
 import com.sudolife.application.model.user.User;
 import com.sudolife.application.service.user.ports.required.UserRepository;
 import lombok.RequiredArgsConstructor;

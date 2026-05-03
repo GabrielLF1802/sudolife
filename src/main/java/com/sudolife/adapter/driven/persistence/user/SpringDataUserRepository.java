@@ -1,4 +1,4 @@
-package com.sudolife.adapter.driven.persistence;
+package com.sudolife.adapter.driven.persistence.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
