@@ -10,9 +10,9 @@ public class User {
     private Long id;
     private String name;
     private Email email;
-    private Password password;
+    private HashedPassword password;
 
-    public User (Long id, String name, Email email, Password password) {
+    public User(Long id, String name, Email email, HashedPassword password) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Name is invalid, null or empty");
         }

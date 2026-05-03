@@ -1,5 +1,6 @@
 package com.sudolife.application.service.user;
 
+import com.sudolife.application.model.user.RawPassword;
 import com.sudolife.application.model.user.User;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
 import com.sudolife.application.service.user.ports.provided.AuthenticateUserUseCase;
@@ -21,8 +22,9 @@ public class AuthenticateUserUseCaseImpl implements AuthenticateUserUseCase {
     public AuthenticationResult execute(AuthenticateUserCommand command) {
         User user = userRepository.findByEmail(command.email())
                 .orElseThrow(InvalidCredentialsException::new);
+        RawPassword rawPassword = new RawPassword(command.password());
 
-        if (!userHashPassword.matches(command.password(), user.getPassword().value())) {
+        if (!userHashPassword.matches(rawPassword.value(), user.getPassword().value())) {
             throw new InvalidCredentialsException();
         }
 

@@ -22,6 +22,7 @@ import static com.sudolife.helper.UserTestHelper.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -57,6 +58,16 @@ class RegisterUserUseCaseImplUnitTest {
         assertThatThrownBy(() -> useCase.execute(registerUserCommand()))
                 .isInstanceOf(UserAlreadyExistsException.class);
         verifyNoMoreInteractions(userHashPassword);
+    }
+
+    @Test
+    void execute_throws_when_password_is_invalid() {
+        RegisterUserCommand command = new RegisterUserCommand(NAME, EMAIL, "123");
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> useCase.execute(command))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(userHashPassword);
     }
 
     private User capturedSavedUser() {

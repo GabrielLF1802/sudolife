@@ -1,7 +1,7 @@
 package com.sudolife.adapter.driven.persistence.user;
 
 import com.sudolife.application.model.user.Email;
-import com.sudolife.application.model.user.Password;
+import com.sudolife.application.model.user.HashedPassword;
 import com.sudolife.application.model.user.User;
 
 import org.springframework.stereotype.Component;
@@ -23,6 +23,6 @@ public class UserPersistenceMapper {
             entity.getId(),
             entity.getName(),
             new Email(entity.getEmail()),
-            new Password(entity.getPassword()));
+            new HashedPassword(entity.getPassword()));
     }
 }
