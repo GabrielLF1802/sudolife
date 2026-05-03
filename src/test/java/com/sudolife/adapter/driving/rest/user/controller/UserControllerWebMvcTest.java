@@ -1,7 +1,9 @@
 package com.sudolife.adapter.driving.rest.user.controller;
 
+import com.sudolife.application.service.user.CurrentUserResult;
 import com.sudolife.application.service.user.RegisterUserCommand;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
+import com.sudolife.application.service.user.ports.provided.GetCurrentUserUseCase;
 import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
 import com.sudolife.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
@@ -19,8 +21,12 @@ import static com.sudolife.helper.UserTestHelper.EMAIL;
 import static com.sudolife.helper.UserTestHelper.PASSWORD;
 import static com.sudolife.helper.UserTestHelper.NAME;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
@@ -38,6 +44,9 @@ public class UserControllerWebMvcTest {
 
     @MockitoBean
     private RegisterUserUseCase registerUserUseCase;
+
+    @MockitoBean
+    private GetCurrentUserUseCase getCurrentUserUseCase;
 
     @Test
     void registerUser_returns_created_when_command_is_valid() throws Exception {
@@ -57,6 +66,23 @@ public class UserControllerWebMvcTest {
 
         mockMvc.perform(post("/api/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(command))).andExpect(status().isConflict());
+                .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("USER_ALREADY_EXISTS"))
+                .andExpect(jsonPath("$.message").value("User already exists"));
+    }
+
+    @Test
+    void getCurrentUser_returns_current_user_when_authenticated() throws Exception {
+        CurrentUserResult result = new CurrentUserResult(1L, NAME, EMAIL);
+        when(getCurrentUserUseCase.execute(EMAIL)).thenReturn(result);
+
+        mockMvc.perform(get("/api/users/me").principal(authenticated(EMAIL, null, java.util.List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value(NAME))
+                .andExpect(jsonPath("$.email").value(EMAIL));
+
+        verify(getCurrentUserUseCase).execute(EMAIL);
     }
 }

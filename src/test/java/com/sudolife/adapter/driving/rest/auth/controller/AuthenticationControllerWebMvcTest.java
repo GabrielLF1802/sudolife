@@ -62,7 +62,9 @@ public class AuthenticationControllerWebMvcTest {
         mockMvc.perform(post("/api/users/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(command)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
+                .andExpect(jsonPath("$.message").value("Invalid credentials"));
 
         verify(authenticateUserUseCase).execute(command);
     }
