@@ -1,7 +1,12 @@
 package com.sudolife.application.model.strava;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 
+@Getter
+@Setter
 public class StravaAuthorizationState {
 
     private String state;
@@ -33,8 +38,6 @@ public class StravaAuthorizationState {
     }
 
     public boolean isExpiredAt(Instant now) {
-        validateInstant(now, "Now cant be null");
-
         return !expiresAt.isAfter(now);
     }
 
@@ -46,22 +49,6 @@ public class StravaAuthorizationState {
         }
 
         this.consumedAt = consumedAt;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public String getUserEmail() {
-        return userEmail;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
-
-    public Instant getConsumedAt() {
-        return consumedAt;
     }
 
     private void validateText(String value, String message) {
