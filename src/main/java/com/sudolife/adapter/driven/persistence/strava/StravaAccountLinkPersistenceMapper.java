@@ -13,6 +13,7 @@ public class StravaAccountLinkPersistenceMapper {
         entity.setUserEmail(domain.getUserEmail());
         entity.setAthleteId(domain.getAthleteId());
         entity.setActiveAthleteId(activeAthleteId(domain));
+        entity.setActiveUserEmail(activeUserEmail(domain));
         entity.setAccessToken(domain.getAccessToken());
         entity.setRefreshToken(domain.getRefreshToken());
         entity.setExpiresAt(domain.getExpiresAt());
@@ -40,6 +41,14 @@ public class StravaAccountLinkPersistenceMapper {
     private Long activeAthleteId(StravaAccountLink domain) {
         if (domain.isLinked()) {
             return domain.getAthleteId();
+        }
+
+        return null;
+    }
+
+    private String activeUserEmail(StravaAccountLink domain) {
+        if (domain.isLinked()) {
+            return domain.getUserEmail();
         }
 
         return null;
