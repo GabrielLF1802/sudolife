@@ -30,8 +30,6 @@ class StravaOAuthAdapterIntegrationTest {
 
     private static final String CLIENT_ID = "client-id";
     private static final String CLIENT_SECRET = "client-secret";
-    private static final String FRONTEND_SUCCESS_URL = "https://sudolife.com/strava/success";
-    private static final String FRONTEND_FAILURE_URL = "https://sudolife.com/strava/failure";
     private static final String AUTHORIZATION_PATH = "/oauth/authorize";
     private static final String TOKEN_PATH = "/api/v3/oauth/token";
     private static final String DEAUTHORIZATION_PATH = "/oauth/deauthorize";
@@ -179,9 +177,8 @@ class StravaOAuthAdapterIntegrationTest {
     private StravaApiProperties stravaApiProperties() {
         String baseUrl = "http://localhost:" + server.getAddress().getPort();
 
-        return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, FRONTEND_SUCCESS_URL,
-                FRONTEND_FAILURE_URL, baseUrl + AUTHORIZATION_PATH, baseUrl + TOKEN_PATH,
-                baseUrl + DEAUTHORIZATION_PATH, Duration.ofSeconds(2), Duration.ofSeconds(5));
+        return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, baseUrl + AUTHORIZATION_PATH,
+                baseUrl + TOKEN_PATH, baseUrl + DEAUTHORIZATION_PATH, Duration.ofSeconds(2), Duration.ofSeconds(5));
     }
 
     private record CapturedRequest(String method, String path, Map<String, String> form) {

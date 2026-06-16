@@ -1,6 +1,5 @@
 package com.sudolife.adapter.driving.rest.strava;
 
-import com.sudolife.adapter.driven.api.strava.StravaApiProperties;
 import com.sudolife.adapter.driving.rest.RestExceptionHandler;
 import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
@@ -25,8 +24,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.Duration;
 
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.ATHLETE_ID;
@@ -193,11 +190,8 @@ class StravaAccountLinkControllerWebMvcTest {
     static class TestConfig {
 
         @Bean
-        StravaApiProperties stravaApiProperties() {
-            return new StravaApiProperties("client-id", "client-secret",
-                    "https://api.sudolife.com/api/strava/callback", FRONTEND_SUCCESS_URL, FRONTEND_FAILURE_URL,
-                    "https://www.strava.com/oauth/authorize", "https://www.strava.com/api/v3/oauth/token",
-                    "https://www.strava.com/oauth/deauthorize", Duration.ofSeconds(2), Duration.ofSeconds(5));
+        StravaFrontendRedirectProperties stravaFrontendRedirectProperties() {
+            return new StravaFrontendRedirectProperties(FRONTEND_SUCCESS_URL, FRONTEND_FAILURE_URL);
         }
     }
 }
