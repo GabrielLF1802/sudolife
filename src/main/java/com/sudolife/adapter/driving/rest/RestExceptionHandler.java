@@ -3,6 +3,8 @@ package com.sudolife.adapter.driving.rest;
 import com.sudolife.application.service.user.exception.AuthenticatedUserNotFoundException;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
+import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
+import com.sudolife.application.service.strava.exception.StravaAccountLinkingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +29,20 @@ public class RestExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAuthenticatedUserNotFound(AuthenticatedUserNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("AUTHENTICATED_USER_NOT_FOUND", exception.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateStravaAthleteOwnershipException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateStravaAthlete(
+            DuplicateStravaAthleteOwnershipException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(exception.getFailureCode(), exception.getMessage()));
+    }
+
+    @ExceptionHandler(StravaAccountLinkingException.class)
+    public ResponseEntity<ErrorResponse> handleStravaAccountLinking(StravaAccountLinkingException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(exception.getFailureCode(), exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
