@@ -7,4 +7,8 @@ public class StravaAuthorizationFailureException extends StravaAccountLinkingExc
     public StravaAuthorizationFailureException() {
         super("Strava authorization could not be completed", FAILURE_CODE);
     }
+
+    public StravaAuthorizationFailureException(Throwable cause) {
+        this();
+    }
 }

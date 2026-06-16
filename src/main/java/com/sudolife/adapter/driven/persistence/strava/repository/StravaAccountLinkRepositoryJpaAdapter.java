@@ -5,6 +5,7 @@ import com.sudolife.adapter.driven.persistence.strava.StravaAccountLinkPersisten
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
+import com.sudolife.application.service.strava.exception.InvalidStravaAccountLinkStateException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,6 +18,7 @@ import java.util.Optional;
 public class StravaAccountLinkRepositoryJpaAdapter implements StravaAccountLinkRepository {
 
     private static final String ACTIVE_ATHLETE_CONSTRAINT = "uk_strava_account_links_active_athlete_id";
+    private static final String ACTIVE_USER_CONSTRAINT = "uk_strava_account_links_active_user_email";
 
     private final SpringDataStravaAccountLinkRepository jpaRepository;
     private final StravaAccountLinkPersistenceMapper mapper;
@@ -39,18 +41,22 @@ public class StravaAccountLinkRepositoryJpaAdapter implements StravaAccountLinkR
 
             return mapper.toDomain(savedEntity);
         } catch (DataIntegrityViolationException exception) {
-            if (!hasActiveAthleteConstraintViolation(exception)) {
-                throw exception;
+            if (hasConstraintViolation(exception, ACTIVE_ATHLETE_CONSTRAINT)) {
+                throw new DuplicateStravaAthleteOwnershipException();
             }
 
-            throw new DuplicateStravaAthleteOwnershipException();
+            if (hasConstraintViolation(exception, ACTIVE_USER_CONSTRAINT)) {
+                throw new InvalidStravaAccountLinkStateException(exception);
+            }
+
+            throw exception;
         }
     }
 
-    private boolean hasActiveAthleteConstraintViolation(Throwable exception) {
+    private boolean hasConstraintViolation(Throwable exception, String constraintName) {
         Throwable currentException = exception;
         while (currentException != null) {
-            if (hasActiveAthleteConstraintName(currentException)) {
+            if (hasConstraintName(currentException, constraintName)) {
                 return true;
             }
 
@@ -60,9 +66,9 @@ public class StravaAccountLinkRepositoryJpaAdapter implements StravaAccountLinkR
         return false;
     }
 
-    private boolean hasActiveAthleteConstraintName(Throwable exception) {
+    private boolean hasConstraintName(Throwable exception, String constraintName) {
         String message = exception.getMessage();
 
-        return message != null && message.toLowerCase().contains(ACTIVE_ATHLETE_CONSTRAINT);
+        return message != null && message.toLowerCase().contains(constraintName);
     }
 }
