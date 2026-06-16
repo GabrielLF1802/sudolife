@@ -41,8 +41,7 @@ public class UnlinkStravaAccountUseCaseImpl implements UnlinkStravaAccountUseCas
         return new UnlinkStravaAccountResult(true);
     }
 
-    private void deauthorizeWhenPossible(StravaAccountLink accountLink, StravaAuthorizationSnapshot authorizationSnapshot,
-                                         Instant now) {
+    private void deauthorizeWhenPossible(StravaAccountLink accountLink, StravaAuthorizationSnapshot authorizationSnapshot, Instant now) {
         String accessToken = usableAccessToken(authorizationSnapshot, now);
 
         if (!hasText(accessToken)) {
