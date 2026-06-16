@@ -20,10 +20,16 @@ import java.time.Instant;
                 @Index(name = "ix_strava_account_links_user_email_active", columnList = "user_email, active"),
                 @Index(name = "ix_strava_account_links_athlete_id_active", columnList = "athlete_id, active")
         },
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_strava_account_links_active_athlete_id",
-                columnNames = "active_athlete_id"
-        )
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_strava_account_links_active_athlete_id",
+                        columnNames = "active_athlete_id"
+                ),
+                @UniqueConstraint(
+                        name = "uk_strava_account_links_active_user_email",
+                        columnNames = "active_user_email"
+                )
+        }
 )
 @Getter
 @Setter
@@ -38,6 +44,8 @@ public class StravaAccountLinkEntity {
     private Long athleteId;
     @Column(name = "active_athlete_id")
     private Long activeAthleteId;
+    @Column(name = "active_user_email")
+    private String activeUserEmail;
     @Column(name = "access_token", length = 2048)
     private String accessToken;
     @Column(name = "refresh_token", length = 2048)

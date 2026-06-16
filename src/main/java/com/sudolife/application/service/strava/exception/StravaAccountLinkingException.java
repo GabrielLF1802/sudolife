@@ -10,6 +10,12 @@ public abstract class StravaAccountLinkingException extends RuntimeException {
         this.failureCode = failureCode;
     }
 
+    protected StravaAccountLinkingException(String message, String failureCode, Throwable cause) {
+        super(message, cause);
+
+        this.failureCode = failureCode;
+    }
+
     public String getFailureCode() {
         return failureCode;
     }
