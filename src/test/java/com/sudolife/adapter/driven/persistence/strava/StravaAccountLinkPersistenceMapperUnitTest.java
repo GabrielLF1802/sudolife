@@ -30,6 +30,7 @@ class StravaAccountLinkPersistenceMapperUnitTest {
         assertThat(entity.getUserEmail()).isEqualTo(USER_EMAIL);
         assertThat(entity.getAthleteId()).isEqualTo(ATHLETE_ID);
         assertThat(entity.getActiveAthleteId()).isEqualTo(ATHLETE_ID);
+        assertThat(entity.getActiveUserEmail()).isEqualTo(USER_EMAIL);
         assertThat(entity.getAccessToken()).isEqualTo(ACCESS_TOKEN);
         assertThat(entity.getRefreshToken()).isEqualTo(REFRESH_TOKEN);
         assertThat(entity.getExpiresAt()).isEqualTo(EXPIRES_AT);
@@ -45,6 +46,7 @@ class StravaAccountLinkPersistenceMapperUnitTest {
         StravaAccountLinkEntity entity = mapper.toEntity(link);
 
         assertThat(entity.getActiveAthleteId()).isNull();
+        assertThat(entity.getActiveUserEmail()).isNull();
         assertThat(entity.getAccessToken()).isNull();
         assertThat(entity.getRefreshToken()).isNull();
         assertThat(entity.getExpiresAt()).isNull();
