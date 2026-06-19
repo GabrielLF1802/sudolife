@@ -30,7 +30,7 @@ class StravaOAuthAdapterUnitTest {
         assertThat(authorizationUrl).contains("client_id=client-id");
         assertThat(authorizationUrl).contains("redirect_uri=https%3A%2F%2Fsudolife.com%2Fapi%2Fstrava%2Fcallback");
         assertThat(authorizationUrl).contains("response_type=code");
-        assertThat(authorizationUrl).contains("approval_prompt=auto");
+        assertThat(authorizationUrl).contains("approval_prompt=force");
         assertThat(authorizationUrl).contains("scope=read");
         assertThat(authorizationUrl).contains("state=state-token");
     }

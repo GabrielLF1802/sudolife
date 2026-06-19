@@ -328,7 +328,7 @@ class StravaAccountLinkingFlowIntegrationTest {
                     .queryParam("client_id", "fake-client-id")
                     .queryParam("redirect_uri", "https://api.sudolife.test/api/strava/callback")
                     .queryParam("response_type", "code")
-                    .queryParam("approval_prompt", "auto")
+                    .queryParam("approval_prompt", "force")
                     .queryParam("scope", request.scope())
                     .queryParam("state", request.state())
                     .build()

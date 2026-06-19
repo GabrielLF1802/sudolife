@@ -6,7 +6,7 @@
 #   ./build.sh -p|--push <version>         Versioned build, with git tag and push to docker hub
 
 set -e
-cd ..
+cd "$(dirname "$0")/.."
 
 DOCKER_IMAGE_NAME="sudolife"
 DOCKER_REGISTRY="gabriel"

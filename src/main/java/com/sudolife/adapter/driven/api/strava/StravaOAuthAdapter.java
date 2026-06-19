@@ -49,7 +49,7 @@ public class StravaOAuthAdapter implements StravaOAuthProvider {
                 .queryParam("client_id", encoded(properties.clientId()))
                 .queryParam("redirect_uri", encoded(properties.redirectUri()))
                 .queryParam("response_type", encoded("code"))
-                .queryParam("approval_prompt", encoded("auto"))
+                .queryParam("approval_prompt", encoded("force"))
                 .queryParam("scope", encoded(request.scope()))
                 .queryParam("state", encoded(request.state()))
                 .build(true)
