@@ -9,7 +9,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 DOCKER_IMAGE_NAME="sudolife"
-DOCKER_REGISTRY="gabriel"
+DOCKER_REGISTRY="gabriellf1802"
 
 usage() {
   echo "Usage:"
