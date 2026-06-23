@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db-sudolife:
     image: postgres:16.2-alpine3.18
@@ -23,7 +25,7 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: gabriel/sudolife:latest
+    image: gabriellf1802/sudolife:${APP_VERSION}
     container_name: sudolife-backend
     ports:
       - "8081:8080"
@@ -33,6 +35,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
+      API_SECURITY_TOKEN_SECRET: ${API_SECURITY_TOKEN_SECRET}
+      API_SECURITY_TOKEN_ISSUER: ${API_SECURITY_TOKEN_ISSUER}
+      API_SECURITY_TOKEN_EXPIRATION_MINUTES: ${API_SECURITY_TOKEN_EXPIRATION_MINUTES}
     depends_on:
       db-sudolife:
         condition: service_healthy
