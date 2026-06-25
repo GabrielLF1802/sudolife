@@ -304,3 +304,17 @@ This is a **consumer-first** messaging project.
     e.g., ############################## plus a # Section Name line).
   - Comments start with # and are used both for section headers and separators.
   - No indentation or multiline values; each property is on its own line.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for `GabrielLF1802/sudolife`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The default triage label vocabulary is used: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo using root-level `CONTEXT.md` and `docs/adr/` when present. See `docs/agents/domain.md`.
