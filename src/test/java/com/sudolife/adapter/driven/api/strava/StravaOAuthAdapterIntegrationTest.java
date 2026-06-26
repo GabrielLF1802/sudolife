@@ -33,6 +33,7 @@ class StravaOAuthAdapterIntegrationTest {
     private static final String AUTHORIZATION_PATH = "/oauth/authorize";
     private static final String TOKEN_PATH = "/api/v3/oauth/token";
     private static final String DEAUTHORIZATION_PATH = "/oauth/deauthorize";
+    private static final String ACTIVITIES_PATH = "/api/v3/athlete/activities";
     private static final Long EXPIRES_AT_EPOCH_SECOND = 1773507600L;
     private static final String TOKEN_RESPONSE = """
             {
@@ -178,7 +179,8 @@ class StravaOAuthAdapterIntegrationTest {
         String baseUrl = "http://localhost:" + server.getAddress().getPort();
 
         return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, baseUrl + AUTHORIZATION_PATH,
-                baseUrl + TOKEN_PATH, baseUrl + DEAUTHORIZATION_PATH, Duration.ofSeconds(2), Duration.ofSeconds(5));
+                baseUrl + TOKEN_PATH, baseUrl + DEAUTHORIZATION_PATH, baseUrl + ACTIVITIES_PATH,
+                Duration.ofSeconds(2), Duration.ofSeconds(5));
     }
 
     private record CapturedRequest(String method, String path, Map<String, String> form) {

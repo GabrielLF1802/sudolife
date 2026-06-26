@@ -1,6 +1,8 @@
 package com.sudolife.helper;
 
 import com.sudolife.application.model.strava.StravaAccountLink;
+import com.sudolife.application.model.strava.StravaActivitySummary;
+import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
 import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
@@ -26,6 +28,8 @@ public class StravaTestHelper {
     public static final Instant EXPIRES_AT = Instant.parse("2026-05-11T18:00:00Z");
     public static final Instant LINKED_AT = Instant.parse("2026-05-11T12:01:00Z");
     public static final Instant UNLINKED_AT = Instant.parse("2026-05-11T12:05:00Z");
+    public static final Long SOURCE_ACTIVITY_ID = 457L;
+    public static final Instant ACTIVITY_START_DATE = Instant.parse("2026-05-10T09:00:00Z");
 
     public static StravaAccountLink activeStravaAccountLink() {
         return StravaAccountLink.active(LINK_ID, USER_EMAIL, ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT,
@@ -66,5 +70,11 @@ public class StravaTestHelper {
 
     public static StravaTokenAuthorization stravaTokenAuthorization() {
         return new StravaTokenAuthorization(ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT, SCOPE);
+    }
+
+    public static StravaActivitySummary stravaActivitySummary() {
+        return StravaActivitySummary.imported(USER_EMAIL, LINK_ID, SOURCE_ACTIVITY_ID, StravaActivityType.RUN, "Run",
+                "Morning Run", ACTIVITY_START_DATE, 5000.0, 1500, 3.33, 42.0, 5.5, 150.0, 180.0, 82.0,
+                220.0, 350.0, NOW);
     }
 }

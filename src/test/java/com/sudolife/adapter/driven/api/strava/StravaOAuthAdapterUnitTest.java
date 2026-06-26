@@ -18,6 +18,7 @@ class StravaOAuthAdapterUnitTest {
     private static final String AUTHORIZATION_URL = "https://www.strava.com/oauth/authorize";
     private static final String TOKEN_URL = "https://www.strava.com/api/v3/oauth/token";
     private static final String DEAUTHORIZATION_URL = "https://www.strava.com/oauth/deauthorize";
+    private static final String ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities";
     private final StravaOAuthAdapter adapter = new StravaOAuthAdapter(stravaApiProperties());
 
     @Test
@@ -51,6 +52,6 @@ class StravaOAuthAdapterUnitTest {
 
     private StravaApiProperties stravaApiProperties() {
         return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, AUTHORIZATION_URL, TOKEN_URL,
-                DEAUTHORIZATION_URL, Duration.ofSeconds(2), Duration.ofSeconds(5));
+                DEAUTHORIZATION_URL, ACTIVITIES_URL, Duration.ofSeconds(2), Duration.ofSeconds(5));
     }
 }

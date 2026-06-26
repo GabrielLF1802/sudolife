@@ -2,10 +2,12 @@ package com.sudolife.adapter.driven.persistence.strava;
 
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
 import com.sudolife.application.model.strava.StravaAccountLink;
+import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.InvalidStravaAccountLinkStateException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,12 +22,14 @@ import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.ATHLETE_ID;
 import static com.sudolife.helper.StravaTestHelper.EXPIRES_AT;
 import static com.sudolife.helper.StravaTestHelper.LINKED_AT;
+import static com.sudolife.helper.StravaTestHelper.LINK_ID;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.STATE;
 import static com.sudolife.helper.StravaTestHelper.UNLINKED_AT;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.pendingAuthorizationState;
+import static com.sudolife.helper.StravaTestHelper.stravaActivitySummary;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -43,7 +47,13 @@ class StravaPersistenceAdapterIntegrationTest {
     private StravaAuthorizationStateRepository authorizationStateRepository;
 
     @Autowired
+    private StravaActivitySummaryRepository activitySummaryRepository;
+
+    @Autowired
     private SpringDataStravaAccountLinkRepository springDataAccountLinkRepository;
+
+    @Autowired
+    private SpringDataStravaActivitySummaryRepository springDataActivitySummaryRepository;
 
     @Autowired
     private SpringDataStravaAuthorizationStateRepository springDataAuthorizationStateRepository;
@@ -51,6 +61,7 @@ class StravaPersistenceAdapterIntegrationTest {
     @BeforeEach
     void setUp() {
         springDataAuthorizationStateRepository.deleteAll();
+        springDataActivitySummaryRepository.deleteAll();
         springDataAccountLinkRepository.deleteAll();
     }
 
@@ -150,6 +161,43 @@ class StravaPersistenceAdapterIntegrationTest {
 
         assertThat(savedLink.isLinked()).isTrue();
         assertThat(savedLink.getAthleteId()).isEqualTo(ATHLETE_ID);
+    }
+
+    @Test
+    void save_activity_summary_once_per_user_and_source_activity() {
+        StravaActivitySummary summary = stravaActivitySummary();
+
+        boolean firstSave = activitySummaryRepository.saveIfAbsent(summary);
+        boolean secondSave = activitySummaryRepository.saveIfAbsent(summary);
+
+        assertThat(firstSave).isTrue();
+        assertThat(secondSave).isFalse();
+        assertThat(activitySummaryRepository.countByUserEmail(USER_EMAIL)).isEqualTo(1);
+        assertThat(springDataActivitySummaryRepository.findAll()).hasSize(1);
+        assertThat(springDataActivitySummaryRepository.findAll().getFirst().getName()).isEqualTo("Morning Run");
+    }
+
+    @Test
+    void same_source_activity_can_be_imported_for_different_users() {
+        activitySummaryRepository.saveIfAbsent(stravaActivitySummary());
+        StravaActivitySummary otherUserSummary = activitySummaryForUser("other@sudolife.com");
+
+        boolean saved = activitySummaryRepository.saveIfAbsent(otherUserSummary);
+
+        assertThat(saved).isTrue();
+        assertThat(activitySummaryRepository.countByUserEmail(USER_EMAIL)).isEqualTo(1);
+        assertThat(activitySummaryRepository.countByUserEmail("other@sudolife.com")).isEqualTo(1);
+    }
+
+    private StravaActivitySummary activitySummaryForUser(String userEmail) {
+        StravaActivitySummary summary = stravaActivitySummary();
+
+        return StravaActivitySummary.imported(userEmail, LINK_ID, summary.getSourceActivityId(),
+                summary.getActivityType(), summary.getRawSportType(), summary.getName(), summary.getStartDate(),
+                summary.getDistanceMeters(), summary.getMovingTimeSeconds(), summary.getAverageSpeedMetersPerSecond(),
+                summary.getTotalElevationGainMeters(), summary.getMaxSpeedMetersPerSecond(),
+                summary.getAverageHeartRate(), summary.getMaxHeartRate(), summary.getAverageCadence(),
+                summary.getAverageWatts(), summary.getCalories(), NOW);
     }
 
     private StravaAccountLink activeLink(String userEmail, Long athleteId) {

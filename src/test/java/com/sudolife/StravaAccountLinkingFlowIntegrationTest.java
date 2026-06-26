@@ -1,11 +1,15 @@
 package com.sudolife;
 
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaAccountLinkRepository;
+import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivitySummaryRepository;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaAuthorizationStateRepository;
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
+import com.sudolife.application.model.strava.StravaActivityType;
+import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.StravaAuthorizationRequest;
 import com.sudolife.application.service.strava.StravaTokenAuthorization;
 import com.sudolife.application.service.strava.exception.StravaAuthorizationFailureException;
+import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
 import com.sudolife.application.service.user.AuthenticateUserCommand;
 import com.sudolife.application.service.user.RegisterUserCommand;
@@ -86,17 +90,25 @@ class StravaAccountLinkingFlowIntegrationTest {
     private SpringDataStravaAccountLinkRepository accountLinkRepository;
 
     @Autowired
+    private SpringDataStravaActivitySummaryRepository activitySummaryRepository;
+
+    @Autowired
     private SpringDataStravaAuthorizationStateRepository authorizationStateRepository;
 
     @Autowired
     private FakeStravaOAuthProvider oAuthProvider;
 
+    @Autowired
+    private FakeStravaActivityProvider activityProvider;
+
     @BeforeEach
     void setUp() {
         authorizationStateRepository.deleteAll();
+        activitySummaryRepository.deleteAll();
         accountLinkRepository.deleteAll();
         jdbcTemplate.update("delete from users");
         oAuthProvider.reset();
+        activityProvider.reset();
     }
 
     @Test
@@ -136,6 +148,48 @@ class StravaAccountLinkingFlowIntegrationTest {
                 .andExpect(jsonPath("$.linked").value(true))
                 .andExpect(jsonPath("$.athleteId").value(ATHLETE_ID))
                 .andExpect(jsonPath("$.permissionState").value("PERMISSION_UPGRADE_REQUIRED"));
+    }
+
+    @Test
+    void manual_sync_imports_activity_summaries_and_skips_duplicates() throws Exception {
+        register(USER_NAME, USER_EMAIL);
+        String token = login(USER_EMAIL);
+        String state = startLinking(token, ACCESS_TOKEN, REFRESH_TOKEN);
+        callback(state, CODE, SCOPE);
+
+        mockMvc.perform(post("/api/strava/sync").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.failureReason").doesNotExist())
+                .andExpect(jsonPath("$.importedActivityCount").value(1))
+                .andExpect(jsonPath("$.totalActivityCount").value(1))
+                .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
+                .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
+
+        mockMvc.perform(post("/api/strava/sync").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.importedActivityCount").value(0))
+                .andExpect(jsonPath("$.totalActivityCount").value(1));
+        assertThat(activitySummaryRepository.findAll()).hasSize(1);
+        assertThat(activitySummaryRepository.findAll().getFirst().getActivityType()).isEqualTo(StravaActivityType.RUN);
+        assertThat(activityProvider.accessTokens()).containsExactly(ACCESS_TOKEN, ACCESS_TOKEN);
+    }
+
+    @Test
+    void manual_sync_for_read_only_link_returns_permission_upgrade_required() throws Exception {
+        register(USER_NAME, USER_EMAIL);
+        String token = login(USER_EMAIL);
+        insertReadOnlyActiveLink(USER_EMAIL);
+
+        mockMvc.perform(post("/api/strava/sync").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.failureReason").value("PERMISSION_UPGRADE_REQUIRED"))
+                .andExpect(jsonPath("$.importedActivityCount").value(0));
+
+        assertThat(activitySummaryRepository.findAll()).isEmpty();
+        assertThat(activityProvider.accessTokens()).isEmpty();
     }
 
     @Test
@@ -344,6 +398,12 @@ class StravaAccountLinkingFlowIntegrationTest {
         FakeStravaOAuthProvider fakeStravaOAuthProvider() {
             return new FakeStravaOAuthProvider();
         }
+
+        @Bean
+        @Primary
+        FakeStravaActivityProvider fakeStravaActivityProvider() {
+            return new FakeStravaActivityProvider();
+        }
     }
 
     static class FakeStravaOAuthProvider implements StravaOAuthProvider {
@@ -396,6 +456,28 @@ class StravaAccountLinkingFlowIntegrationTest {
 
         List<String> deauthorizedAccessTokens() {
             return List.copyOf(deauthorizedAccessTokens);
+        }
+    }
+
+    static class FakeStravaActivityProvider implements StravaActivityProvider {
+
+        private final List<String> accessTokens = new java.util.ArrayList<>();
+
+        @Override
+        public List<StravaActivitySummaryImport> fetchActivitySummaries(String accessToken, Instant after, Instant before) {
+            accessTokens.add(accessToken);
+
+            return List.of(new StravaActivitySummaryImport(457L, StravaActivityType.RUN, "Run", "Morning Run",
+                    Instant.parse("2026-05-10T09:00:00Z"), 5000.0, 1500, 3.33, 42.0, 5.5, 150.0,
+                    180.0, 82.0, 220.0, 350.0));
+        }
+
+        void reset() {
+            accessTokens.clear();
+        }
+
+        List<String> accessTokens() {
+            return List.copyOf(accessTokens);
         }
     }
 }

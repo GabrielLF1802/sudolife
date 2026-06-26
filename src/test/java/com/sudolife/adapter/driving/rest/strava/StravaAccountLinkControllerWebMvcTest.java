@@ -3,7 +3,11 @@ package com.sudolife.adapter.driving.rest.strava;
 import com.sudolife.adapter.driving.rest.RestExceptionHandler;
 import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
+import com.sudolife.application.service.strava.RequestStravaActivitySyncCommand;
 import com.sudolife.application.service.strava.StartStravaAccountLinkingCommand;
+import com.sudolife.application.service.strava.StravaActivitySyncFailureReason;
+import com.sudolife.application.service.strava.StravaActivitySyncResult;
+import com.sudolife.application.service.strava.StravaActivitySyncStatus;
 import com.sudolife.application.service.strava.StravaAuthorizationUrlResult;
 import com.sudolife.application.service.strava.StravaCallbackResult;
 import com.sudolife.application.service.strava.StravaLinkStatusResult;
@@ -12,6 +16,7 @@ import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
+import com.sudolife.application.service.strava.ports.provided.RequestStravaActivitySyncUseCase;
 import com.sudolife.application.service.strava.ports.provided.StartStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.UnlinkStravaAccountUseCase;
 import com.sudolife.application.service.user.ports.required.UserRepository;
@@ -69,6 +74,9 @@ class StravaAccountLinkControllerWebMvcTest {
 
     @MockitoBean
     private UnlinkStravaAccountUseCase unlinkStravaAccountUseCase;
+
+    @MockitoBean
+    private RequestStravaActivitySyncUseCase requestStravaActivitySyncUseCase;
 
     @MockitoBean
     private UserToken userToken;
@@ -133,6 +141,47 @@ class StravaAccountLinkControllerWebMvcTest {
     @Test
     void unlink_rejects_unauthenticated_user() throws Exception {
         mockMvc.perform(delete("/api/strava/link"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void sync_returns_manual_activity_sync_result_for_authenticated_user() throws Exception {
+        RequestStravaActivitySyncCommand command = new RequestStravaActivitySyncCommand(USER_EMAIL);
+        when(requestStravaActivitySyncUseCase.execute(command))
+                .thenReturn(new StravaActivitySyncResult(StravaActivitySyncStatus.COMPLETED, null, 3, 12));
+
+        mockMvc.perform(post("/api/strava/sync").with(user(USER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.failureReason").doesNotExist())
+                .andExpect(jsonPath("$.importedActivityCount").value(3))
+                .andExpect(jsonPath("$.totalActivityCount").value(12))
+                .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
+                .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
+
+        verify(requestStravaActivitySyncUseCase).execute(command);
+    }
+
+    @Test
+    void sync_returns_permission_upgrade_required_for_permission_deficient_link() throws Exception {
+        RequestStravaActivitySyncCommand command = new RequestStravaActivitySyncCommand(USER_EMAIL);
+        when(requestStravaActivitySyncUseCase.execute(command))
+                .thenReturn(new StravaActivitySyncResult(StravaActivitySyncStatus.FAILED,
+                        StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED, 0, 4));
+
+        mockMvc.perform(post("/api/strava/sync").with(user(USER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.failureReason").value("PERMISSION_UPGRADE_REQUIRED"))
+                .andExpect(jsonPath("$.importedActivityCount").value(0))
+                .andExpect(jsonPath("$.totalActivityCount").value(4));
+
+        verify(requestStravaActivitySyncUseCase).execute(command);
+    }
+
+    @Test
+    void sync_rejects_unauthenticated_user() throws Exception {
+        mockMvc.perform(post("/api/strava/sync"))
                 .andExpect(status().isForbidden());
     }
 
