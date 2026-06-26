@@ -54,9 +54,10 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         }
 
         StravaTokenAuthorization tokenAuthorization = exchangeAuthorizationCode(command.code());
-        validateScope(command.scope());
+        validateScope(tokenAuthorization.scope());
         validateAthleteOwnership(authorizationState.getUserEmail(), tokenAuthorization.athleteId());
-        saveActiveLink(authorizationState.getUserEmail(), tokenAuthorization, scopeValue(command.scope()), now);
+        saveActiveLink(authorizationState.getUserEmail(), tokenAuthorization, scopeValue(tokenAuthorization.scope()),
+                now);
         log.info("Strava account linking completed for userEmail={} athleteId={}", authorizationState.getUserEmail(),
                 tokenAuthorization.athleteId());
 

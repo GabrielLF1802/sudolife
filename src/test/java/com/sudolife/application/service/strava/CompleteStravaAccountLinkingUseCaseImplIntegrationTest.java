@@ -26,6 +26,7 @@ import static com.sudolife.helper.StravaTestHelper.EXPIRES_AT;
 import static com.sudolife.helper.StravaTestHelper.LINKED_AT;
 import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
+import static com.sudolife.helper.StravaTestHelper.SCOPE;
 import static com.sudolife.helper.StravaTestHelper.STATE;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.completeStravaAccountLinkingCommand;
@@ -107,10 +108,10 @@ class CompleteStravaAccountLinkingUseCaseImplIntegrationTest {
     @Test
     void execute_rejects_insufficient_scope_without_creating_link() {
         authorizationStateRepository.save(pendingAuthorizationState());
-        CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE,
-                "profile:read_all", null);
+        oAuthProvider.authorize(new StravaTokenAuthorization(ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT,
+                "profile:read_all"));
 
-        StravaCallbackResult result = useCase.execute(command);
+        StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
 
         assertThat(result.linked()).isFalse();
         assertThat(result.failureCode()).isEqualTo("INSUFFICIENT_SCOPE");
@@ -136,7 +137,7 @@ class CompleteStravaAccountLinkingUseCaseImplIntegrationTest {
         StravaAccountLink existingLink = accountLinkRepository.save(StravaAccountLink.active(null, USER_EMAIL,
                 ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT, LINKED_AT));
         oAuthProvider.authorize(new StravaTokenAuthorization(ATHLETE_ID, ROTATED_ACCESS_TOKEN, ROTATED_REFRESH_TOKEN,
-                EXPIRES_AT.plusSeconds(60), "read"));
+                EXPIRES_AT.plusSeconds(60), SCOPE));
 
         StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
 

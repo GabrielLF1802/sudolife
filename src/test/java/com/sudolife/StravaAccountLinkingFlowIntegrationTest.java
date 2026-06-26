@@ -269,6 +269,8 @@ class StravaAccountLinkingFlowIntegrationTest {
         String deniedState = startLinking(token, ACCESS_TOKEN, REFRESH_TOKEN);
         String deniedRedirect = callbackDenied(deniedState);
         String insufficientScopeState = startLinking(token, ACCESS_TOKEN, REFRESH_TOKEN);
+        oAuthProvider.authorize(new StravaTokenAuthorization(ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT,
+                "profile:read_all"));
         String insufficientScopeRedirect = callback(insufficientScopeState, CODE, "profile:read_all");
         String exchangeFailureState = startLinking(token, ACCESS_TOKEN, REFRESH_TOKEN);
         String exchangeFailureRedirect = callback(exchangeFailureState, TOKEN_EXCHANGE_FAILURE_CODE, SCOPE);

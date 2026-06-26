@@ -162,11 +162,11 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     @Test
     void execute_with_missing_activity_read_scope_consumes_state_without_linking() {
         stubPendingState();
-        when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(stravaTokenAuthorization());
-        CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE, "read",
-                null);
+        StravaTokenAuthorization token = new StravaTokenAuthorization(ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN,
+                EXPIRES_AT, "read");
+        when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(token);
 
-        StravaCallbackResult result = useCase.execute(command);
+        StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
 
         assertThat(result.linked()).isFalse();
         assertThat(result.failureCode()).isEqualTo("INSUFFICIENT_SCOPE");
@@ -177,11 +177,11 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     @Test
     void execute_with_space_delimited_activity_read_scope_links_account() {
         stubPendingState();
-        when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(stravaTokenAuthorization());
-        CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE,
-                "profile:read_all read activity:read", null);
+        StravaTokenAuthorization token = new StravaTokenAuthorization(ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN,
+                EXPIRES_AT, "profile:read_all read activity:read");
+        when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(token);
 
-        StravaCallbackResult result = useCase.execute(command);
+        StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
 
         assertThat(result.linked()).isTrue();
         assertThat(capturedSavedLink().getAthleteId()).isEqualTo(ATHLETE_ID);
@@ -205,7 +205,7 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     void execute_with_same_user_reconnect_replaces_token_metadata() {
         stubPendingState();
         StravaTokenAuthorization token = new StravaTokenAuthorization(ATHLETE_ID, ROTATED_ACCESS_TOKEN,
-                ROTATED_REFRESH_TOKEN, ROTATED_EXPIRES_AT, "read");
+                ROTATED_REFRESH_TOKEN, ROTATED_EXPIRES_AT, SCOPE);
         when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(token);
         when(accountLinkRepository.findActiveByAthleteId(ATHLETE_ID)).thenReturn(Optional.of(activeStravaAccountLink()));
         when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL)).thenReturn(Optional.of(activeStravaAccountLink()));
