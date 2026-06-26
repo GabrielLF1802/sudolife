@@ -2,16 +2,20 @@ package com.sudolife.adapter.driving.rest.strava;
 
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaAuthorizationUrlResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaCallbackRequest;
+import com.sudolife.adapter.driving.rest.strava.webmodel.StravaActivitySyncResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaLinkStatusResponse;
 import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
+import com.sudolife.application.service.strava.RequestStravaActivitySyncCommand;
 import com.sudolife.application.service.strava.StartStravaAccountLinkingCommand;
+import com.sudolife.application.service.strava.StravaActivitySyncResult;
 import com.sudolife.application.service.strava.StravaAuthorizationUrlResult;
 import com.sudolife.application.service.strava.StravaCallbackResult;
 import com.sudolife.application.service.strava.StravaLinkStatusResult;
 import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
+import com.sudolife.application.service.strava.ports.provided.RequestStravaActivitySyncUseCase;
 import com.sudolife.application.service.strava.ports.provided.StartStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.UnlinkStravaAccountUseCase;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +43,7 @@ public class StravaAccountLinkController {
     private final CompleteStravaAccountLinkingUseCase completeStravaAccountLinkingUseCase;
     private final GetStravaAccountLinkStatusUseCase getStravaAccountLinkStatusUseCase;
     private final UnlinkStravaAccountUseCase unlinkStravaAccountUseCase;
+    private final RequestStravaActivitySyncUseCase requestStravaActivitySyncUseCase;
     private final StravaFrontendRedirectProperties stravaFrontendRedirectProperties;
 
     @PostMapping("/link")
@@ -67,6 +72,16 @@ public class StravaAccountLinkController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
+    @PostMapping("/sync")
+    public ResponseEntity<StravaActivitySyncResponse> sync(Authentication authentication) {
+        StravaActivitySyncResult result = requestStravaActivitySyncUseCase.execute(
+                new RequestStravaActivitySyncCommand(authentication.getName())
+        );
+
+        return ResponseEntity.ok(new StravaActivitySyncResponse(result.status().name(), failureReason(result),
+                result.importedActivityCount(), result.totalActivityCount()));
+    }
+
     @GetMapping("/callback")
     public RedirectView callback(@ModelAttribute StravaCallbackRequest request) {
         StravaCallbackResult result = completeStravaAccountLinkingUseCase.execute(
@@ -90,5 +105,13 @@ public class StravaAccountLinkController {
                 .queryParam("failureCode", result.failureCode())
                 .build()
                 .toUriString();
+    }
+
+    private String failureReason(StravaActivitySyncResult result) {
+        if (result.failureReason() == null) {
+            return null;
+        }
+
+        return result.failureReason().name();
     }
 }
