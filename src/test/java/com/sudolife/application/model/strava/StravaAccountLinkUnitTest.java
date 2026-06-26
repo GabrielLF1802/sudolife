@@ -8,6 +8,7 @@ import static com.sudolife.helper.StravaTestHelper.EXPIRES_AT;
 import static com.sudolife.helper.StravaTestHelper.LINKED_AT;
 import static com.sudolife.helper.StravaTestHelper.LINK_ID;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
+import static com.sudolife.helper.StravaTestHelper.SCOPE;
 import static com.sudolife.helper.StravaTestHelper.UNLINKED_AT;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.activeStravaAccountLink;
@@ -23,6 +24,8 @@ class StravaAccountLinkUnitTest {
 
         assertThat(link.isLinked()).isTrue();
         assertThat(link.isInactive()).isFalse();
+        assertThat(link.hasActivityReadScope()).isTrue();
+        assertThat(link.getGrantedScopes()).isEqualTo(SCOPE);
         assertThat(link.getUnlinkedAt()).isNull();
     }
 
@@ -38,6 +41,15 @@ class StravaAccountLinkUnitTest {
         assertThat(link.getAccessToken()).isNull();
         assertThat(link.getRefreshToken()).isNull();
         assertThat(link.getExpiresAt()).isNull();
+        assertThat(link.getGrantedScopes()).isNull();
+    }
+
+    @Test
+    void hasActivityReadScope_returns_false_for_read_only_scope() {
+        StravaAccountLink link = StravaAccountLink.active(LINK_ID, USER_EMAIL, ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN,
+                EXPIRES_AT, "read", LINKED_AT);
+
+        assertThat(link.hasActivityReadScope()).isFalse();
     }
 
     @Test

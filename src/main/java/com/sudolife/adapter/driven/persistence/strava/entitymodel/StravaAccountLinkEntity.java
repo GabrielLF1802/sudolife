@@ -52,6 +52,8 @@ public class StravaAccountLinkEntity {
     private String refreshToken;
     @Column(name = "expires_at")
     private Instant expiresAt;
+    @Column(name = "granted_scopes", length = 1024)
+    private String grantedScopes;
     @Column(nullable = false)
     private boolean active;
     @Column(name = "linked_at", nullable = false)

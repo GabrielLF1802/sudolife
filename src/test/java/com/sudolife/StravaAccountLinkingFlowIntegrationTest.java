@@ -37,6 +37,7 @@ import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.ATHLETE_ID;
 import static com.sudolife.helper.StravaTestHelper.CODE;
 import static com.sudolife.helper.StravaTestHelper.EXPIRES_AT;
+import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.SCOPE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,6 +110,7 @@ class StravaAccountLinkingFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.linked").value(true))
                 .andExpect(jsonPath("$.athleteId").value(ATHLETE_ID))
+                .andExpect(jsonPath("$.permissionState").value("READY"))
                 .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
                 .andExpect(content().string(not(containsString(REFRESH_TOKEN))))
                 .andReturn()
@@ -121,6 +123,19 @@ class StravaAccountLinkingFlowIntegrationTest {
         assertThat(output).contains("Strava account linking started for userEmail=" + USER_EMAIL);
         assertThat(output).contains("Strava account linking completed for userEmail=" + USER_EMAIL);
         assertThat(output).contains("athleteId=" + ATHLETE_ID);
+    }
+
+    @Test
+    void status_for_existing_read_only_link_requires_permission_upgrade() throws Exception {
+        register(USER_NAME, USER_EMAIL);
+        String token = login(USER_EMAIL);
+        insertReadOnlyActiveLink(USER_EMAIL);
+
+        getStatus(token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.linked").value(true))
+                .andExpect(jsonPath("$.athleteId").value(ATHLETE_ID))
+                .andExpect(jsonPath("$.permissionState").value("PERMISSION_UPGRADE_REQUIRED"));
     }
 
     @Test
@@ -175,6 +190,7 @@ class StravaAccountLinkingFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.linked").value(false))
                 .andExpect(jsonPath("$.athleteId").doesNotExist())
+                .andExpect(jsonPath("$.permissionState").value("UNLINKED"))
                 .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
                 .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
 
@@ -245,6 +261,8 @@ class StravaAccountLinkingFlowIntegrationTest {
         String response = mockMvc.perform(post("/api/strava/link").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authorizationUrl").exists())
+                .andExpect(jsonPath("$.authorizationUrl").value(containsString("activity:read")))
+                .andExpect(jsonPath("$.authorizationUrl").value(not(containsString("activity:read_all"))))
                 .andExpect(content().string(not(containsString(accessToken))))
                 .andExpect(content().string(not(containsString(refreshToken))))
                 .andReturn()
@@ -292,6 +310,17 @@ class StravaAccountLinkingFlowIntegrationTest {
 
     private StravaAccountLinkEntity activeLink(String email) {
         return accountLinkRepository.findByUserEmailAndActiveTrue(email).orElseThrow();
+    }
+
+    private void insertReadOnlyActiveLink(String email) {
+        jdbcTemplate.update("""
+                        insert into strava_account_links (
+                            user_email, athlete_id, active_athlete_id, active_user_email, access_token,
+                            refresh_token, expires_at, granted_scopes, active, linked_at
+                        ) values (?, ?, ?, ?, ?, ?, ?, ?, true, ?)
+                        """,
+                email, ATHLETE_ID, ATHLETE_ID, email, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT, "read",
+                NOW);
     }
 
     private String stateFrom(String authorizationUrl) {

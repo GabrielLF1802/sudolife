@@ -20,7 +20,7 @@ public class StravaTestHelper {
     public static final String REFRESH_TOKEN = "refresh-token";
     public static final String STATE = "state-token";
     public static final String CODE = "authorization-code";
-    public static final String SCOPE = "read";
+    public static final String SCOPE = "read,activity:read";
     public static final String REDIRECT_URI = "https://sudolife.com/api/strava/callback";
     public static final Instant NOW = Instant.parse("2026-05-11T12:00:00Z");
     public static final Instant EXPIRES_AT = Instant.parse("2026-05-11T18:00:00Z");

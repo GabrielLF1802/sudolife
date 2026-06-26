@@ -39,7 +39,7 @@ class StravaOAuthAdapterIntegrationTest {
               "access_token": "access-token",
               "refresh_token": "refresh-token",
               "expires_at": 1773507600,
-              "scope": "read",
+              "scope": "read,activity:read",
               "athlete": {
                 "id": 9001
               }

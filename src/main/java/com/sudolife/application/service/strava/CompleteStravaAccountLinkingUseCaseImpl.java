@@ -27,7 +27,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAccountLinkingUseCase {
 
-    private static final String STRAVA_READ_SCOPE = "read";
+    private static final String STRAVA_ACTIVITY_READ_SCOPE = "activity:read";
 
     private final StravaAuthorizationStateRepository authorizationStateRepository;
     private final StravaAccountLinkRepository accountLinkRepository;
@@ -56,7 +56,7 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         StravaTokenAuthorization tokenAuthorization = exchangeAuthorizationCode(command.code());
         validateScope(command.scope());
         validateAthleteOwnership(authorizationState.getUserEmail(), tokenAuthorization.athleteId());
-        saveActiveLink(authorizationState.getUserEmail(), tokenAuthorization, now);
+        saveActiveLink(authorizationState.getUserEmail(), tokenAuthorization, scopeValue(command.scope()), now);
         log.info("Strava account linking completed for userEmail={} athleteId={}", authorizationState.getUserEmail(),
                 tokenAuthorization.athleteId());
 
@@ -95,10 +95,10 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
     }
 
     private void validateScope(String scope) {
-        boolean hasReadScope = Arrays.stream(scopeValue(scope).split("\\s+"))
-                .anyMatch(STRAVA_READ_SCOPE::equals);
+        boolean hasActivityReadScope = Arrays.stream(scopeValue(scope).split("[,\\s]+"))
+                .anyMatch(STRAVA_ACTIVITY_READ_SCOPE::equals);
 
-        if (!hasReadScope) {
+        if (!hasActivityReadScope) {
             log.warn("Strava account linking failed failureCode=INSUFFICIENT_SCOPE");
             throw new InsufficientStravaScopeException();
         }
@@ -121,12 +121,13 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         }
     }
 
-    private void saveActiveLink(String userEmail, StravaTokenAuthorization tokenAuthorization, Instant linkedAt) {
+    private void saveActiveLink(String userEmail, StravaTokenAuthorization tokenAuthorization, String grantedScopes,
+                                Instant linkedAt) {
         Optional<StravaAccountLink> activeUserLink = accountLinkRepository.findActiveByUserEmail(userEmail);
         Long linkId = activeUserLink.map(StravaAccountLink::getId).orElse(null);
         StravaAccountLink link = StravaAccountLink.active(linkId, userEmail, tokenAuthorization.athleteId(),
                 tokenAuthorization.accessToken(), tokenAuthorization.refreshToken(), tokenAuthorization.expiresAt(),
-                linkedAt);
+                grantedScopes, linkedAt);
 
         transactionTemplate.executeWithoutResult(status -> accountLinkRepository.save(link));
     }

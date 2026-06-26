@@ -7,6 +7,7 @@ import com.sudolife.application.service.strava.StartStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.StravaAuthorizationUrlResult;
 import com.sudolife.application.service.strava.StravaCallbackResult;
 import com.sudolife.application.service.strava.StravaLinkStatusResult;
+import com.sudolife.application.service.strava.StravaPermissionState;
 import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
@@ -100,12 +101,13 @@ class StravaAccountLinkControllerWebMvcTest {
     void status_returns_link_status_for_authenticated_user() throws Exception {
         GetStravaAccountLinkStatusCommand command = new GetStravaAccountLinkStatusCommand(USER_EMAIL);
         when(getStravaAccountLinkStatusUseCase.execute(command))
-                .thenReturn(new StravaLinkStatusResult(true, ATHLETE_ID));
+                .thenReturn(new StravaLinkStatusResult(true, ATHLETE_ID, StravaPermissionState.READY));
 
         mockMvc.perform(get("/api/strava/status").with(user(USER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.linked").value(true))
                 .andExpect(jsonPath("$.athleteId").value(ATHLETE_ID))
+                .andExpect(jsonPath("$.permissionState").value("READY"))
                 .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
                 .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
 

@@ -20,10 +20,18 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
     }
 
     private StravaLinkStatusResult linkedStatus(StravaAccountLink accountLink) {
-        return new StravaLinkStatusResult(true, accountLink.getAthleteId());
+        return new StravaLinkStatusResult(true, accountLink.getAthleteId(), permissionState(accountLink));
     }
 
     private StravaLinkStatusResult unlinkedStatus() {
-        return new StravaLinkStatusResult(false, null);
+        return new StravaLinkStatusResult(false, null, StravaPermissionState.UNLINKED);
+    }
+
+    private StravaPermissionState permissionState(StravaAccountLink accountLink) {
+        if (accountLink.hasActivityReadScope()) {
+            return StravaPermissionState.READY;
+        }
+
+        return StravaPermissionState.PERMISSION_UPGRADE_REQUIRED;
     }
 }

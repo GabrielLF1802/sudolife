@@ -58,14 +58,15 @@ class StartStravaAccountLinkingUseCaseImplUnitTest {
     }
 
     @Test
-    void execute_requests_authorization_url_with_read_scope() {
+    void execute_requests_authorization_url_with_activity_read_scope() {
         stubSuccessfulStart();
 
         useCase.execute(startStravaAccountLinkingCommand());
 
         StravaAuthorizationRequest request = capturedAuthorizationRequest();
         assertThat(request.state()).isEqualTo(STATE);
-        assertThat(request.scope()).isEqualTo("read");
+        assertThat(request.scope()).isEqualTo("read,activity:read");
+        assertThat(request.scope()).doesNotContain("activity:read_all");
     }
 
     @Test

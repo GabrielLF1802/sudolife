@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Optional;
 
+import static com.sudolife.helper.StravaTestHelper.SCOPE;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.startStravaAccountLinkingCommand;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 class StartStravaAccountLinkingUseCaseImplIntegrationTest {
 
-    private static final String AUTHORIZATION_URL = "https://www.strava.com/oauth/authorize?scope=read";
+    private static final String AUTHORIZATION_URL = "https://www.strava.com/oauth/authorize?scope=read,activity:read";
     private static final Instant EXPECTED_EXPIRATION = Instant.parse("2026-05-11T12:10:00Z");
 
     @Autowired
@@ -62,7 +63,8 @@ class StartStravaAccountLinkingUseCaseImplIntegrationTest {
         assertThat(savedState).isPresent();
         assertThat(savedState.get().getUserEmail()).isEqualTo(USER_EMAIL);
         assertThat(savedState.get().getExpiresAt()).isEqualTo(EXPECTED_EXPIRATION);
-        assertThat(oAuthProvider.lastRequest().scope()).isEqualTo("read");
+        assertThat(oAuthProvider.lastRequest().scope()).isEqualTo(SCOPE);
+        assertThat(oAuthProvider.lastRequest().scope()).doesNotContain("activity:read_all");
         assertThat(accountLinkRepository.findActiveByUserEmail(USER_EMAIL)).isEmpty();
     }
 

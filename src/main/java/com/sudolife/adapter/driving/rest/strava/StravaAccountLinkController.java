@@ -56,7 +56,8 @@ public class StravaAccountLinkController {
                 new GetStravaAccountLinkStatusCommand(authentication.getName())
         );
 
-        return ResponseEntity.ok(new StravaLinkStatusResponse(result.linked(), result.athleteId()));
+        return ResponseEntity.ok(new StravaLinkStatusResponse(result.linked(), result.athleteId(),
+                result.permissionState().name()));
     }
 
     @DeleteMapping("/link")

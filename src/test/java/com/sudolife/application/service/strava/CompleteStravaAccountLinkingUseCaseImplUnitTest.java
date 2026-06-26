@@ -26,6 +26,7 @@ import static com.sudolife.helper.StravaTestHelper.EXPIRES_AT;
 import static com.sudolife.helper.StravaTestHelper.LINK_ID;
 import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
+import static com.sudolife.helper.StravaTestHelper.SCOPE;
 import static com.sudolife.helper.StravaTestHelper.STATE;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.activeStravaAccountLink;
@@ -159,11 +160,11 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     }
 
     @Test
-    void execute_with_missing_read_scope_consumes_state_without_linking() {
+    void execute_with_missing_activity_read_scope_consumes_state_without_linking() {
         stubPendingState();
         when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(stravaTokenAuthorization());
-        CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE,
-                "profile:read_all activity:read", null);
+        CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE, "read",
+                null);
 
         StravaCallbackResult result = useCase.execute(command);
 
@@ -174,7 +175,7 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     }
 
     @Test
-    void execute_with_space_delimited_read_scope_links_account() {
+    void execute_with_space_delimited_activity_read_scope_links_account() {
         stubPendingState();
         when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(stravaTokenAuthorization());
         CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE,
@@ -217,6 +218,7 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
         assertThat(savedLink.getAccessToken()).isEqualTo(ROTATED_ACCESS_TOKEN);
         assertThat(savedLink.getRefreshToken()).isEqualTo(ROTATED_REFRESH_TOKEN);
         assertThat(savedLink.getExpiresAt()).isEqualTo(ROTATED_EXPIRES_AT);
+        assertThat(savedLink.getGrantedScopes()).isEqualTo(SCOPE);
     }
 
     @Test
