@@ -2,6 +2,7 @@ package com.sudolife.application.service.strava;
 
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
+import com.sudolife.application.model.strava.StravaSummarySyncJob;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.InsufficientStravaScopeException;
 import com.sudolife.application.service.strava.exception.InvalidStravaAuthorizationStateException;
@@ -12,6 +13,7 @@ import com.sudolife.application.service.strava.ports.provided.CompleteStravaAcco
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
+import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
     private final StravaAuthorizationStateRepository authorizationStateRepository;
     private final StravaAccountLinkRepository accountLinkRepository;
     private final StravaOAuthProvider oAuthProvider;
+    private final StravaSummarySyncJobRepository summarySyncJobRepository;
     private final TimeProvider timeProvider;
     private final TransactionTemplate transactionTemplate;
 
@@ -56,8 +59,9 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         StravaTokenAuthorization tokenAuthorization = exchangeAuthorizationCode(command.code());
         validateScope(tokenAuthorization.scope());
         validateAthleteOwnership(authorizationState.getUserEmail(), tokenAuthorization.athleteId());
-        saveActiveLink(authorizationState.getUserEmail(), tokenAuthorization, scopeValue(tokenAuthorization.scope()),
+        StravaAccountLink savedLink = saveActiveLink(authorizationState.getUserEmail(), tokenAuthorization, scopeValue(tokenAuthorization.scope()),
                 now);
+        enqueueInitialSync(savedLink, now);
         log.info("Strava account linking completed for userEmail={} athleteId={}", authorizationState.getUserEmail(),
                 tokenAuthorization.athleteId());
 
@@ -122,15 +126,22 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         }
     }
 
-    private void saveActiveLink(String userEmail, StravaTokenAuthorization tokenAuthorization, String grantedScopes,
-                                Instant linkedAt) {
+    private StravaAccountLink saveActiveLink(String userEmail, StravaTokenAuthorization tokenAuthorization, String grantedScopes,
+                                             Instant linkedAt) {
         Optional<StravaAccountLink> activeUserLink = accountLinkRepository.findActiveByUserEmail(userEmail);
         Long linkId = activeUserLink.map(StravaAccountLink::getId).orElse(null);
         StravaAccountLink link = StravaAccountLink.active(linkId, userEmail, tokenAuthorization.athleteId(),
                 tokenAuthorization.accessToken(), tokenAuthorization.refreshToken(), tokenAuthorization.expiresAt(),
                 grantedScopes, linkedAt);
 
-        transactionTemplate.executeWithoutResult(status -> accountLinkRepository.save(link));
+        return transactionTemplate.execute(status -> accountLinkRepository.save(link));
+    }
+
+    private void enqueueInitialSync(StravaAccountLink accountLink, Instant now) {
+        if (summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(accountLink, now))) {
+            log.info("Strava initial summary sync job queued userEmail={} accountLinkId={}", accountLink.getUserEmail(),
+                    accountLink.getId());
+        }
     }
 
     private StravaCallbackResult failed(String failureCode) {

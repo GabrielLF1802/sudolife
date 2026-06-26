@@ -12,6 +12,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +25,11 @@ public class StravaAccountLinkRepositoryJpaAdapter implements StravaAccountLinkR
     private final StravaAccountLinkPersistenceMapper mapper;
 
     @Override
+    public Optional<StravaAccountLink> findActiveById(Long id) {
+        return jpaRepository.findByIdAndActiveTrue(id).map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<StravaAccountLink> findActiveByUserEmail(String userEmail) {
         return jpaRepository.findByUserEmailAndActiveTrue(userEmail).map(mapper::toDomain);
     }
@@ -31,6 +37,13 @@ public class StravaAccountLinkRepositoryJpaAdapter implements StravaAccountLinkR
     @Override
     public Optional<StravaAccountLink> findActiveByAthleteId(Long athleteId) {
         return jpaRepository.findByAthleteIdAndActiveTrue(athleteId).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<StravaAccountLink> findAllActive() {
+        return jpaRepository.findByActiveTrue().stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

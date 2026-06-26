@@ -8,9 +8,13 @@ import java.util.Optional;
 
 public interface SpringDataStravaAccountLinkRepository extends JpaRepository<StravaAccountLinkEntity, Long> {
 
+    Optional<StravaAccountLinkEntity> findByIdAndActiveTrue(Long id);
+
     Optional<StravaAccountLinkEntity> findByUserEmailAndActiveTrue(String userEmail);
 
     Optional<StravaAccountLinkEntity> findByAthleteIdAndActiveTrue(Long athleteId);
+
+    List<StravaAccountLinkEntity> findByActiveTrue();
 
     List<StravaAccountLinkEntity> findByUserEmailOrderByLinkedAtAsc(String userEmail);
 }
