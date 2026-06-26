@@ -3,7 +3,11 @@ package com.sudolife.adapter.driving.rest.strava;
 import com.sudolife.adapter.driving.rest.RestExceptionHandler;
 import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
+import com.sudolife.application.service.strava.ListStravaActivitiesCommand;
 import com.sudolife.application.service.strava.RequestStravaActivitySyncCommand;
+import com.sudolife.application.service.strava.StravaActivityListItemResult;
+import com.sudolife.application.service.strava.StravaActivityListResult;
+import com.sudolife.application.service.strava.StravaActivityStreamStatus;
 import com.sudolife.application.service.strava.StartStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.StravaActivitySyncFailureReason;
 import com.sudolife.application.service.strava.StravaActivitySyncResult;
@@ -16,6 +20,7 @@ import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
+import com.sudolife.application.service.strava.ports.provided.ListStravaActivitiesUseCase;
 import com.sudolife.application.service.strava.ports.provided.RequestStravaActivitySyncUseCase;
 import com.sudolife.application.service.strava.ports.provided.StartStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.UnlinkStravaAccountUseCase;
@@ -31,11 +36,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
+import static com.sudolife.application.model.strava.StravaActivityType.RUN;
+import static com.sudolife.helper.StravaTestHelper.ACTIVITY_START_DATE;
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.ATHLETE_ID;
 import static com.sudolife.helper.StravaTestHelper.CODE;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.SCOPE;
+import static com.sudolife.helper.StravaTestHelper.SOURCE_ACTIVITY_ID;
 import static com.sudolife.helper.StravaTestHelper.STATE;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static org.hamcrest.Matchers.containsString;
@@ -77,6 +87,9 @@ class StravaAccountLinkControllerWebMvcTest {
 
     @MockitoBean
     private RequestStravaActivitySyncUseCase requestStravaActivitySyncUseCase;
+
+    @MockitoBean
+    private ListStravaActivitiesUseCase listStravaActivitiesUseCase;
 
     @MockitoBean
     private UserToken userToken;
@@ -186,6 +199,68 @@ class StravaAccountLinkControllerWebMvcTest {
     }
 
     @Test
+    void activities_returns_paginated_activity_list_for_authenticated_user() throws Exception {
+        ListStravaActivitiesCommand command = new ListStravaActivitiesCommand(USER_EMAIL, 1, 2);
+        when(listStravaActivitiesUseCase.execute(command))
+                .thenReturn(activityListResult());
+
+        mockMvc.perform(get("/api/strava/activities")
+                        .param("page", "1")
+                        .param("size", "2")
+                        .with(user(USER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.activities[0].id").value(99))
+                .andExpect(jsonPath("$.activities[0].sourceActivityId").value(SOURCE_ACTIVITY_ID))
+                .andExpect(jsonPath("$.activities[0].name").value("Morning Run"))
+                .andExpect(jsonPath("$.activities[0].sportType").value("RUN"))
+                .andExpect(jsonPath("$.activities[0].startDate").value("2026-05-10T09:00:00Z"))
+                .andExpect(jsonPath("$.activities[0].distanceMeters").value(5000.0))
+                .andExpect(jsonPath("$.activities[0].movingTimeSeconds").value(1500))
+                .andExpect(jsonPath("$.activities[0].averageSpeedMetersPerSecond").value(3.33))
+                .andExpect(jsonPath("$.activities[0].averagePaceSecondsPerKilometer").value(300.0))
+                .andExpect(jsonPath("$.activities[0].streamStatus").value("PENDING"))
+                .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
+                .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
+
+        verify(listStravaActivitiesUseCase).execute(command);
+    }
+
+    @Test
+    void activities_uses_default_pagination_parameters() throws Exception {
+        ListStravaActivitiesCommand command = new ListStravaActivitiesCommand(USER_EMAIL, 0, 20);
+        when(listStravaActivitiesUseCase.execute(command))
+                .thenReturn(new StravaActivityListResult(List.of(), 0, 20, 0, 0));
+
+        mockMvc.perform(get("/api/strava/activities").with(user(USER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activities").isArray())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20));
+
+        verify(listStravaActivitiesUseCase).execute(command);
+    }
+
+    @Test
+    void activities_rejects_unauthenticated_user() throws Exception {
+        mockMvc.perform(get("/api/strava/activities"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void activities_rejects_invalid_pagination() throws Exception {
+        mockMvc.perform(get("/api/strava/activities")
+                        .param("page", "-1")
+                        .with(user(USER_EMAIL)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Page must be zero or greater"));
+    }
+
+    @Test
     void callback_redirects_to_success_url_without_sensitive_values() throws Exception {
         CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE, SCOPE, null);
         when(completeStravaAccountLinkingUseCase.execute(command))
@@ -235,6 +310,14 @@ class StravaAccountLinkControllerWebMvcTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ATHLETE_ALREADY_LINKED"))
                 .andExpect(jsonPath("$.message").value("Strava athlete is already linked to another user"));
+    }
+
+    private StravaActivityListResult activityListResult() {
+        StravaActivityListItemResult item = new StravaActivityListItemResult(99L, SOURCE_ACTIVITY_ID,
+                "Morning Run", RUN, ACTIVITY_START_DATE, 5000.0, 1500, 3.33, 300.0,
+                StravaActivityStreamStatus.PENDING);
+
+        return new StravaActivityListResult(List.of(item), 1, 2, 3, 2);
     }
 
     @TestConfiguration

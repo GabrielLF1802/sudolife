@@ -3,6 +3,8 @@ package com.sudolife.adapter.driven.persistence.strava;
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivitySummary;
+import com.sudolife.application.model.strava.StravaActivityType;
+import com.sudolife.application.service.strava.StravaActivitySummaryPage;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.InvalidStravaAccountLinkStateException;
@@ -15,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +31,7 @@ import static com.sudolife.helper.StravaTestHelper.STATE;
 import static com.sudolife.helper.StravaTestHelper.UNLINKED_AT;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.NOW;
+import static com.sudolife.helper.StravaTestHelper.SOURCE_ACTIVITY_ID;
 import static com.sudolife.helper.StravaTestHelper.pendingAuthorizationState;
 import static com.sudolife.helper.StravaTestHelper.stravaActivitySummary;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -189,6 +193,41 @@ class StravaPersistenceAdapterIntegrationTest {
         assertThat(activitySummaryRepository.countByUserEmail("other@sudolife.com")).isEqualTo(1);
     }
 
+    @Test
+    void list_activity_summaries_filters_by_owner_and_sorts_newest_first() {
+        activitySummaryRepository.saveIfAbsent(activitySummary("older@sudolife.com", SOURCE_ACTIVITY_ID + 3,
+                "Other User Run", "2026-05-12T09:00:00Z"));
+        activitySummaryRepository.saveIfAbsent(activitySummary(USER_EMAIL, SOURCE_ACTIVITY_ID + 1,
+                "Older Run", "2026-05-09T09:00:00Z"));
+        activitySummaryRepository.saveIfAbsent(activitySummary(USER_EMAIL, SOURCE_ACTIVITY_ID + 2,
+                "Newest Run", "2026-05-11T09:00:00Z"));
+
+        StravaActivitySummaryPage result = activitySummaryRepository.findByUserEmail(USER_EMAIL, 0, 10);
+
+        assertThat(result.activities()).extracting(StravaActivitySummary::getName)
+                .containsExactly("Newest Run", "Older Run");
+        assertThat(result.totalElements()).isEqualTo(2);
+        assertThat(result.totalPages()).isEqualTo(1);
+    }
+
+    @Test
+    void list_activity_summaries_supports_page_and_size() {
+        activitySummaryRepository.saveIfAbsent(activitySummary(USER_EMAIL, SOURCE_ACTIVITY_ID + 1,
+                "Oldest Run", "2026-05-08T09:00:00Z"));
+        activitySummaryRepository.saveIfAbsent(activitySummary(USER_EMAIL, SOURCE_ACTIVITY_ID + 2,
+                "Middle Run", "2026-05-09T09:00:00Z"));
+        activitySummaryRepository.saveIfAbsent(activitySummary(USER_EMAIL, SOURCE_ACTIVITY_ID + 3,
+                "Newest Run", "2026-05-10T09:00:00Z"));
+
+        StravaActivitySummaryPage result = activitySummaryRepository.findByUserEmail(USER_EMAIL, 1, 1);
+
+        assertThat(result.activities()).extracting(StravaActivitySummary::getName).containsExactly("Middle Run");
+        assertThat(result.page()).isEqualTo(1);
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.totalElements()).isEqualTo(3);
+        assertThat(result.totalPages()).isEqualTo(3);
+    }
+
     private StravaActivitySummary activitySummaryForUser(String userEmail) {
         StravaActivitySummary summary = stravaActivitySummary();
 
@@ -198,6 +237,13 @@ class StravaPersistenceAdapterIntegrationTest {
                 summary.getTotalElevationGainMeters(), summary.getMaxSpeedMetersPerSecond(),
                 summary.getAverageHeartRate(), summary.getMaxHeartRate(), summary.getAverageCadence(),
                 summary.getAverageWatts(), summary.getCalories(), NOW);
+    }
+
+    private StravaActivitySummary activitySummary(String userEmail, Long sourceActivityId, String name,
+                                                  String startDate) {
+        return StravaActivitySummary.imported(userEmail, LINK_ID, sourceActivityId, StravaActivityType.RUN, "Run",
+                name, Instant.parse(startDate), 5000.0, 1500, 3.33, 42.0, 5.5, 150.0, 180.0,
+                82.0, 220.0, 350.0, NOW);
     }
 
     private StravaAccountLink activeLink(String userEmail, Long athleteId) {
