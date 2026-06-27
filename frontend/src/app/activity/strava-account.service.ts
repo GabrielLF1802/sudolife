@@ -10,6 +10,21 @@ export interface StravaLinkStatus {
   permissionState: StravaPermissionState;
 }
 
+export type StravaActivitySyncStatus = 'UNLINKED' | 'COMPLETED' | 'FAILED';
+
+export type StravaActivitySyncFailureReason =
+  | 'SYNC_ALREADY_RUNNING'
+  | 'PERMISSION_UPGRADE_REQUIRED'
+  | 'STRAVA_RATE_LIMITED'
+  | 'STRAVA_UNAVAILABLE';
+
+export interface StravaActivitySyncResult {
+  status: StravaActivitySyncStatus;
+  failureReason: StravaActivitySyncFailureReason | null;
+  importedActivityCount: number;
+  totalActivityCount: number;
+}
+
 interface StravaAuthorizationUrl {
   authorizationUrl: string;
 }
@@ -24,5 +39,9 @@ export class StravaAccountService {
 
   startLinking(): Observable<StravaAuthorizationUrl> {
     return this.http.post<StravaAuthorizationUrl>('/api/strava/link', {});
+  }
+
+  requestSync(): Observable<StravaActivitySyncResult> {
+    return this.http.post<StravaActivitySyncResult>('/api/strava/sync', {});
   }
 }

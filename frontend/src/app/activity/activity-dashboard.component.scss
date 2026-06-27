@@ -61,9 +61,14 @@ button {
   padding: 18px;
 }
 
-.strava-panel div {
+.strava-status {
   display: grid;
   gap: 6px;
+}
+
+.strava-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .strava-panel span {
@@ -81,6 +86,34 @@ button {
   border-color: #fc4c02;
   background: #fc4c02;
   color: #ffffff;
+}
+
+.sync-action {
+  border-color: #dbe3df;
+  background: #f8faf8;
+}
+
+.sync-result {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #dbe3df;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px 18px;
+}
+
+.sync-result strong {
+  color: #17211b;
+}
+
+.sync-result dl {
+  grid-template-columns: repeat(2, minmax(78px, 120px));
+}
+
+.sync-result p {
+  margin: 0;
+  color: #4c5b54;
+  line-height: 1.5;
 }
 
 button:disabled {
@@ -234,6 +267,7 @@ dd {
 @media (max-width: 680px) {
   .dashboard-header,
   .strava-panel,
+  .strava-actions,
   .activity-filters,
   .activity-list li {
     align-items: stretch;

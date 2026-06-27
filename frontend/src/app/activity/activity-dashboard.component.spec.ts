@@ -19,12 +19,21 @@ describe('ActivityDashboardComponent', () => {
     stravaAccountService = jasmine.createSpyObj<StravaAccountService>('StravaAccountService', [
       'status',
       'startLinking',
+      'requestSync',
     ]);
     stravaAccountService.status.and.returnValue(
       of({ linked: false, athleteId: null, permissionState: 'UNLINKED' }),
     );
     stravaAccountService.startLinking.and.returnValue(
       of({ authorizationUrl: 'https://strava.example/oauth' }),
+    );
+    stravaAccountService.requestSync.and.returnValue(
+      of({
+        status: 'COMPLETED',
+        failureReason: null,
+        importedActivityCount: 2,
+        totalActivityCount: 12,
+      }),
     );
 
     await TestBed.configureTestingModule({
@@ -64,6 +73,15 @@ describe('ActivityDashboardComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Conectado ao atleta 123');
     expect(fixture.nativeElement.textContent).toContain('Reconectar Strava');
+  });
+
+  it('should_render_manual_sync_action_when_dashboard_loads', () => {
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
+    );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Sincronizar agora');
   });
 
   it('should_render_permission_upgrade_action_when_scope_is_incomplete', () => {
@@ -207,8 +225,67 @@ describe('ActivityDashboardComponent', () => {
     );
   });
 
+  it('should_show_manual_sync_result', () => {
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
+    );
+    fixture.detectChanges();
+
+    syncButton().click();
+    fixture.detectChanges();
+
+    expect(stravaAccountService.requestSync).toHaveBeenCalled();
+    expect(pageText()).toContain('Sincronizacao solicitada');
+    expect(pageText()).toContain('Importadas2');
+    expect(pageText()).toContain('Total12');
+  });
+
+  it('should_show_manual_sync_failure_reason_with_reconnect_guidance', () => {
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'PERMISSION_UPGRADE_REQUIRED' }),
+    );
+    stravaAccountService.requestSync.and.returnValue(
+      of({
+        status: 'FAILED',
+        failureReason: 'PERMISSION_UPGRADE_REQUIRED',
+        importedActivityCount: 0,
+        totalActivityCount: 4,
+      }),
+    );
+    fixture.detectChanges();
+
+    syncButton().click();
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Sincronizacao nao solicitada');
+    expect(pageText()).toContain('Importadas0');
+    expect(pageText()).toContain('Total4');
+    expect(pageText()).toContain('Atualize as permissoes do Strava para importar atividades.');
+    expect(pageText()).toContain('Atualizar permissoes');
+  });
+
+  it('should_keep_dashboard_usable_when_manual_sync_request_fails', () => {
+    activityService.list.and.returnValue(of(activityListWithSummaries()));
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
+    );
+    stravaAccountService.requestSync.and.returnValue(throwError(() => new Error('failed')));
+    fixture.detectChanges();
+
+    syncButton().click();
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Nao foi possivel solicitar a sincronizacao.');
+    expect(pageText()).toContain('Morning Run');
+    expect(fixture.nativeElement.querySelector('.next-page').disabled).toBeFalse();
+  });
+
   function stravaButton(): HTMLButtonElement {
     return fixture.nativeElement.querySelector('.strava-action');
+  }
+
+  function syncButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector('.sync-action');
   }
 
   function pageText(): string {

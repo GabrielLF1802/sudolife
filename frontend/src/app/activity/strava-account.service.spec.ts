@@ -41,4 +41,22 @@ describe('StravaAccountService', () => {
     expect(request.request.body).toEqual({});
     request.flush({ authorizationUrl: 'https://strava.example/oauth' });
   });
+
+  it('should_request_manual_activity_sync', () => {
+    service.requestSync().subscribe((result) => {
+      expect(result.status).toBe('COMPLETED');
+      expect(result.importedActivityCount).toBe(3);
+      expect(result.totalActivityCount).toBe(12);
+    });
+
+    const request = httpTestingController.expectOne('/api/strava/sync');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
+    request.flush({
+      status: 'COMPLETED',
+      failureReason: null,
+      importedActivityCount: 3,
+      totalActivityCount: 12,
+    });
+  });
 });

@@ -20,27 +20,65 @@
   } @else if (activityList(); as activityList) {
     @if (stravaLinkStatus(); as stravaStatus) {
       <section class="strava-panel" aria-label="Conta Strava">
-        <div>
+        <div class="strava-status">
           <span>Strava</span>
           <strong>{{ stravaStatusText(stravaStatus) }}</strong>
         </div>
 
-        <button
-          type="button"
-          class="strava-action"
-          [disabled]="linking()"
-          (click)="startStravaLinking()"
-        >
-          @if (linking()) {
-            Redirecionando...
-          } @else {
-            {{ stravaActionLabel(stravaStatus) }}
-          }
-        </button>
+        <div class="strava-actions">
+          <button
+            type="button"
+            class="sync-action"
+            [disabled]="syncing() || linking()"
+            (click)="requestActivitySync()"
+          >
+            @if (syncing()) {
+              Sincronizando...
+            } @else {
+              Sincronizar agora
+            }
+          </button>
+
+          <button
+            type="button"
+            class="strava-action"
+            [disabled]="linking()"
+            (click)="startStravaLinking()"
+          >
+            @if (linking()) {
+              Redirecionando...
+            } @else {
+              {{ stravaActionLabel(stravaStatus) }}
+            }
+          </button>
+        </div>
       </section>
 
       @if (linkingErrorMessage()) {
         <p class="status error">{{ linkingErrorMessage() }}</p>
+      }
+
+      @if (syncErrorMessage()) {
+        <p class="status error">{{ syncErrorMessage() }}</p>
+      }
+
+      @if (syncResult(); as result) {
+        <section class="sync-result" aria-label="Resultado da sincronizacao">
+          <strong>{{ syncStatusLabel(result.status) }}</strong>
+          <dl>
+            <div>
+              <dt>Importadas</dt>
+              <dd>{{ result.importedActivityCount }}</dd>
+            </div>
+            <div>
+              <dt>Total</dt>
+              <dd>{{ result.totalActivityCount }}</dd>
+            </div>
+          </dl>
+          @if (result.failureReason) {
+            <p>{{ syncFailureReasonLabel(result.failureReason) }}</p>
+          }
+        </section>
       }
     }
 

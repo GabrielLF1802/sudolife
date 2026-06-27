@@ -5,7 +5,13 @@ import { forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
 import { ActivityList, ActivityService } from './activity.service';
-import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
+import {
+  StravaAccountService,
+  StravaActivitySyncFailureReason,
+  StravaActivitySyncResult,
+  StravaActivitySyncStatus,
+  StravaLinkStatus,
+} from './strava-account.service';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
 
@@ -28,8 +34,11 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
   protected readonly linking = signal(false);
+  protected readonly syncing = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly linkingErrorMessage = signal('');
+  protected readonly syncErrorMessage = signal('');
+  protected readonly syncResult = signal<StravaActivitySyncResult | null>(null);
   protected readonly selectedActivityType = signal('ALL');
   protected readonly selectedPeriod = signal<ActivityPeriodFilter>('ALL');
   protected readonly minimumDistanceKilometers = signal('');
@@ -201,6 +210,24 @@ export class ActivityDashboardComponent implements OnInit {
     });
   }
 
+  protected requestActivitySync(): void {
+    this.syncing.set(true);
+    this.syncErrorMessage.set('');
+    this.syncResult.set(null);
+
+    this.stravaAccountService
+      .requestSync()
+      .pipe(finalize(() => this.syncing.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.syncResult.set(result);
+        },
+        error: () => {
+          this.syncErrorMessage.set('Nao foi possivel solicitar a sincronizacao.');
+        },
+      });
+  }
+
   protected stravaActionLabel(status: StravaLinkStatus): string {
     if (status.permissionState === 'PERMISSION_UPGRADE_REQUIRED') {
       return 'Atualizar permissoes';
@@ -223,6 +250,34 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     return 'Nao conectado';
+  }
+
+  protected syncStatusLabel(status: StravaActivitySyncStatus): string {
+    if (status === 'COMPLETED') {
+      return 'Sincronizacao solicitada';
+    }
+
+    if (status === 'UNLINKED') {
+      return 'Strava nao conectado';
+    }
+
+    return 'Sincronizacao nao solicitada';
+  }
+
+  protected syncFailureReasonLabel(failureReason: StravaActivitySyncFailureReason): string {
+    if (failureReason === 'PERMISSION_UPGRADE_REQUIRED') {
+      return 'Atualize as permissoes do Strava para importar atividades.';
+    }
+
+    if (failureReason === 'SYNC_ALREADY_RUNNING') {
+      return 'Ja existe uma sincronizacao em andamento.';
+    }
+
+    if (failureReason === 'STRAVA_RATE_LIMITED') {
+      return 'O Strava limitou novas sincronizacoes no momento.';
+    }
+
+    return 'O Strava esta indisponivel no momento.';
   }
 
   private matchesSelectedPeriod(startDate: string): boolean {
