@@ -88,6 +88,47 @@ button:disabled {
   opacity: 0.72;
 }
 
+.activity-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  border: 1px solid #dbe3df;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.activity-filters label {
+  display: grid;
+  gap: 7px;
+}
+
+.activity-filters span {
+  color: #52645c;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.activity-filters select,
+.activity-filters input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #c9d3cd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17211b;
+  font: inherit;
+  padding: 0 12px;
+}
+
+.filter-summary {
+  margin: -16px 0 0;
+  color: #52645c;
+  font-weight: 700;
+}
+
 .empty-panel {
   display: grid;
   border: 1px solid #dbe3df;
@@ -124,6 +165,10 @@ button:disabled {
   border-radius: 8px;
   background: #ffffff;
   padding: 16px 18px;
+}
+
+.activity-list .empty-panel {
+  grid-template-columns: 1fr;
 }
 
 .activity-main {
@@ -189,6 +234,7 @@ dd {
 @media (max-width: 680px) {
   .dashboard-header,
   .strava-panel,
+  .activity-filters,
   .activity-list li {
     align-items: stretch;
     grid-template-columns: 1fr;

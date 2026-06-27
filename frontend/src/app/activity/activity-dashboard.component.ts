@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { forkJoin, finalize } from 'rxjs';
@@ -7,6 +7,8 @@ import { AuthService, CurrentUser } from '../auth/auth.service';
 import { ActivityList, ActivityService } from './activity.service';
 import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
 
+type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
+
 @Component({
   selector: 'app-activity-dashboard',
   imports: [DatePipe, DecimalPipe],
@@ -14,6 +16,7 @@ import { StravaAccountService, StravaLinkStatus } from './strava-account.service
   styleUrl: './activity-dashboard.component.scss',
 })
 export class ActivityDashboardComponent implements OnInit {
+
   private readonly authService = inject(AuthService);
   private readonly activityService = inject(ActivityService);
   private readonly stravaAccountService = inject(StravaAccountService);
@@ -27,6 +30,56 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly linking = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly linkingErrorMessage = signal('');
+  protected readonly selectedActivityType = signal('ALL');
+  protected readonly selectedPeriod = signal<ActivityPeriodFilter>('ALL');
+  protected readonly minimumDistanceKilometers = signal('');
+  protected readonly maximumDistanceKilometers = signal('');
+  private readonly currentDate = signal(new Date());
+  protected readonly activityTypes = computed(() => {
+    const activityList = this.activityList();
+
+    if (activityList === null) {
+      return [];
+    }
+
+    return [...new Set(activityList.activities.map((activity) => activity.sportType))].sort();
+  });
+  protected readonly filteredActivities = computed(() => {
+    const activityList = this.activityList();
+
+    if (activityList === null) {
+      return [];
+    }
+
+    return activityList.activities.filter((activity) => {
+      if (
+        this.selectedActivityType() !== 'ALL' &&
+        activity.sportType !== this.selectedActivityType()
+      ) {
+        return false;
+      }
+
+      if (!this.matchesSelectedPeriod(activity.startDate)) {
+        return false;
+      }
+
+      const minimumDistanceMeters = this.distanceMeters(this.minimumDistanceKilometers());
+      const maximumDistanceMeters = this.distanceMeters(this.maximumDistanceKilometers());
+
+      if (minimumDistanceMeters !== null && activity.distanceMeters < minimumDistanceMeters) {
+        return false;
+      }
+
+      return maximumDistanceMeters === null || activity.distanceMeters <= maximumDistanceMeters;
+    });
+  });
+  protected readonly hasActiveFilters = computed(
+    () =>
+      this.selectedActivityType() !== 'ALL' ||
+      this.selectedPeriod() !== 'ALL' ||
+      this.minimumDistanceKilometers().trim() !== '' ||
+      this.maximumDistanceKilometers().trim() !== '',
+  );
 
   ngOnInit(): void {
     forkJoin({
@@ -45,6 +98,29 @@ export class ActivityDashboardComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  protected updateActivityTypeFilter(event: Event): void {
+    this.selectedActivityType.set((event.target as HTMLSelectElement).value);
+  }
+
+  protected updatePeriodFilter(event: Event): void {
+    this.selectedPeriod.set((event.target as HTMLSelectElement).value as ActivityPeriodFilter);
+  }
+
+  protected updateMinimumDistanceFilter(event: Event): void {
+    this.minimumDistanceKilometers.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateMaximumDistanceFilter(event: Event): void {
+    this.maximumDistanceKilometers.set((event.target as HTMLInputElement).value);
+  }
+
+  protected clearActivityFilters(): void {
+    this.selectedActivityType.set('ALL');
+    this.selectedPeriod.set('ALL');
+    this.minimumDistanceKilometers.set('');
+    this.maximumDistanceKilometers.set('');
   }
 
   protected loadPage(page: number): void {
@@ -147,5 +223,41 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     return 'Nao conectado';
+  }
+
+  private matchesSelectedPeriod(startDate: string): boolean {
+    if (this.selectedPeriod() === 'ALL') {
+      return true;
+    }
+
+    const periodStart = new Date(this.currentDate());
+    periodStart.setHours(0, 0, 0, 0);
+    periodStart.setDate(periodStart.getDate() - this.selectedPeriodDays());
+
+    return new Date(startDate) >= periodStart;
+  }
+
+  private selectedPeriodDays(): number {
+    if (this.selectedPeriod() === 'LAST_7_DAYS') {
+      return 7;
+    }
+
+    return 30;
+  }
+
+  private distanceMeters(distanceKilometers: string): number | null {
+    const normalizedDistance = distanceKilometers.trim().replace(',', '.');
+
+    if (normalizedDistance === '') {
+      return null;
+    }
+
+    const parsedDistance = Number(normalizedDistance);
+
+    if (!Number.isFinite(parsedDistance)) {
+      return null;
+    }
+
+    return parsedDistance * 1000;
   }
 }

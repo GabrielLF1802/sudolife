@@ -93,6 +93,67 @@ describe('ActivityDashboardComponent', () => {
     expect(textContent).toContain('PENDING');
   });
 
+  it('should_filter_loaded_activity_page_by_type', () => {
+    activityService.list.and.returnValue(of(filterableActivityList()));
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
+    );
+    fixture.detectChanges();
+
+    selectFilterValue(0, 'RIDE');
+
+    expect(pageText()).toContain('Older Ride');
+    expect(pageText()).not.toContain('Recent Run');
+    expect(pageText()).not.toContain('Tempo Run');
+    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta pagina carregada.');
+  });
+
+  it('should_filter_loaded_activity_page_by_period', () => {
+    activityService.list.and.returnValue(of(filterableActivityList()));
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
+    );
+    fixture.detectChanges();
+
+    selectFilterValue(1, 'LAST_7_DAYS');
+
+    expect(pageText()).toContain('Recent Run');
+    expect(pageText()).not.toContain('Older Ride');
+    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta pagina carregada.');
+  });
+
+  it('should_filter_loaded_activity_page_by_distance_in_kilometers', () => {
+    activityService.list.and.returnValue(of(filterableActivityList()));
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
+    );
+    fixture.detectChanges();
+
+    typeDistanceValue('input[aria-label="Distancia minima em quilometros"]', '6');
+    typeDistanceValue('input[aria-label="Distancia maxima em quilometros"]', '15');
+
+    expect(pageText()).toContain('Tempo Run');
+    expect(pageText()).not.toContain('Recent Run');
+    expect(pageText()).not.toContain('Older Ride');
+    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta pagina carregada.');
+  });
+
+  it('should_show_filtered_empty_state_for_loaded_page_only', () => {
+    activityService.list.and.returnValue(of(filterableActivityList()));
+    stravaAccountService.status.and.returnValue(
+      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
+    );
+    fixture.detectChanges();
+
+    typeDistanceValue('input[aria-label="Distancia minima em quilometros"]', '80');
+
+    expect(pageText()).toContain('Mostrando 0 de 3 atividades nesta pagina carregada.');
+    expect(pageText()).toContain(
+      'Nenhuma atividade nesta pagina carregada corresponde aos filtros.',
+    );
+    expect(pageText()).not.toContain('Recent Run');
+  });
+
   it('should_show_connected_empty_state_without_summary_metric_cards', () => {
     stravaAccountService.status.and.returnValue(
       of({ linked: true, athleteId: 123, permissionState: 'READY' }),
@@ -117,7 +178,10 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_load_next_activity_page', () => {
-    activityService.list.and.returnValues(of(activityListWithSummaries()), of(secondActivityPage()));
+    activityService.list.and.returnValues(
+      of(activityListWithSummaries()),
+      of(secondActivityPage()),
+    );
     stravaAccountService.status.and.returnValue(
       of({ linked: true, athleteId: 123, permissionState: 'READY' }),
     );
@@ -145,6 +209,26 @@ describe('ActivityDashboardComponent', () => {
 
   function stravaButton(): HTMLButtonElement {
     return fixture.nativeElement.querySelector('.strava-action');
+  }
+
+  function pageText(): string {
+    return fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  function selectFilterValue(index: number, value: string): void {
+    const select = fixture.nativeElement.querySelectorAll('select')[index] as HTMLSelectElement;
+    select.value = value;
+
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  function typeDistanceValue(selector: string, value: string): void {
+    const input = fixture.nativeElement.querySelector(selector) as HTMLInputElement;
+    input.value = value;
+
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
   }
 
   function emptyActivityList(): ActivityList {
@@ -178,6 +262,60 @@ describe('ActivityDashboardComponent', () => {
       totalElements: 2,
       totalPages: 2,
     };
+  }
+
+  function filterableActivityList(): ActivityList {
+    return {
+      activities: [
+        {
+          id: 200,
+          sourceActivityId: 2001,
+          name: 'Recent Run',
+          sportType: 'RUN',
+          startDate: daysAgo(3),
+          distanceMeters: 5000,
+          movingTimeSeconds: 1500,
+          averageSpeedMetersPerSecond: 3.33,
+          averagePaceSecondsPerKilometer: 300,
+          streamStatus: 'PENDING',
+        },
+        {
+          id: 201,
+          sourceActivityId: 2002,
+          name: 'Tempo Run',
+          sportType: 'RUN',
+          startDate: daysAgo(15),
+          distanceMeters: 10000,
+          movingTimeSeconds: 3000,
+          averageSpeedMetersPerSecond: 3.33,
+          averagePaceSecondsPerKilometer: 300,
+          streamStatus: 'PENDING',
+        },
+        {
+          id: 202,
+          sourceActivityId: 2003,
+          name: 'Older Ride',
+          sportType: 'RIDE',
+          startDate: daysAgo(40),
+          distanceMeters: 30000,
+          movingTimeSeconds: 3600,
+          averageSpeedMetersPerSecond: 8.33,
+          averagePaceSecondsPerKilometer: null,
+          streamStatus: 'IMPORTED',
+        },
+      ],
+      page: 0,
+      size: 10,
+      totalElements: 20,
+      totalPages: 2,
+    };
+  }
+
+  function daysAgo(days: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+
+    return date.toISOString();
   }
 
   function secondActivityPage(): ActivityList {

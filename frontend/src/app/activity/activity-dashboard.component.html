@@ -25,7 +25,12 @@
           <strong>{{ stravaStatusText(stravaStatus) }}</strong>
         </div>
 
-        <button type="button" class="strava-action" [disabled]="linking()" (click)="startStravaLinking()">
+        <button
+          type="button"
+          class="strava-action"
+          [disabled]="linking()"
+          (click)="startStravaLinking()"
+        >
           @if (linking()) {
             Redirecionando...
           } @else {
@@ -49,12 +54,71 @@
     }
 
     @if (activityList.activities.length > 0) {
+      <section class="activity-filters" aria-label="Filtros da pagina carregada">
+        <label>
+          <span>Tipo</span>
+          <select [value]="selectedActivityType()" (change)="updateActivityTypeFilter($event)">
+            <option value="ALL">Todos</option>
+            @for (activityType of activityTypes(); track $index) {
+              <option [value]="activityType">{{ activityType }}</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Periodo</span>
+          <select [value]="selectedPeriod()" (change)="updatePeriodFilter($event)">
+            <option value="ALL">Todos</option>
+            <option value="LAST_7_DAYS">Ultimos 7 dias</option>
+            <option value="LAST_30_DAYS">Ultimos 30 dias</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Distancia minima</span>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            inputmode="decimal"
+            [value]="minimumDistanceKilometers()"
+            (input)="updateMinimumDistanceFilter($event)"
+            aria-label="Distancia minima em quilometros"
+          />
+        </label>
+
+        <label>
+          <span>Distancia maxima</span>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            inputmode="decimal"
+            [value]="maximumDistanceKilometers()"
+            (input)="updateMaximumDistanceFilter($event)"
+            aria-label="Distancia maxima em quilometros"
+          />
+        </label>
+
+        <button type="button" [disabled]="!hasActiveFilters()" (click)="clearActivityFilters()">
+          Limpar
+        </button>
+      </section>
+
+      <p class="filter-summary">
+        Mostrando {{ filteredActivities().length }} de
+        {{ activityList.activities.length }} atividades nesta pagina carregada.
+      </p>
+
       <ul class="activity-list">
-        @for (activity of activityList.activities; track activity.id) {
+        @for (activity of filteredActivities(); track activity.id) {
           <li>
             <div class="activity-main">
               <strong>{{ activity.name }}</strong>
-              <span>{{ activity.sportType }} - {{ activity.startDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+              <span
+                >{{ activity.sportType }} -
+                {{ activity.startDate | date: 'dd/MM/yyyy HH:mm' }}</span
+              >
             </div>
             <dl>
               <div>
@@ -74,6 +138,13 @@
                 <dd>{{ activity.streamStatus }}</dd>
               </div>
             </dl>
+          </li>
+        } @empty {
+          <li class="empty-panel" aria-label="Sem resultados filtrados">
+            <strong>Nenhuma atividade nesta pagina carregada corresponde aos filtros.</strong>
+            <p>
+              Ajuste os filtros locais ou carregue outra pagina para analisar outras atividades.
+            </p>
           </li>
         }
       </ul>
