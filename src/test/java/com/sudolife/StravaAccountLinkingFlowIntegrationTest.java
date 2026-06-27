@@ -3,6 +3,7 @@ package com.sudolife;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaAccountLinkRepository;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivitySummaryRepository;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaAuthorizationStateRepository;
+import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaSummarySyncJobRepository;
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
@@ -58,6 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "strava.summary-sync.scheduling-enabled=false",
         "strava.frontend-success-redirect-url=https://app.sudolife.com/strava/success",
         "strava.frontend-failure-redirect-url=https://app.sudolife.com/strava/failure"
 })
@@ -96,6 +98,9 @@ class StravaAccountLinkingFlowIntegrationTest {
     private SpringDataStravaAuthorizationStateRepository authorizationStateRepository;
 
     @Autowired
+    private SpringDataStravaSummarySyncJobRepository summarySyncJobRepository;
+
+    @Autowired
     private FakeStravaOAuthProvider oAuthProvider;
 
     @Autowired
@@ -103,6 +108,7 @@ class StravaAccountLinkingFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        summarySyncJobRepository.deleteAll();
         authorizationStateRepository.deleteAll();
         activitySummaryRepository.deleteAll();
         accountLinkRepository.deleteAll();
@@ -151,7 +157,7 @@ class StravaAccountLinkingFlowIntegrationTest {
     }
 
     @Test
-    void manual_sync_imports_activity_summaries_and_skips_duplicates() throws Exception {
+    void manual_sync_returns_already_running_when_initial_summary_job_is_open() throws Exception {
         register(USER_NAME, USER_EMAIL);
         String token = login(USER_EMAIL);
         String state = startLinking(token, ACCESS_TOKEN, REFRESH_TOKEN);
@@ -159,21 +165,16 @@ class StravaAccountLinkingFlowIntegrationTest {
 
         mockMvc.perform(post("/api/strava/sync").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.failureReason").doesNotExist())
-                .andExpect(jsonPath("$.importedActivityCount").value(1))
-                .andExpect(jsonPath("$.totalActivityCount").value(1))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.failureReason").value("SYNC_ALREADY_RUNNING"))
+                .andExpect(jsonPath("$.importedActivityCount").value(0))
+                .andExpect(jsonPath("$.totalActivityCount").value(0))
                 .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
                 .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
 
-        mockMvc.perform(post("/api/strava/sync").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.importedActivityCount").value(0))
-                .andExpect(jsonPath("$.totalActivityCount").value(1));
-        assertThat(activitySummaryRepository.findAll()).hasSize(1);
-        assertThat(activitySummaryRepository.findAll().getFirst().getActivityType()).isEqualTo(StravaActivityType.RUN);
-        assertThat(activityProvider.accessTokens()).containsExactly(ACCESS_TOKEN, ACCESS_TOKEN);
+        assertThat(summarySyncJobRepository.findAll()).hasSize(1);
+        assertThat(activitySummaryRepository.findAll()).isEmpty();
+        assertThat(activityProvider.accessTokens()).isEmpty();
     }
 
     @Test

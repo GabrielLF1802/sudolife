@@ -22,6 +22,7 @@ class StravaFlywayMigrationIntegrationTest {
         assertThat(tableExists(jdbcTemplate, "STRAVA_ACCOUNT_LINKS")).isTrue();
         assertThat(tableExists(jdbcTemplate, "STRAVA_AUTHORIZATION_STATES")).isTrue();
         assertThat(tableExists(jdbcTemplate, "STRAVA_ACTIVITY_SUMMARIES")).isTrue();
+        assertThat(tableExists(jdbcTemplate, "STRAVA_SUMMARY_SYNC_JOBS")).isTrue();
     }
 
     private DriverManagerDataSource dataSource() {

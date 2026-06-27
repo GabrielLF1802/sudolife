@@ -4,13 +4,16 @@ import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountL
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
-import com.sudolife.application.service.strava.StravaActivitySummaryPage;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
+import com.sudolife.application.model.strava.StravaSummarySyncJob;
+import com.sudolife.application.model.strava.StravaSummarySyncJobStatus;
+import com.sudolife.application.service.strava.StravaActivitySummaryPage;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.InvalidStravaAccountLinkStateException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
+import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +42,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(properties = {
         "spring.flyway.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.task.scheduling.enabled=false"
 })
 @Transactional
 class StravaPersistenceAdapterIntegrationTest {
@@ -54,6 +58,9 @@ class StravaPersistenceAdapterIntegrationTest {
     private StravaActivitySummaryRepository activitySummaryRepository;
 
     @Autowired
+    private StravaSummarySyncJobRepository summarySyncJobRepository;
+
+    @Autowired
     private SpringDataStravaAccountLinkRepository springDataAccountLinkRepository;
 
     @Autowired
@@ -62,8 +69,12 @@ class StravaPersistenceAdapterIntegrationTest {
     @Autowired
     private SpringDataStravaAuthorizationStateRepository springDataAuthorizationStateRepository;
 
+    @Autowired
+    private SpringDataStravaSummarySyncJobRepository springDataSummarySyncJobRepository;
+
     @BeforeEach
     void setUp() {
+        springDataSummarySyncJobRepository.deleteAll();
         springDataAuthorizationStateRepository.deleteAll();
         springDataActivitySummaryRepository.deleteAll();
         springDataAccountLinkRepository.deleteAll();
@@ -226,6 +237,50 @@ class StravaPersistenceAdapterIntegrationTest {
         assertThat(result.size()).isEqualTo(1);
         assertThat(result.totalElements()).isEqualTo(3);
         assertThat(result.totalPages()).isEqualTo(3);
+    }
+
+    @Test
+    void enqueue_summary_sync_job_coalesces_open_jobs_per_account_link() {
+        StravaAccountLink savedLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
+
+        boolean firstEnqueue = summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(savedLink, NOW));
+        boolean secondEnqueue = summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(savedLink, NOW));
+
+        assertThat(firstEnqueue).isTrue();
+        assertThat(secondEnqueue).isFalse();
+        assertThat(springDataSummarySyncJobRepository.findAll()).hasSize(1);
+        assertThat(summarySyncJobRepository.hasQueuedOrRunningJob(savedLink.getId())).isTrue();
+    }
+
+    @Test
+    void completed_summary_sync_job_allows_new_job_for_same_account_link() {
+        StravaAccountLink savedLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
+        summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(savedLink, NOW));
+        StravaSummarySyncJob queuedJob = springDataSummarySyncJobRepository.findAll().stream()
+                .map(new StravaSummarySyncJobPersistenceMapper()::toDomain)
+                .findFirst()
+                .orElseThrow();
+
+        summarySyncJobRepository.save(queuedJob.completed(0, NOW.plusSeconds(1)));
+        boolean enqueuedAgain = summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(savedLink,
+                NOW.plusSeconds(2)));
+
+        assertThat(enqueuedAgain).isTrue();
+        assertThat(springDataSummarySyncJobRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    void find_next_runnable_summary_sync_job_returns_due_job_first() {
+        StravaAccountLink firstLink = accountLinkRepository.save(activeLink("first@sudolife.com", ATHLETE_ID));
+        StravaAccountLink secondLink = accountLinkRepository.save(activeLink("second@sudolife.com", ATHLETE_ID + 1));
+        summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(firstLink, NOW.plusSeconds(60)));
+        summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(secondLink, NOW.minusSeconds(60)));
+
+        Optional<StravaSummarySyncJob> result = summarySyncJobRepository.findNextRunnable(NOW);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getAccountLinkId()).isEqualTo(secondLink.getId());
+        assertThat(result.get().getStatus()).isEqualTo(StravaSummarySyncJobStatus.QUEUED);
     }
 
     private StravaActivitySummary activitySummaryForUser(String userEmail) {

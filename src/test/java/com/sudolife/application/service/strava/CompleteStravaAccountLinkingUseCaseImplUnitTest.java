@@ -2,10 +2,12 @@ package com.sudolife.application.service.strava;
 
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
+import com.sudolife.application.model.strava.StravaSummarySyncJob;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
+import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +19,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.ATHLETE_ID;
@@ -35,6 +36,7 @@ import static com.sudolife.helper.StravaTestHelper.stravaTokenAuthorization;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +60,9 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     private StravaOAuthProvider oAuthProvider;
 
     @Mock
+    private StravaSummarySyncJobRepository summarySyncJobRepository;
+
+    @Mock
     private TimeProvider timeProvider;
 
     @Mock
@@ -79,6 +84,7 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
         assertThat(savedLink.getAccessToken()).isEqualTo(ACCESS_TOKEN);
         assertThat(savedLink.getRefreshToken()).isEqualTo(REFRESH_TOKEN);
         assertThat(savedLink.getExpiresAt()).isEqualTo(EXPIRES_AT);
+        assertThat(capturedQueuedJob().getAccountLinkId()).isEqualTo(LINK_ID);
         verify(authorizationStateRepository).consumePending(STATE, NOW, NOW);
     }
 
@@ -225,7 +231,7 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     void execute_when_persistence_race_creates_duplicate_returns_duplicate_failure() {
         stubPendingState();
         when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(stravaTokenAuthorization());
-        when(accountLinkRepository.save(any())).thenThrow(new DuplicateStravaAthleteOwnershipException());
+        doThrow(new DuplicateStravaAthleteOwnershipException()).when(accountLinkRepository).save(any());
 
         StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
 
@@ -243,11 +249,17 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
         when(authorizationStateRepository.consumePending(STATE, NOW, NOW))
                 .thenReturn(Optional.of(new StravaAuthorizationState(STATE, USER_EMAIL, EXPIRES_AT, NOW)));
         lenient().doAnswer(invocation -> {
-            Consumer<Object> callback = invocation.getArgument(0);
-            callback.accept(null);
+            org.springframework.transaction.support.TransactionCallback<StravaAccountLink> callback = invocation.getArgument(0);
 
-            return null;
-        }).when(transactionTemplate).executeWithoutResult(any());
+            return callback.doInTransaction(null);
+        }).when(transactionTemplate).execute(any());
+        lenient().when(accountLinkRepository.save(any())).thenAnswer(invocation -> {
+            StravaAccountLink link = invocation.getArgument(0);
+
+            return StravaAccountLink.active(LINK_ID, link.getUserEmail(), link.getAthleteId(), link.getAccessToken(),
+                    link.getRefreshToken(), link.getExpiresAt(), link.getGrantedScopes(), link.getLinkedAt());
+        });
+        lenient().when(summarySyncJobRepository.enqueueIfAbsent(any())).thenReturn(true);
     }
 
     private StravaAccountLink activeLinkFor(String userEmail) {
@@ -257,6 +269,12 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
     private StravaAccountLink capturedSavedLink() {
         ArgumentCaptor<StravaAccountLink> captor = ArgumentCaptor.forClass(StravaAccountLink.class);
         verify(accountLinkRepository).save(captor.capture());
+        return captor.getValue();
+    }
+
+    private StravaSummarySyncJob capturedQueuedJob() {
+        ArgumentCaptor<StravaSummarySyncJob> captor = ArgumentCaptor.forClass(StravaSummarySyncJob.class);
+        verify(summarySyncJobRepository).enqueueIfAbsent(captor.capture());
         return captor.getValue();
     }
 }
