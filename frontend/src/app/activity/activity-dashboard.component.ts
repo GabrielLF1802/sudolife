@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
 import { ActivityList, ActivityService } from './activity.service';
@@ -23,6 +23,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly activityList = signal<ActivityList | null>(null);
   protected readonly stravaLinkStatus = signal<StravaLinkStatus | null>(null);
   protected readonly loading = signal(true);
+  protected readonly pageLoading = signal(false);
   protected readonly linking = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly linkingErrorMessage = signal('');
@@ -44,6 +45,64 @@ export class ActivityDashboardComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  protected loadPage(page: number): void {
+    this.pageLoading.set(true);
+    this.errorMessage.set('');
+
+    this.activityService
+      .list(page)
+      .pipe(finalize(() => this.pageLoading.set(false)))
+      .subscribe({
+        next: (activityList) => {
+          this.activityList.set(activityList);
+        },
+        error: () => {
+          this.errorMessage.set('Nao foi possivel carregar as atividades.');
+        },
+      });
+  }
+
+  protected hasPreviousPage(activityList: ActivityList): boolean {
+    return activityList.page > 0;
+  }
+
+  protected hasNextPage(activityList: ActivityList): boolean {
+    return activityList.page + 1 < activityList.totalPages;
+  }
+
+  protected isSyncEnabled(status: StravaLinkStatus): boolean {
+    return status.permissionState === 'READY';
+  }
+
+  protected shouldShowImportedEmptyState(status: StravaLinkStatus | null): boolean {
+    return status === null || this.isSyncEnabled(status);
+  }
+
+  protected movingTimeLabel(seconds: number): string {
+    const totalMinutes = Math.round(seconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}min`;
+    }
+
+    return `${minutes} min`;
+  }
+
+  protected paceOrSpeedLabel(activity: ActivityList['activities'][number]): string {
+    if (activity.averagePaceSecondsPerKilometer !== null) {
+      const minutes = Math.floor(activity.averagePaceSecondsPerKilometer / 60);
+      const seconds = Math.round(activity.averagePaceSecondsPerKilometer % 60)
+        .toString()
+        .padStart(2, '0');
+
+      return `${minutes}:${seconds} /km`;
+    }
+
+    return `${(activity.averageSpeedMetersPerSecond * 3.6).toFixed(1)} km/h`;
   }
 
   protected logout(): void {

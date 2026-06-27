@@ -39,31 +39,71 @@
       }
     }
 
-    <div class="metrics" aria-label="Resumo">
-      <div>
-        <span>Total</span>
-        <strong>{{ activityList.totalElements }}</strong>
-      </div>
-      <div>
-        <span>Pagina</span>
-        <strong>{{ activityList.page + 1 }} / {{ activityList.totalPages || 1 }}</strong>
-      </div>
-    </div>
+    @if (stravaLinkStatus(); as stravaStatus) {
+      @if (!isSyncEnabled(stravaStatus)) {
+        <section class="empty-panel" aria-label="Conexao Strava pendente">
+          <strong>Atividades ainda nao sincronizadas</strong>
+          <p>Conecte ou atualize a conexao com o Strava para importar atividades.</p>
+        </section>
+      }
+    }
 
     @if (activityList.activities.length > 0) {
       <ul class="activity-list">
         @for (activity of activityList.activities; track activity.id) {
           <li>
-            <div>
+            <div class="activity-main">
               <strong>{{ activity.name }}</strong>
               <span>{{ activity.sportType }} - {{ activity.startDate | date: 'dd/MM/yyyy HH:mm' }}</span>
             </div>
-            <span>{{ activity.distanceMeters / 1000 | number: '1.1-1' }} km</span>
+            <dl>
+              <div>
+                <dt>Distancia</dt>
+                <dd>{{ activity.distanceMeters / 1000 | number: '1.1-1' }} km</dd>
+              </div>
+              <div>
+                <dt>Tempo</dt>
+                <dd>{{ movingTimeLabel(activity.movingTimeSeconds) }}</dd>
+              </div>
+              <div>
+                <dt>Ritmo</dt>
+                <dd>{{ paceOrSpeedLabel(activity) }}</dd>
+              </div>
+              <div>
+                <dt>Streams</dt>
+                <dd>{{ activity.streamStatus }}</dd>
+              </div>
+            </dl>
           </li>
         }
       </ul>
-    } @else {
-      <p class="empty">Nenhuma atividade importada ainda.</p>
+
+      <nav class="pagination" aria-label="Paginacao de atividades">
+        <span>Pagina {{ activityList.page + 1 }} de {{ activityList.totalPages || 1 }}</span>
+        <div>
+          <button
+            type="button"
+            class="previous-page"
+            [disabled]="pageLoading() || !hasPreviousPage(activityList)"
+            (click)="loadPage(activityList.page - 1)"
+          >
+            Anterior
+          </button>
+          <button
+            type="button"
+            class="next-page"
+            [disabled]="pageLoading() || !hasNextPage(activityList)"
+            (click)="loadPage(activityList.page + 1)"
+          >
+            Proxima
+          </button>
+        </div>
+      </nav>
+    } @else if (shouldShowImportedEmptyState(stravaLinkStatus())) {
+      <section class="empty-panel" aria-label="Sem atividades importadas">
+        <strong>Nenhuma atividade importada ainda.</strong>
+        <p>As atividades importadas aparecem aqui em ordem da mais recente para a mais antiga.</p>
+      </section>
     }
   }
 </section>

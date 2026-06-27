@@ -32,8 +32,7 @@ h1 {
 }
 
 .summary,
-.status,
-.empty {
+.status {
   margin: 14px 0 0;
   color: #4c5b54;
   line-height: 1.55;
@@ -89,30 +88,24 @@ button:disabled {
   opacity: 0.72;
 }
 
-.metrics {
+.empty-panel {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.metrics div {
-  display: grid;
-  gap: 8px;
   border: 1px solid #dbe3df;
   border-radius: 8px;
-  background: #ffffff;
-  padding: 18px;
+  background: #f8faf8;
+  gap: 8px;
+  padding: 22px;
 }
 
-.metrics span {
-  color: #52645c;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.metrics strong {
+.empty-panel strong {
   color: #17211b;
-  font-size: 2rem;
+  font-size: 1.1rem;
+}
+
+.empty-panel p {
+  margin: 0;
+  color: #4c5b54;
+  line-height: 1.5;
 }
 
 .activity-list {
@@ -124,9 +117,8 @@ button:disabled {
 }
 
 .activity-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(420px, 2fr);
   gap: 18px;
   border: 1px solid #dbe3df;
   border-radius: 8px;
@@ -134,7 +126,7 @@ button:disabled {
   padding: 16px 18px;
 }
 
-.activity-list div {
+.activity-main {
   display: grid;
   gap: 6px;
 }
@@ -147,6 +139,48 @@ button:disabled {
   color: #52645c;
 }
 
+dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(78px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+dl div {
+  display: grid;
+  gap: 5px;
+}
+
+dt {
+  color: #52645c;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 0;
+  color: #17211b;
+  font-weight: 800;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pagination span {
+  color: #52645c;
+  font-weight: 700;
+}
+
+.pagination div {
+  display: flex;
+  gap: 10px;
+}
+
 .error {
   color: #a43122;
   font-weight: 700;
@@ -157,10 +191,16 @@ button:disabled {
   .strava-panel,
   .activity-list li {
     align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-header,
+  .strava-panel,
+  .pagination {
     flex-direction: column;
   }
 
-  .metrics {
-    grid-template-columns: 1fr;
+  dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

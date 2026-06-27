@@ -27,7 +27,7 @@ export interface ActivityList {
 export class ActivityService {
   private readonly http = inject(HttpClient);
 
-  list(): Observable<ActivityList> {
-    return this.http.get<ActivityList>('/api/strava/activities?page=0&size=10');
+  list(page = 0): Observable<ActivityList> {
+    return this.http.get<ActivityList>(`/api/strava/activities?page=${page}&size=10`);
   }
 }
