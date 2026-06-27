@@ -1,0 +1,44 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+
+import { StravaAccountService } from './strava-account.service';
+
+describe('StravaAccountService', () => {
+  let service: StravaAccountService;
+  let httpTestingController: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [StravaAccountService, provideHttpClient(), provideHttpClientTesting()],
+    });
+
+    service = TestBed.inject(StravaAccountService);
+    httpTestingController = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpTestingController.verify();
+  });
+
+  it('should_load_strava_link_status', () => {
+    service.status().subscribe((status) => {
+      expect(status.permissionState).toBe('READY');
+    });
+
+    const request = httpTestingController.expectOne('/api/strava/status');
+    expect(request.request.method).toBe('GET');
+    request.flush({ linked: true, athleteId: 123, permissionState: 'READY' });
+  });
+
+  it('should_start_strava_linking', () => {
+    service.startLinking().subscribe((result) => {
+      expect(result.authorizationUrl).toBe('https://strava.example/oauth');
+    });
+
+    const request = httpTestingController.expectOne('/api/strava/link');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
+    request.flush({ authorizationUrl: 'https://strava.example/oauth' });
+  });
+});

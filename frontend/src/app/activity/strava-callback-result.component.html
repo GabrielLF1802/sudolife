@@ -1,0 +1,13 @@
+<section class="callback-result" aria-labelledby="strava-callback-title">
+  <p class="eyebrow">Strava</p>
+  <h1 id="strava-callback-title">
+    @if (isSuccess()) {
+      Conexao concluida
+    } @else {
+      Conexao nao concluida
+    }
+  </h1>
+  <p>{{ message() }}</p>
+
+  <a routerLink="/activities">Voltar para atividades</a>
+</section>

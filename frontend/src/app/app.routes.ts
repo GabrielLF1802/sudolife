@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { ActivityDashboardComponent } from './activity/activity-dashboard.component';
+import { StravaCallbackResultComponent } from './activity/strava-callback-result.component';
 import { authGuard } from './auth/auth.guard';
 import { LoginComponent } from './auth/login.component';
 import { RegisterComponent } from './auth/register.component';
@@ -17,6 +18,16 @@ export const routes: Routes = [
   {
     path: 'activities',
     component: ActivityDashboardComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'strava/success',
+    component: StravaCallbackResultComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'strava/failure',
+    component: StravaCallbackResultComponent,
     canActivate: [authGuard],
   },
   {

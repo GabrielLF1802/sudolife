@@ -18,6 +18,27 @@
   } @else if (errorMessage()) {
     <p class="status error">{{ errorMessage() }}</p>
   } @else if (activityList(); as activityList) {
+    @if (stravaLinkStatus(); as stravaStatus) {
+      <section class="strava-panel" aria-label="Conta Strava">
+        <div>
+          <span>Strava</span>
+          <strong>{{ stravaStatusText(stravaStatus) }}</strong>
+        </div>
+
+        <button type="button" class="strava-action" [disabled]="linking()" (click)="startStravaLinking()">
+          @if (linking()) {
+            Redirecionando...
+          } @else {
+            {{ stravaActionLabel(stravaStatus) }}
+          }
+        </button>
+      </section>
+
+      @if (linkingErrorMessage()) {
+        <p class="status error">{{ linkingErrorMessage() }}</p>
+      }
+    }
+
     <div class="metrics" aria-label="Resumo">
       <div>
         <span>Total</span>
