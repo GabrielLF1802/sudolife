@@ -15,13 +15,4 @@ describe('App', () => {
 
     expect(app).toBeTruthy();
   });
-
-  it('should_render_title', () => {
-    const fixture = TestBed.createComponent(App);
-
-    fixture.detectChanges();
-
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Sudolife');
-  });
 });

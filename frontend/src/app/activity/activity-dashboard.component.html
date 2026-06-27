@@ -1,0 +1,48 @@
+<section class="dashboard" aria-labelledby="dashboard-title">
+  <header class="dashboard-header">
+    <div>
+      <p class="eyebrow">Painel</p>
+      <h1 id="dashboard-title">Atividades</h1>
+      @if (currentUser(); as user) {
+        <p class="summary">{{ user.name }} - {{ user.email }}</p>
+      } @else {
+        <p class="summary">Resumo das atividades importadas do atleta.</p>
+      }
+    </div>
+
+    <button type="button" (click)="logout()">Sair</button>
+  </header>
+
+  @if (loading()) {
+    <p class="status">Carregando atividades...</p>
+  } @else if (errorMessage()) {
+    <p class="status error">{{ errorMessage() }}</p>
+  } @else if (activityList(); as activityList) {
+    <div class="metrics" aria-label="Resumo">
+      <div>
+        <span>Total</span>
+        <strong>{{ activityList.totalElements }}</strong>
+      </div>
+      <div>
+        <span>Pagina</span>
+        <strong>{{ activityList.page + 1 }} / {{ activityList.totalPages || 1 }}</strong>
+      </div>
+    </div>
+
+    @if (activityList.activities.length > 0) {
+      <ul class="activity-list">
+        @for (activity of activityList.activities; track activity.id) {
+          <li>
+            <div>
+              <strong>{{ activity.name }}</strong>
+              <span>{{ activity.sportType }} - {{ activity.startDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <span>{{ activity.distanceMeters / 1000 | number: '1.1-1' }} km</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="empty">Nenhuma atividade importada ainda.</p>
+    }
+  }
+</section>

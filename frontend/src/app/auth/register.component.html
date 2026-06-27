@@ -1,0 +1,55 @@
+<section class="auth-panel" aria-labelledby="register-title">
+  <div>
+    <p class="eyebrow">Cadastro</p>
+    <h1 id="register-title">Criar conta</h1>
+    <p class="summary">Informe seus dados para iniciar o acompanhamento das atividades.</p>
+  </div>
+
+  <form (ngSubmit)="register()" #registerForm="ngForm">
+    <label>
+      Nome
+      <input
+        type="text"
+        name="name"
+        autocomplete="name"
+        required
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+      />
+    </label>
+
+    <label>
+      Email
+      <input
+        type="email"
+        name="email"
+        autocomplete="email"
+        required
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </label>
+
+    <label>
+      Senha
+      <input
+        type="password"
+        name="password"
+        autocomplete="new-password"
+        required
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </label>
+
+    @if (errorMessage()) {
+      <p class="form-error">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" [disabled]="registerForm.invalid || submitting()">
+      {{ submitting() ? 'Criando...' : 'Criar conta' }}
+    </button>
+  </form>
+
+  <p class="switch-link">Ja tem conta? <a routerLink="/login">Entrar</a></p>
+</section>

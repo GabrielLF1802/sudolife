@@ -1,0 +1,43 @@
+<section class="auth-panel" aria-labelledby="login-title">
+  <div>
+    <p class="eyebrow">Atleta</p>
+    <h1 id="login-title">Entrar</h1>
+    <p class="summary">Acesse o painel de atividades com sua conta Sudolife.</p>
+  </div>
+
+  <form (ngSubmit)="login()" #loginForm="ngForm">
+    <label>
+      Email
+      <input
+        type="email"
+        name="email"
+        autocomplete="email"
+        required
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </label>
+
+    <label>
+      Senha
+      <input
+        type="password"
+        name="password"
+        autocomplete="current-password"
+        required
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </label>
+
+    @if (errorMessage()) {
+      <p class="form-error">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" [disabled]="loginForm.invalid || submitting()">
+      {{ submitting() ? 'Entrando...' : 'Entrar' }}
+    </button>
+  </form>
+
+  <p class="switch-link">Novo por aqui? <a routerLink="/register">Crie sua conta</a></p>
+</section>

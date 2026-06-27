@@ -1,0 +1,93 @@
+:host {
+  display: block;
+  width: min(100%, 440px);
+}
+
+.auth-panel {
+  display: grid;
+  gap: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #496057;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  color: #17211b;
+  font-size: 2.5rem;
+  line-height: 1.05;
+}
+
+.summary {
+  margin: 14px 0 0;
+  color: #4c5b54;
+  line-height: 1.55;
+}
+
+form {
+  display: grid;
+  gap: 18px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: #25322c;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #c9d3cd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17211b;
+  font: inherit;
+  padding: 13px 14px;
+}
+
+input:focus {
+  border-color: #1e7f5c;
+  outline: 3px solid rgba(30, 127, 92, 0.16);
+}
+
+button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: #1e7f5c;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+button:disabled {
+  background: #a6b7ae;
+  cursor: not-allowed;
+}
+
+.form-error {
+  margin: 0;
+  color: #a43122;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.switch-link {
+  margin: 0;
+  color: #4c5b54;
+}
+
+a {
+  color: #1b654c;
+  font-weight: 800;
+}
