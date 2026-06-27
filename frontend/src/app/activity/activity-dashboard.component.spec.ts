@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { ActivityDashboardComponent } from './activity-dashboard.component';
 import { ActivityList, ActivityService } from './activity.service';
-import { StravaAccountService } from './strava-account.service';
+import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
 
 describe('ActivityDashboardComponent', () => {
   let fixture: ComponentFixture<ActivityDashboardComponent>;
@@ -21,9 +21,7 @@ describe('ActivityDashboardComponent', () => {
       'startLinking',
       'requestSync',
     ]);
-    stravaAccountService.status.and.returnValue(
-      of({ linked: false, athleteId: null, permissionState: 'UNLINKED' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('UNLINKED')));
     stravaAccountService.startLinking.and.returnValue(
       of({ authorizationUrl: 'https://strava.example/oauth' }),
     );
@@ -66,9 +64,7 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_render_reconnect_action_when_strava_is_linked', () => {
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Conectado ao atleta 123');
@@ -76,18 +72,14 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_render_manual_sync_action_when_dashboard_loads', () => {
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Sincronizar agora');
   });
 
   it('should_render_permission_upgrade_action_when_scope_is_incomplete', () => {
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'PERMISSION_UPGRADE_REQUIRED' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Permissoes incompletas');
@@ -96,9 +88,7 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_render_imported_activity_summary_fields', () => {
     activityService.list.and.returnValue(of(activityListWithSummaries()));
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     const textContent = fixture.nativeElement.textContent;
@@ -113,9 +103,7 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_filter_loaded_activity_page_by_type', () => {
     activityService.list.and.returnValue(of(filterableActivityList()));
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     selectFilterValue(0, 'RIDE');
@@ -128,9 +116,7 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_filter_loaded_activity_page_by_period', () => {
     activityService.list.and.returnValue(of(filterableActivityList()));
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     selectFilterValue(1, 'LAST_7_DAYS');
@@ -142,9 +128,7 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_filter_loaded_activity_page_by_distance_in_kilometers', () => {
     activityService.list.and.returnValue(of(filterableActivityList()));
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     typeDistanceValue('input[aria-label="Distancia minima em quilometros"]', '6');
@@ -158,9 +142,7 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_show_filtered_empty_state_for_loaded_page_only', () => {
     activityService.list.and.returnValue(of(filterableActivityList()));
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     typeDistanceValue('input[aria-label="Distancia minima em quilometros"]', '80');
@@ -173,9 +155,7 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_show_connected_empty_state_without_summary_metric_cards', () => {
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Nenhuma atividade importada ainda.');
@@ -183,9 +163,7 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_show_reconnect_guidance_when_strava_is_not_sync_enabled', () => {
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'PERMISSION_UPGRADE_REQUIRED' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain(
@@ -200,9 +178,7 @@ describe('ActivityDashboardComponent', () => {
       of(activityListWithSummaries()),
       of(secondActivityPage()),
     );
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     fixture.nativeElement.querySelector('.next-page').click();
@@ -226,9 +202,7 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_show_manual_sync_result', () => {
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
     syncButton().click();
@@ -241,9 +215,7 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_show_manual_sync_failure_reason_with_reconnect_guidance', () => {
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'PERMISSION_UPGRADE_REQUIRED' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     stravaAccountService.requestSync.and.returnValue(
       of({
         status: 'FAILED',
@@ -266,9 +238,7 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_keep_dashboard_usable_when_manual_sync_request_fails', () => {
     activityService.list.and.returnValue(of(activityListWithSummaries()));
-    stravaAccountService.status.and.returnValue(
-      of({ linked: true, athleteId: 123, permissionState: 'READY' }),
-    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     stravaAccountService.requestSync.and.returnValue(throwError(() => new Error('failed')));
     fixture.detectChanges();
 
@@ -306,6 +276,32 @@ describe('ActivityDashboardComponent', () => {
 
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+  }
+
+  function stravaStatus(permissionState: StravaLinkStatus['permissionState']): StravaLinkStatus {
+    return {
+      linked: permissionState !== 'UNLINKED',
+      athleteId: permissionState === 'UNLINKED' ? null : 123,
+      permissionState,
+      activitySummaryStatus: activitySummaryStatus(permissionState),
+      performanceDataStatus: permissionState === 'READY' ? 'PENDING' : permissionState,
+      lastSummarySyncTime: permissionState === 'READY' ? '2026-05-11T12:00:00Z' : null,
+      lastStreamEnrichmentTime: null,
+      importedActivityCount: permissionState === 'READY' ? 2 : 0,
+      streamsReadyActivityCount: 0,
+      failureReason:
+        permissionState === 'PERMISSION_UPGRADE_REQUIRED' ? 'PERMISSION_UPGRADE_REQUIRED' : null,
+    };
+  }
+
+  function activitySummaryStatus(
+    permissionState: StravaLinkStatus['permissionState'],
+  ): StravaLinkStatus['activitySummaryStatus'] {
+    if (permissionState === 'READY') {
+      return 'COMPLETED';
+    }
+
+    return permissionState;
   }
 
   function emptyActivityList(): ActivityList {

@@ -70,7 +70,10 @@ public class StravaAccountLinkController {
         );
 
         return ResponseEntity.ok(new StravaLinkStatusResponse(result.linked(), result.athleteId(),
-                result.permissionState().name()));
+                result.permissionState().name(), result.activitySummaryStatus().name(),
+                result.performanceDataStatus().name(), result.lastSummarySyncTime(),
+                result.lastStreamEnrichmentTime(), result.importedActivityCount(),
+                result.streamsReadyActivityCount(), failureReason(result)));
     }
 
     @DeleteMapping("/link")
@@ -125,6 +128,14 @@ public class StravaAccountLinkController {
     }
 
     private String failureReason(StravaActivitySyncResult result) {
+        if (result.failureReason() == null) {
+            return null;
+        }
+
+        return result.failureReason().name();
+    }
+
+    private String failureReason(StravaLinkStatusResult result) {
         if (result.failureReason() == null) {
             return null;
         }

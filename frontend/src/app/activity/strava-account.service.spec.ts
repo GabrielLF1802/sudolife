@@ -24,11 +24,24 @@ describe('StravaAccountService', () => {
   it('should_load_strava_link_status', () => {
     service.status().subscribe((status) => {
       expect(status.permissionState).toBe('READY');
+      expect(status.activitySummaryStatus).toBe('COMPLETED');
+      expect(status.importedActivityCount).toBe(4);
     });
 
     const request = httpTestingController.expectOne('/api/strava/status');
     expect(request.request.method).toBe('GET');
-    request.flush({ linked: true, athleteId: 123, permissionState: 'READY' });
+    request.flush({
+      linked: true,
+      athleteId: 123,
+      permissionState: 'READY',
+      activitySummaryStatus: 'COMPLETED',
+      performanceDataStatus: 'PENDING',
+      lastSummarySyncTime: '2026-05-11T12:00:00Z',
+      lastStreamEnrichmentTime: null,
+      importedActivityCount: 4,
+      streamsReadyActivityCount: 1,
+      failureReason: null,
+    });
   });
 
   it('should_start_strava_linking', () => {

@@ -9,5 +9,9 @@ public interface StravaActivitySummaryRepository {
 
     long countByUserEmail(String userEmail);
 
+    long countByAccountLinkId(Long accountLinkId);
+
+    long countStreamsReadyByAccountLinkId(Long accountLinkId);
+
     StravaActivitySummaryPage findByUserEmail(String userEmail, int page, int size);
 }

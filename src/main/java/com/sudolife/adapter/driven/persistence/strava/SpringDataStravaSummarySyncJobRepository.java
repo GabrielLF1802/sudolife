@@ -12,6 +12,13 @@ public interface SpringDataStravaSummarySyncJobRepository extends JpaRepository<
 
     boolean existsByOpenAccountLinkId(Long openAccountLinkId);
 
+    List<StravaSummarySyncJobEntity> findByAccountLinkIdOrderByCreatedAtDescIdDesc(Long accountLinkId,
+                                                                                   Pageable pageable);
+
+    List<StravaSummarySyncJobEntity> findByAccountLinkIdAndStatusOrderByCompletedAtDescIdDesc(Long accountLinkId,
+                                                                                              StravaSummarySyncJobStatus status,
+                                                                                              Pageable pageable);
+
     List<StravaSummarySyncJobEntity> findByStatusAndRunAfterLessThanEqualOrderByRunAfterAscCreatedAtAsc(
             StravaSummarySyncJobStatus status, Instant now, Pageable pageable);
 }

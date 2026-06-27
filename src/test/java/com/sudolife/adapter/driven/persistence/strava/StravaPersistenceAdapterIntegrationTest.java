@@ -240,6 +240,24 @@ class StravaPersistenceAdapterIntegrationTest {
     }
 
     @Test
+    void count_activity_summaries_filters_by_account_link_id() {
+        StravaAccountLink firstLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
+        StravaAccountLink secondLink = accountLinkRepository.save(activeLink("other@sudolife.com", ATHLETE_ID + 1));
+        activitySummaryRepository.saveIfAbsent(activitySummary(firstLink.getUserEmail(), firstLink.getId(),
+                SOURCE_ACTIVITY_ID + 1, StravaActivityType.RUN));
+        activitySummaryRepository.saveIfAbsent(activitySummary(firstLink.getUserEmail(), firstLink.getId(),
+                SOURCE_ACTIVITY_ID + 2, StravaActivityType.WEIGHT_TRAINING));
+        activitySummaryRepository.saveIfAbsent(activitySummary(secondLink.getUserEmail(), secondLink.getId(),
+                SOURCE_ACTIVITY_ID + 3, StravaActivityType.WEIGHT_TRAINING));
+
+        long importedActivityCount = activitySummaryRepository.countByAccountLinkId(firstLink.getId());
+        long streamsReadyActivityCount = activitySummaryRepository.countStreamsReadyByAccountLinkId(firstLink.getId());
+
+        assertThat(importedActivityCount).isEqualTo(2);
+        assertThat(streamsReadyActivityCount).isEqualTo(1);
+    }
+
+    @Test
     void enqueue_summary_sync_job_coalesces_open_jobs_per_account_link() {
         StravaAccountLink savedLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
 
@@ -267,6 +285,40 @@ class StravaPersistenceAdapterIntegrationTest {
 
         assertThat(enqueuedAgain).isTrue();
         assertThat(springDataSummarySyncJobRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    void find_latest_summary_sync_job_filters_by_account_link_id() {
+        StravaAccountLink firstLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
+        StravaAccountLink secondLink = accountLinkRepository.save(activeLink("other@sudolife.com", ATHLETE_ID + 1));
+        summarySyncJobRepository.save(StravaSummarySyncJob.queued(firstLink, NOW).completed(0, NOW.plusSeconds(1)));
+        summarySyncJobRepository.save(StravaSummarySyncJob.queued(firstLink, NOW.plusSeconds(2)));
+        summarySyncJobRepository.save(StravaSummarySyncJob.queued(secondLink, NOW.plusSeconds(3)));
+
+        Optional<StravaSummarySyncJob> result = summarySyncJobRepository.findLatestByAccountLinkId(firstLink.getId());
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getAccountLinkId()).isEqualTo(firstLink.getId());
+        assertThat(result.get().getStatus()).isEqualTo(StravaSummarySyncJobStatus.QUEUED);
+    }
+
+    @Test
+    void find_latest_completed_summary_sync_job_filters_by_account_link_id() {
+        StravaAccountLink firstLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
+        StravaAccountLink secondLink = accountLinkRepository.save(activeLink("other@sudolife.com", ATHLETE_ID + 1));
+        summarySyncJobRepository.save(StravaSummarySyncJob.queued(firstLink, NOW).completed(0, NOW.plusSeconds(1)));
+        summarySyncJobRepository.save(StravaSummarySyncJob.queued(firstLink, NOW.plusSeconds(2)));
+        summarySyncJobRepository.save(StravaSummarySyncJob.queued(firstLink, NOW.plusSeconds(3))
+                .completed(0, NOW.plusSeconds(4)));
+        summarySyncJobRepository.save(StravaSummarySyncJob.queued(secondLink, NOW.plusSeconds(5))
+                .completed(0, NOW.plusSeconds(6)));
+
+        Optional<StravaSummarySyncJob> result = summarySyncJobRepository.findLatestCompletedByAccountLinkId(
+                firstLink.getId());
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getAccountLinkId()).isEqualTo(firstLink.getId());
+        assertThat(result.get().getCompletedAt()).isEqualTo(NOW.plusSeconds(4));
     }
 
     @Test
@@ -299,6 +351,13 @@ class StravaPersistenceAdapterIntegrationTest {
         return StravaActivitySummary.imported(userEmail, LINK_ID, sourceActivityId, StravaActivityType.RUN, "Run",
                 name, Instant.parse(startDate), 5000.0, 1500, 3.33, 42.0, 5.5, 150.0, 180.0,
                 82.0, 220.0, 350.0, NOW);
+    }
+
+    private StravaActivitySummary activitySummary(String userEmail, Long accountLinkId, Long sourceActivityId,
+                                                  StravaActivityType activityType) {
+        return StravaActivitySummary.imported(userEmail, accountLinkId, sourceActivityId, activityType,
+                activityType.name(), "Activity " + sourceActivityId, NOW, 5000.0, 1500, 3.33, 42.0,
+                5.5, 150.0, 180.0, 82.0, 220.0, 350.0, NOW);
     }
 
     private StravaAccountLink activeLink(String userEmail, Long athleteId) {

@@ -4,10 +4,42 @@ import { Observable } from 'rxjs';
 
 export type StravaPermissionState = 'UNLINKED' | 'READY' | 'PERMISSION_UPGRADE_REQUIRED';
 
+export type StravaSummaryStatus =
+  | 'UNLINKED'
+  | 'PERMISSION_UPGRADE_REQUIRED'
+  | 'NOT_STARTED'
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'FAILED';
+
+export type StravaPerformanceDataStatus =
+  | 'UNLINKED'
+  | 'PERMISSION_UPGRADE_REQUIRED'
+  | 'NOT_STARTED'
+  | 'PENDING'
+  | 'READY'
+  | 'FAILED';
+
+export type StravaSyncFailureReason =
+  | 'SYNC_ALREADY_RUNNING'
+  | 'PERMISSION_UPGRADE_REQUIRED'
+  | 'RECONNECT_REQUIRED'
+  | 'STRAVA_RATE_LIMITED'
+  | 'STRAVA_UNAVAILABLE'
+  | 'UNKNOWN_SYNC_FAILURE';
+
 export interface StravaLinkStatus {
   linked: boolean;
   athleteId: number | null;
   permissionState: StravaPermissionState;
+  activitySummaryStatus: StravaSummaryStatus;
+  performanceDataStatus: StravaPerformanceDataStatus;
+  lastSummarySyncTime: string | null;
+  lastStreamEnrichmentTime: string | null;
+  importedActivityCount: number;
+  streamsReadyActivityCount: number;
+  failureReason: StravaSyncFailureReason | null;
 }
 
 export type StravaActivitySyncStatus = 'UNLINKED' | 'COMPLETED' | 'FAILED';
@@ -15,8 +47,10 @@ export type StravaActivitySyncStatus = 'UNLINKED' | 'COMPLETED' | 'FAILED';
 export type StravaActivitySyncFailureReason =
   | 'SYNC_ALREADY_RUNNING'
   | 'PERMISSION_UPGRADE_REQUIRED'
+  | 'RECONNECT_REQUIRED'
   | 'STRAVA_RATE_LIMITED'
-  | 'STRAVA_UNAVAILABLE';
+  | 'STRAVA_UNAVAILABLE'
+  | 'UNKNOWN_SYNC_FAILURE';
 
 export interface StravaActivitySyncResult {
   status: StravaActivitySyncStatus;

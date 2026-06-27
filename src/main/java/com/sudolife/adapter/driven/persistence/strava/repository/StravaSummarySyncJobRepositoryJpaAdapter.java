@@ -52,6 +52,23 @@ public class StravaSummarySyncJobRepositoryJpaAdapter implements StravaSummarySy
     }
 
     @Override
+    public Optional<StravaSummarySyncJob> findLatestByAccountLinkId(Long accountLinkId) {
+        return jpaRepository.findByAccountLinkIdOrderByCreatedAtDescIdDesc(accountLinkId, PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<StravaSummarySyncJob> findLatestCompletedByAccountLinkId(Long accountLinkId) {
+        return jpaRepository.findByAccountLinkIdAndStatusOrderByCompletedAtDescIdDesc(accountLinkId,
+                        StravaSummarySyncJobStatus.COMPLETED, PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<StravaSummarySyncJob> findNextRunnable(Instant now) {
         return jpaRepository.findByStatusAndRunAfterLessThanEqualOrderByRunAfterAscCreatedAtAsc(
                         StravaSummarySyncJobStatus.QUEUED, now, PageRequest.of(0, 1))

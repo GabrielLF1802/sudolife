@@ -13,6 +13,10 @@ public interface StravaSummarySyncJobRepository {
 
     Optional<StravaSummarySyncJob> findById(Long id);
 
+    Optional<StravaSummarySyncJob> findLatestByAccountLinkId(Long accountLinkId);
+
+    Optional<StravaSummarySyncJob> findLatestCompletedByAccountLinkId(Long accountLinkId);
+
     Optional<StravaSummarySyncJob> findNextRunnable(Instant now);
 
     StravaSummarySyncJob save(StravaSummarySyncJob job);

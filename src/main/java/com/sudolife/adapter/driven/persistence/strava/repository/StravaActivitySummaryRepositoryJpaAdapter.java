@@ -4,6 +4,7 @@ import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivitySu
 import com.sudolife.adapter.driven.persistence.strava.StravaActivitySummaryPersistenceMapper;
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaActivitySummaryEntity;
 import com.sudolife.application.model.strava.StravaActivitySummary;
+import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.StravaActivitySummaryPage;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,16 @@ public class StravaActivitySummaryRepositoryJpaAdapter implements StravaActivity
     @Override
     public long countByUserEmail(String userEmail) {
         return jpaRepository.countByUserEmail(userEmail);
+    }
+
+    @Override
+    public long countByAccountLinkId(Long accountLinkId) {
+        return jpaRepository.countByAccountLinkId(accountLinkId);
+    }
+
+    @Override
+    public long countStreamsReadyByAccountLinkId(Long accountLinkId) {
+        return jpaRepository.countByAccountLinkIdAndActivityType(accountLinkId, StravaActivityType.WEIGHT_TRAINING);
     }
 
     @Override

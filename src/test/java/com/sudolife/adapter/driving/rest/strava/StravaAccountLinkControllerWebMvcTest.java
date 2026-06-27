@@ -15,7 +15,9 @@ import com.sudolife.application.service.strava.StravaActivitySyncStatus;
 import com.sudolife.application.service.strava.StravaAuthorizationUrlResult;
 import com.sudolife.application.service.strava.StravaCallbackResult;
 import com.sudolife.application.service.strava.StravaLinkStatusResult;
+import com.sudolife.application.service.strava.StravaPerformanceDataStatus;
 import com.sudolife.application.service.strava.StravaPermissionState;
+import com.sudolife.application.service.strava.StravaSummaryStatus;
 import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
@@ -38,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.application.model.strava.StravaActivityType.RUN;
 import static com.sudolife.helper.StravaTestHelper.ACTIVITY_START_DATE;
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
@@ -122,13 +125,22 @@ class StravaAccountLinkControllerWebMvcTest {
     void status_returns_link_status_for_authenticated_user() throws Exception {
         GetStravaAccountLinkStatusCommand command = new GetStravaAccountLinkStatusCommand(USER_EMAIL);
         when(getStravaAccountLinkStatusUseCase.execute(command))
-                .thenReturn(new StravaLinkStatusResult(true, ATHLETE_ID, StravaPermissionState.READY));
+                .thenReturn(new StravaLinkStatusResult(true, ATHLETE_ID, StravaPermissionState.READY,
+                        StravaSummaryStatus.COMPLETED, StravaPerformanceDataStatus.PENDING, NOW, null, 4, 1,
+                        StravaActivitySyncFailureReason.STRAVA_RATE_LIMITED));
 
         mockMvc.perform(get("/api/strava/status").with(user(USER_EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.linked").value(true))
                 .andExpect(jsonPath("$.athleteId").value(ATHLETE_ID))
                 .andExpect(jsonPath("$.permissionState").value("READY"))
+                .andExpect(jsonPath("$.activitySummaryStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.performanceDataStatus").value("PENDING"))
+                .andExpect(jsonPath("$.lastSummarySyncTime").value("2026-05-11T12:00:00Z"))
+                .andExpect(jsonPath("$.lastStreamEnrichmentTime").doesNotExist())
+                .andExpect(jsonPath("$.importedActivityCount").value(4))
+                .andExpect(jsonPath("$.streamsReadyActivityCount").value(1))
+                .andExpect(jsonPath("$.failureReason").value("STRAVA_RATE_LIMITED"))
                 .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
                 .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
 
