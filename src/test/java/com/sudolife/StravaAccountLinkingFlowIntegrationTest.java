@@ -5,6 +5,7 @@ import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivitySu
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaAuthorizationStateRepository;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaSummarySyncJobRepository;
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
+import com.sudolife.application.model.strava.StravaActivityDetailImport;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.StravaAuthorizationRequest;
@@ -473,6 +474,15 @@ class StravaAccountLinkingFlowIntegrationTest {
             return List.of(new StravaActivitySummaryImport(457L, StravaActivityType.RUN, "Run", "Morning Run",
                     Instant.parse("2026-05-10T09:00:00Z"), 5000.0, 1500, 3.33, 42.0, 5.5, 150.0,
                     180.0, 82.0, 220.0, 350.0));
+        }
+
+        @Override
+        public StravaActivityDetailImport fetchActivityDetail(String accessToken, Long sourceActivityId) {
+            accessTokens.add(accessToken);
+
+            return new StravaActivityDetailImport(sourceActivityId, StravaActivityType.RUN, "Run", "Morning Run",
+                    Instant.parse("2026-05-10T09:00:00Z"), 5000.0, 1500, 3.33, 42.0, 5.5, 150.0,
+                    180.0, 82.0, 220.0, 350.0);
         }
 
         void reset() {

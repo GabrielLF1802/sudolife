@@ -1,5 +1,6 @@
 package com.sudolife.adapter.driving.rest.strava;
 
+import com.sudolife.adapter.driving.rest.strava.webmodel.StravaActivityDetailResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaActivityListItemResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaActivityListResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaAuthorizationUrlResponse;
@@ -7,9 +8,11 @@ import com.sudolife.adapter.driving.rest.strava.webmodel.StravaCallbackRequest;
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaActivitySyncResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.StravaLinkStatusResponse;
 import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
+import com.sudolife.application.service.strava.GetStravaActivityDetailCommand;
 import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
 import com.sudolife.application.service.strava.ListStravaActivitiesCommand;
 import com.sudolife.application.service.strava.RequestStravaActivitySyncCommand;
+import com.sudolife.application.service.strava.StravaActivityDetailResult;
 import com.sudolife.application.service.strava.StravaActivityListItemResult;
 import com.sudolife.application.service.strava.StravaActivityListResult;
 import com.sudolife.application.service.strava.StartStravaAccountLinkingCommand;
@@ -19,6 +22,7 @@ import com.sudolife.application.service.strava.StravaCallbackResult;
 import com.sudolife.application.service.strava.StravaLinkStatusResult;
 import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
+import com.sudolife.application.service.strava.ports.provided.GetStravaActivityDetailUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
 import com.sudolife.application.service.strava.ports.provided.ListStravaActivitiesUseCase;
 import com.sudolife.application.service.strava.ports.provided.RequestStravaActivitySyncUseCase;
@@ -30,6 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -52,6 +57,7 @@ public class StravaAccountLinkController {
     private final UnlinkStravaAccountUseCase unlinkStravaAccountUseCase;
     private final RequestStravaActivitySyncUseCase requestStravaActivitySyncUseCase;
     private final ListStravaActivitiesUseCase listStravaActivitiesUseCase;
+    private final GetStravaActivityDetailUseCase getStravaActivityDetailUseCase;
     private final StravaFrontendRedirectProperties stravaFrontendRedirectProperties;
 
     @PostMapping("/link")
@@ -97,6 +103,15 @@ public class StravaAccountLinkController {
     public ResponseEntity<StravaActivityListResponse> activities(Authentication authentication, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         StravaActivityListResult result = listStravaActivitiesUseCase.execute(
                 new ListStravaActivitiesCommand(authentication.getName(), page, size)
+        );
+
+        return ResponseEntity.ok(toResponse(result));
+    }
+
+    @GetMapping("/activities/{activityId}")
+    public ResponseEntity<StravaActivityDetailResponse> activity(Authentication authentication, @PathVariable Long activityId) {
+        StravaActivityDetailResult result = getStravaActivityDetailUseCase.execute(
+                new GetStravaActivityDetailCommand(authentication.getName(), activityId)
         );
 
         return ResponseEntity.ok(toResponse(result));
@@ -154,5 +169,15 @@ public class StravaAccountLinkController {
                 result.sportType().name(), result.startDate(), result.distanceMeters(), result.movingTimeSeconds(),
                 result.averageSpeedMetersPerSecond(), result.averagePaceSecondsPerKilometer(),
                 result.streamStatus().name());
+    }
+
+    private StravaActivityDetailResponse toResponse(StravaActivityDetailResult result) {
+        return new StravaActivityDetailResponse(result.id(), result.sourceActivityId(), result.name(),
+                result.sportType().name(), result.startDate(), result.distanceMeters(), result.movingTimeSeconds(),
+                result.totalElevationGainMeters(), result.averageSpeedMetersPerSecond(),
+                result.averagePaceSecondsPerKilometer(), result.maxSpeedMetersPerSecond(),
+                result.averageHeartRate(), result.maxHeartRate(), result.averageCadence(), result.averageWatts(),
+                result.calories(), result.streamStatus().name(), result.availableStreamMetricNames(),
+                result.enrichmentStatus().name());
     }
 }

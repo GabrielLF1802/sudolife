@@ -2,9 +2,12 @@ package com.sudolife.adapter.driving.rest.strava;
 
 import com.sudolife.adapter.driving.rest.RestExceptionHandler;
 import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
+import com.sudolife.application.service.strava.GetStravaActivityDetailCommand;
 import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
 import com.sudolife.application.service.strava.ListStravaActivitiesCommand;
 import com.sudolife.application.service.strava.RequestStravaActivitySyncCommand;
+import com.sudolife.application.service.strava.StravaActivityDetailEnrichmentStatus;
+import com.sudolife.application.service.strava.StravaActivityDetailResult;
 import com.sudolife.application.service.strava.StravaActivityListItemResult;
 import com.sudolife.application.service.strava.StravaActivityListResult;
 import com.sudolife.application.service.strava.StravaActivityStreamStatus;
@@ -21,6 +24,7 @@ import com.sudolife.application.service.strava.StravaSummaryStatus;
 import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
+import com.sudolife.application.service.strava.ports.provided.GetStravaActivityDetailUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
 import com.sudolife.application.service.strava.ports.provided.ListStravaActivitiesUseCase;
 import com.sudolife.application.service.strava.ports.provided.RequestStravaActivitySyncUseCase;
@@ -93,6 +97,9 @@ class StravaAccountLinkControllerWebMvcTest {
 
     @MockitoBean
     private ListStravaActivitiesUseCase listStravaActivitiesUseCase;
+
+    @MockitoBean
+    private GetStravaActivityDetailUseCase getStravaActivityDetailUseCase;
 
     @MockitoBean
     private UserToken userToken;
@@ -273,6 +280,47 @@ class StravaAccountLinkControllerWebMvcTest {
     }
 
     @Test
+    void activity_returns_detail_for_authenticated_user_without_stream_samples() throws Exception {
+        GetStravaActivityDetailCommand command = new GetStravaActivityDetailCommand(USER_EMAIL, 99L);
+        when(getStravaActivityDetailUseCase.execute(command))
+                .thenReturn(activityDetailResult());
+
+        mockMvc.perform(get("/api/strava/activities/99").with(user(USER_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(99))
+                .andExpect(jsonPath("$.sourceActivityId").value(SOURCE_ACTIVITY_ID))
+                .andExpect(jsonPath("$.name").value("Morning Run Detail"))
+                .andExpect(jsonPath("$.sportType").value("RUN"))
+                .andExpect(jsonPath("$.startDate").value("2026-05-10T09:00:00Z"))
+                .andExpect(jsonPath("$.distanceMeters").value(5100.0))
+                .andExpect(jsonPath("$.movingTimeSeconds").value(1510))
+                .andExpect(jsonPath("$.totalElevationGainMeters").value(43.0))
+                .andExpect(jsonPath("$.averageSpeedMetersPerSecond").value(3.37))
+                .andExpect(jsonPath("$.averagePaceSecondsPerKilometer").value(296.08))
+                .andExpect(jsonPath("$.maxSpeedMetersPerSecond").value(5.6))
+                .andExpect(jsonPath("$.averageHeartRate").value(151.0))
+                .andExpect(jsonPath("$.maxHeartRate").value(181.0))
+                .andExpect(jsonPath("$.averageCadence").value(83.0))
+                .andExpect(jsonPath("$.averageWatts").value(221.0))
+                .andExpect(jsonPath("$.calories").value(351.0))
+                .andExpect(jsonPath("$.streamStatus").value("PENDING"))
+                .andExpect(jsonPath("$.availableStreamMetricNames").isArray())
+                .andExpect(jsonPath("$.enrichmentStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.elapsedTimeSeconds").doesNotExist())
+                .andExpect(jsonPath("$.streamSamples").doesNotExist())
+                .andExpect(content().string(not(containsString(ACCESS_TOKEN))))
+                .andExpect(content().string(not(containsString(REFRESH_TOKEN))));
+
+        verify(getStravaActivityDetailUseCase).execute(command);
+    }
+
+    @Test
+    void activity_rejects_unauthenticated_user() throws Exception {
+        mockMvc.perform(get("/api/strava/activities/99"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void callback_redirects_to_success_url_without_sensitive_values() throws Exception {
         CompleteStravaAccountLinkingCommand command = new CompleteStravaAccountLinkingCommand(STATE, CODE, SCOPE, null);
         when(completeStravaAccountLinkingUseCase.execute(command))
@@ -330,6 +378,13 @@ class StravaAccountLinkControllerWebMvcTest {
                 StravaActivityStreamStatus.PENDING);
 
         return new StravaActivityListResult(List.of(item), 1, 2, 3, 2);
+    }
+
+    private StravaActivityDetailResult activityDetailResult() {
+        return new StravaActivityDetailResult(99L, SOURCE_ACTIVITY_ID, "Morning Run Detail", RUN,
+                ACTIVITY_START_DATE, 5100.0, 1510, 43.0, 3.37, 296.08, 5.6, 151.0, 181.0,
+                83.0, 221.0, 351.0, StravaActivityStreamStatus.PENDING, List.of(),
+                StravaActivityDetailEnrichmentStatus.COMPLETED);
     }
 
     @TestConfiguration

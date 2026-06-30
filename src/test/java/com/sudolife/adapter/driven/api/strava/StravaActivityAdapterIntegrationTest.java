@@ -1,6 +1,7 @@
 package com.sudolife.adapter.driven.api.strava;
 
 import com.sudolife.application.model.strava.StravaActivityType;
+import com.sudolife.application.model.strava.StravaActivityDetailImport;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
@@ -29,6 +30,8 @@ class StravaActivityAdapterIntegrationTest {
     private static final String TOKEN_URL = "https://www.strava.com/api/v3/oauth/token";
     private static final String DEAUTHORIZATION_URL = "https://www.strava.com/oauth/deauthorize";
     private static final String ACTIVITIES_PATH = "/api/v3/athlete/activities";
+    private static final String ACTIVITY_DETAIL_PATH = "/api/v3/activities/{activityId}";
+    private static final String ACTIVITY_DETAIL_CONTEXT = "/api/v3/activities";
     private static final Instant AFTER = Instant.parse("2025-10-11T12:00:00Z");
     private static final Instant BEFORE = Instant.parse("2026-05-11T12:00:00Z");
 
@@ -44,6 +47,7 @@ class StravaActivityAdapterIntegrationTest {
         responseBody = activityResponse();
         server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext(ACTIVITIES_PATH, this::handleActivities);
+        server.createContext(ACTIVITY_DETAIL_CONTEXT, this::handleActivities);
         server.start();
         adapter = new StravaActivityAdapter(stravaApiProperties());
     }
@@ -105,6 +109,30 @@ class StravaActivityAdapterIntegrationTest {
                 .isInstanceOf(StravaActivityUnavailableException.class);
     }
 
+    @Test
+    void fetch_activity_detail_requests_activity_by_source_id_and_maps_detail() {
+        responseBody = activityDetailResponse();
+
+        StravaActivityDetailImport detail = adapter.fetchActivityDetail(ACCESS_TOKEN, 457L);
+
+        assertThat(detail.sourceActivityId()).isEqualTo(457L);
+        assertThat(detail.name()).isEqualTo("Morning Run Detail");
+        assertThat(detail.activityType()).isEqualTo(StravaActivityType.RUN);
+        assertThat(detail.totalElevationGainMeters()).isEqualTo(43.0);
+        assertThat(detail.averageHeartRate()).isEqualTo(151.0);
+        assertThat(capturedRequest.authorization()).isEqualTo("Bearer " + ACCESS_TOKEN);
+        assertThat(capturedRequest.path()).isEqualTo("/api/v3/activities/457");
+    }
+
+    @Test
+    void fetch_activity_detail_translates_unavailable_response() {
+        statusCode = 503;
+        responseBody = activityDetailResponse();
+
+        assertThatThrownBy(() -> adapter.fetchActivityDetail(ACCESS_TOKEN, 457L))
+                .isInstanceOf(StravaActivityUnavailableException.class);
+    }
+
     private void handleActivities(HttpExchange exchange) throws IOException {
         capturedRequest = CapturedRequest.from(exchange);
         byte[] responseBytes = responseBody.getBytes();
@@ -118,7 +146,8 @@ class StravaActivityAdapterIntegrationTest {
         String baseUrl = "http://localhost:" + server.getAddress().getPort();
 
         return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, AUTHORIZATION_URL, TOKEN_URL,
-                DEAUTHORIZATION_URL, baseUrl + ACTIVITIES_PATH, Duration.ofSeconds(2), Duration.ofSeconds(5));
+                DEAUTHORIZATION_URL, baseUrl + ACTIVITIES_PATH, baseUrl + ACTIVITY_DETAIL_PATH,
+                Duration.ofSeconds(2), Duration.ofSeconds(5));
     }
 
     private String activityResponse() {
@@ -168,11 +197,32 @@ class StravaActivityAdapterIntegrationTest {
                 """;
     }
 
-    private record CapturedRequest(String authorization, String query) {
+    private String activityDetailResponse() {
+        return """
+                {
+                  "id": 457,
+                  "name": "Morning Run Detail",
+                  "sport_type": "Run",
+                  "start_date": "2026-05-10T09:00:00Z",
+                  "distance": 5100.0,
+                  "moving_time": 1510,
+                  "average_speed": 3.37,
+                  "total_elevation_gain": 43.0,
+                  "max_speed": 5.6,
+                  "average_heartrate": 151.0,
+                  "max_heartrate": 181.0,
+                  "average_cadence": 83.0,
+                  "average_watts": 221.0,
+                  "calories": 351.0
+                }
+                """;
+    }
+
+    private record CapturedRequest(String authorization, String query, String path) {
 
         private static CapturedRequest from(HttpExchange exchange) {
             return new CapturedRequest(exchange.getRequestHeaders().getFirst("Authorization"),
-                    exchange.getRequestURI().getQuery());
+                    exchange.getRequestURI().getQuery(), exchange.getRequestURI().getPath());
         }
     }
 }

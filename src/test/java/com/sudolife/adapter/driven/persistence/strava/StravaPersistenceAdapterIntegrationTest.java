@@ -2,6 +2,7 @@ package com.sudolife.adapter.driven.persistence.strava;
 
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
 import com.sudolife.application.model.strava.StravaAccountLink;
+import com.sudolife.application.model.strava.StravaActivityDetailSnapshot;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
@@ -11,6 +12,7 @@ import com.sudolife.application.service.strava.StravaActivitySummaryPage;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.InvalidStravaAccountLinkStateException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivityDetailSnapshotRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
@@ -37,6 +39,7 @@ import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.SOURCE_ACTIVITY_ID;
 import static com.sudolife.helper.StravaTestHelper.pendingAuthorizationState;
 import static com.sudolife.helper.StravaTestHelper.stravaActivitySummary;
+import static com.sudolife.helper.StravaTestHelper.stravaActivityDetailSnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -58,6 +61,9 @@ class StravaPersistenceAdapterIntegrationTest {
     private StravaActivitySummaryRepository activitySummaryRepository;
 
     @Autowired
+    private StravaActivityDetailSnapshotRepository detailSnapshotRepository;
+
+    @Autowired
     private StravaSummarySyncJobRepository summarySyncJobRepository;
 
     @Autowired
@@ -65,6 +71,9 @@ class StravaPersistenceAdapterIntegrationTest {
 
     @Autowired
     private SpringDataStravaActivitySummaryRepository springDataActivitySummaryRepository;
+
+    @Autowired
+    private SpringDataStravaActivityDetailSnapshotRepository springDataActivityDetailSnapshotRepository;
 
     @Autowired
     private SpringDataStravaAuthorizationStateRepository springDataAuthorizationStateRepository;
@@ -76,6 +85,7 @@ class StravaPersistenceAdapterIntegrationTest {
     void setUp() {
         springDataSummarySyncJobRepository.deleteAll();
         springDataAuthorizationStateRepository.deleteAll();
+        springDataActivityDetailSnapshotRepository.deleteAll();
         springDataActivitySummaryRepository.deleteAll();
         springDataAccountLinkRepository.deleteAll();
     }
@@ -240,6 +250,35 @@ class StravaPersistenceAdapterIntegrationTest {
     }
 
     @Test
+    void find_activity_summary_by_id_and_user_email_filters_by_owner() {
+        activitySummaryRepository.saveIfAbsent(stravaActivitySummary());
+        Long activityId = springDataActivitySummaryRepository.findAll().getFirst().getId();
+
+        Optional<StravaActivitySummary> ownedSummary = activitySummaryRepository.findByIdAndUserEmail(activityId,
+                USER_EMAIL);
+        Optional<StravaActivitySummary> otherUserSummary = activitySummaryRepository.findByIdAndUserEmail(activityId,
+                "other@sudolife.com");
+
+        assertThat(ownedSummary).isPresent();
+        assertThat(otherUserSummary).isEmpty();
+    }
+
+    @Test
+    void save_activity_detail_snapshot_once_per_activity_summary() {
+        activitySummaryRepository.saveIfAbsent(stravaActivitySummary());
+        Long activityId = springDataActivitySummaryRepository.findAll().getFirst().getId();
+        StravaActivityDetailSnapshot firstSnapshot = detailSnapshot(activityId, "First Detail");
+        StravaActivityDetailSnapshot secondSnapshot = detailSnapshot(activityId, "Second Detail");
+
+        StravaActivityDetailSnapshot savedSnapshot = detailSnapshotRepository.saveIfAbsent(firstSnapshot);
+        StravaActivityDetailSnapshot cachedSnapshot = detailSnapshotRepository.saveIfAbsent(secondSnapshot);
+
+        assertThat(savedSnapshot.getName()).isEqualTo("First Detail");
+        assertThat(cachedSnapshot.getName()).isEqualTo("First Detail");
+        assertThat(springDataActivityDetailSnapshotRepository.findAll()).hasSize(1);
+    }
+
+    @Test
     void count_activity_summaries_filters_by_account_link_id() {
         StravaAccountLink firstLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
         StravaAccountLink secondLink = accountLinkRepository.save(activeLink("other@sudolife.com", ATHLETE_ID + 1));
@@ -358,6 +397,18 @@ class StravaPersistenceAdapterIntegrationTest {
         return StravaActivitySummary.imported(userEmail, accountLinkId, sourceActivityId, activityType,
                 activityType.name(), "Activity " + sourceActivityId, NOW, 5000.0, 1500, 3.33, 42.0,
                 5.5, 150.0, 180.0, 82.0, 220.0, 350.0, NOW);
+    }
+
+    private StravaActivityDetailSnapshot detailSnapshot(Long activityId, String name) {
+        StravaActivityDetailSnapshot snapshot = stravaActivityDetailSnapshot();
+
+        return new StravaActivityDetailSnapshot(null, activityId, snapshot.getUserEmail(),
+                snapshot.getSourceActivityId(), snapshot.getActivityType(), snapshot.getRawSportType(), name,
+                snapshot.getStartDate(), snapshot.getDistanceMeters(), snapshot.getMovingTimeSeconds(),
+                snapshot.getAverageSpeedMetersPerSecond(), snapshot.getPaceSecondsPerKilometer(),
+                snapshot.getTotalElevationGainMeters(), snapshot.getMaxSpeedMetersPerSecond(),
+                snapshot.getAverageHeartRate(), snapshot.getMaxHeartRate(), snapshot.getAverageCadence(),
+                snapshot.getAverageWatts(), snapshot.getCalories(), snapshot.getFetchedAt());
     }
 
     private StravaAccountLink activeLink(String userEmail, Long athleteId) {

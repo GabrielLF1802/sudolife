@@ -1,6 +1,8 @@
 package com.sudolife.helper;
 
 import com.sudolife.application.model.strava.StravaAccountLink;
+import com.sudolife.application.model.strava.StravaActivityDetailImport;
+import com.sudolife.application.model.strava.StravaActivityDetailSnapshot;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
@@ -76,5 +78,15 @@ public class StravaTestHelper {
         return StravaActivitySummary.imported(USER_EMAIL, LINK_ID, SOURCE_ACTIVITY_ID, StravaActivityType.RUN, "Run",
                 "Morning Run", ACTIVITY_START_DATE, 5000.0, 1500, 3.33, 42.0, 5.5, 150.0, 180.0, 82.0,
                 220.0, 350.0, NOW);
+    }
+
+    public static StravaActivityDetailImport stravaActivityDetailImport() {
+        return new StravaActivityDetailImport(SOURCE_ACTIVITY_ID, StravaActivityType.RUN, "Run", "Morning Run Detail",
+                ACTIVITY_START_DATE, 5100.0, 1510, 3.37, 43.0, 5.6, 151.0, 181.0, 83.0, 221.0,
+                351.0);
+    }
+
+    public static StravaActivityDetailSnapshot stravaActivityDetailSnapshot() {
+        return StravaActivityDetailSnapshot.fetched(99L, USER_EMAIL, stravaActivityDetailImport(), NOW);
     }
 }

@@ -1,6 +1,8 @@
 package com.sudolife.adapter.driven.api.strava;
 
+import com.sudolife.adapter.driven.api.strava.dto.StravaActivityDetailResponse;
 import com.sudolife.adapter.driven.api.strava.dto.StravaActivitySummaryResponse;
+import com.sudolife.application.model.strava.StravaActivityDetailImport;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
@@ -68,6 +70,49 @@ public class StravaActivityAdapter implements StravaActivityProvider {
         return summaries;
     }
 
+    @Override
+    public StravaActivityDetailImport fetchActivityDetail(String accessToken, Long sourceActivityId) {
+        try {
+            StravaActivityDetailResponse response = requestDetail(accessToken, sourceActivityId);
+
+            return toDetailImport(response).orElseThrow(StravaActivityUnavailableException::new);
+        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException exception) {
+            throw exception;
+        } catch (RestClientException exception) {
+            log.warn("Strava activity detail request failed category=client_error");
+            throw new StravaActivityUnavailableException(exception);
+        } catch (RuntimeException exception) {
+            log.warn("Strava activity detail response mapping failed");
+            throw new StravaActivityUnavailableException(exception);
+        }
+    }
+
+    private StravaActivityDetailResponse requestDetail(String accessToken, Long sourceActivityId) {
+        StravaActivityDetailResponse response = restClient.get()
+                .uri(UriComponentsBuilder.fromUriString(properties.activityDetailUrl())
+                        .buildAndExpand(sourceActivityId)
+                        .toUriString())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .onStatus(this::isRateLimited, (request, httpResponse) -> {
+                    log.warn("Strava activity detail request rate limited statusCode={}",
+                            httpResponse.getStatusCode().value());
+                    throw new StravaActivityRateLimitException();
+                })
+                .onStatus(HttpStatusCode::isError, (request, httpResponse) -> {
+                    log.warn("Strava activity detail request failed statusCode={}",
+                            httpResponse.getStatusCode().value());
+                    throw new StravaActivityUnavailableException();
+                })
+                .body(StravaActivityDetailResponse.class);
+
+        if (response == null) {
+            throw new StravaActivityUnavailableException();
+        }
+
+        return response;
+    }
+
     private StravaActivitySummaryResponse[] requestPage(String accessToken, Instant after, Instant before, int page) {
         try {
             StravaActivitySummaryResponse[] response = restClient.get()
@@ -115,6 +160,20 @@ public class StravaActivityAdapter implements StravaActivityProvider {
 
         return activityType(response.sportType())
                 .map(activityType -> new StravaActivitySummaryImport(response.id(), activityType,
+                        response.sportType(), response.name(), Instant.parse(response.startDate()),
+                        response.distance(), response.movingTime(), response.averageSpeed(),
+                        response.totalElevationGain(), response.maxSpeed(), response.averageHeartRate(),
+                        response.maxHeartRate(), response.averageCadence(), response.averageWatts(),
+                response.calories()));
+    }
+
+    private Optional<StravaActivityDetailImport> toDetailImport(StravaActivityDetailResponse response) {
+        if (response == null || response.id() == null || response.startDate() == null) {
+            return Optional.empty();
+        }
+
+        return activityType(response.sportType())
+                .map(activityType -> new StravaActivityDetailImport(response.id(), activityType,
                         response.sportType(), response.name(), Instant.parse(response.startDate()),
                         response.distance(), response.movingTime(), response.averageSpeed(),
                         response.totalElevationGain(), response.maxSpeed(), response.averageHeartRate(),

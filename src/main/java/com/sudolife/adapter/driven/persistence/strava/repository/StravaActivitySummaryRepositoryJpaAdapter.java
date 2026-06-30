@@ -15,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -65,5 +66,11 @@ public class StravaActivitySummaryRepositoryJpaAdapter implements StravaActivity
 
         return new StravaActivitySummaryPage(activities, result.getNumber(), result.getSize(),
                 result.getTotalElements(), result.getTotalPages());
+    }
+
+    @Override
+    public Optional<StravaActivitySummary> findByIdAndUserEmail(Long id, String userEmail) {
+        return jpaRepository.findByIdAndUserEmail(id, userEmail)
+                .map(mapper::toDomain);
     }
 }
