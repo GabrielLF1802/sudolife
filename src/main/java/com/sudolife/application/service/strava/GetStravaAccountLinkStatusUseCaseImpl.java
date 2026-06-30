@@ -5,6 +5,7 @@ import com.sudolife.application.model.strava.StravaSummarySyncJob;
 import com.sudolife.application.model.strava.StravaSummarySyncJobStatus;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSnapshotRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
     private final StravaAccountLinkRepository accountLinkRepository;
     private final StravaSummarySyncJobRepository summarySyncJobRepository;
     private final StravaActivitySummaryRepository activitySummaryRepository;
+    private final StravaActivityStreamSnapshotRepository streamSnapshotRepository;
 
     @Override
     public StravaLinkStatusResult execute(GetStravaAccountLinkStatusCommand command) {
@@ -37,7 +39,8 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
         }
 
         long importedActivityCount = activitySummaryRepository.countByAccountLinkId(accountLink.getId());
-        long streamsReadyActivityCount = activitySummaryRepository.countStreamsReadyByAccountLinkId(accountLink.getId());
+        long streamsReadyActivityCount = activitySummaryRepository.countStreamsReadyByAccountLinkId(accountLink.getId()) +
+                streamSnapshotRepository.countByAccountLinkId(accountLink.getId());
         Instant lastSummarySyncTime = lastSummarySyncTime(accountLink.getId());
 
         return summarySyncJobRepository.findLatestByAccountLinkId(accountLink.getId())
@@ -63,7 +66,8 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
                                                 long streamsReadyActivityCount) {
         return new StravaLinkStatusResult(true, accountLink.getAthleteId(), StravaPermissionState.READY,
                 activitySummaryStatus(job), performanceDataStatus(importedActivityCount, streamsReadyActivityCount),
-                lastSummarySyncTime, null, importedActivityCount, streamsReadyActivityCount, failureReason(job));
+                lastSummarySyncTime, streamSnapshotRepository.findLatestFetchedAtByAccountLinkId(accountLink.getId())
+                .orElse(null), importedActivityCount, streamsReadyActivityCount, failureReason(job));
     }
 
     private StravaSummaryStatus activitySummaryStatus(StravaSummarySyncJob job) {

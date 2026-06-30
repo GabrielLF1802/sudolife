@@ -3,6 +3,7 @@ package com.sudolife.application.service.strava;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaSummarySyncJob;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSnapshotRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class GetStravaAccountLinkStatusUseCaseImplUnitTest {
 
     @Mock
     private StravaActivitySummaryRepository activitySummaryRepository;
+
+    @Mock
+    private StravaActivityStreamSnapshotRepository streamSnapshotRepository;
 
     @InjectMocks
     private GetStravaAccountLinkStatusUseCaseImpl useCase;

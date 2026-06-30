@@ -2,6 +2,7 @@ package com.sudolife.adapter.driven.api.strava;
 
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaActivityDetailImport;
+import com.sudolife.application.model.strava.StravaActivityStreamImport;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
@@ -31,6 +32,7 @@ class StravaActivityAdapterIntegrationTest {
     private static final String DEAUTHORIZATION_URL = "https://www.strava.com/oauth/deauthorize";
     private static final String ACTIVITIES_PATH = "/api/v3/athlete/activities";
     private static final String ACTIVITY_DETAIL_PATH = "/api/v3/activities/{activityId}";
+    private static final String ACTIVITY_STREAMS_PATH = "/api/v3/activities/{activityId}/streams";
     private static final String ACTIVITY_DETAIL_CONTEXT = "/api/v3/activities";
     private static final Instant AFTER = Instant.parse("2025-10-11T12:00:00Z");
     private static final Instant BEFORE = Instant.parse("2026-05-11T12:00:00Z");
@@ -133,6 +135,22 @@ class StravaActivityAdapterIntegrationTest {
                 .isInstanceOf(StravaActivityUnavailableException.class);
     }
 
+    @Test
+    void fetch_activity_streams_requests_low_resolution_selected_metrics_without_route_coordinates() {
+        responseBody = activityStreamsResponse();
+
+        StravaActivityStreamImport streamImport = adapter.fetchActivityStreams(ACCESS_TOKEN, 457L);
+
+        assertThat(streamImport.availableMetricNames()).containsExactly("time", "distance", "velocity",
+                "heart_rate", "cadence", "watts");
+        assertThat(streamImport.streamSamplesJson()).doesNotContain("latlng", "map", "polyline");
+        assertThat(capturedRequest.path()).isEqualTo("/api/v3/activities/457/streams");
+        assertThat(capturedRequest.query()).contains("resolution=low");
+        assertThat(capturedRequest.query()).contains("key_by_type=false");
+        assertThat(capturedRequest.query()).contains("keys=time,distance,velocity_smooth,heartrate,cadence,watts");
+        assertThat(capturedRequest.query()).doesNotContain("latlng", "altitude", "grade_smooth");
+    }
+
     private void handleActivities(HttpExchange exchange) throws IOException {
         capturedRequest = CapturedRequest.from(exchange);
         byte[] responseBytes = responseBody.getBytes();
@@ -147,7 +165,7 @@ class StravaActivityAdapterIntegrationTest {
 
         return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, AUTHORIZATION_URL, TOKEN_URL,
                 DEAUTHORIZATION_URL, baseUrl + ACTIVITIES_PATH, baseUrl + ACTIVITY_DETAIL_PATH,
-                Duration.ofSeconds(2), Duration.ofSeconds(5));
+                baseUrl + ACTIVITY_STREAMS_PATH, Duration.ofSeconds(2), Duration.ofSeconds(5));
     }
 
     private String activityResponse() {
@@ -215,6 +233,20 @@ class StravaActivityAdapterIntegrationTest {
                   "average_watts": 221.0,
                   "calories": 351.0
                 }
+                """;
+    }
+
+    private String activityStreamsResponse() {
+        return """
+                [
+                  {"type": "time", "data": [0, 30]},
+                  {"type": "distance", "data": [0.0, 100.0]},
+                  {"type": "velocity_smooth", "data": [3.1, 3.2]},
+                  {"type": "heartrate", "data": [140, 142]},
+                  {"type": "cadence", "data": [82, 83]},
+                  {"type": "watts", "data": [220, 221]},
+                  {"type": "latlng", "data": [[-23.5, -46.6]]}
+                ]
                 """;
     }
 

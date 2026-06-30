@@ -45,6 +45,15 @@ class StravaActivityListMapperUnitTest {
         assertThat(result.streamStatus()).isEqualTo(StravaActivityStreamStatus.NOT_REQUIRED);
     }
 
+    @Test
+    void to_result_marks_eligible_activity_with_snapshot_as_completed() {
+        StravaActivitySummary summary = stravaActivitySummary();
+
+        StravaActivityListItemResult result = mapper.toResult(summary, true);
+
+        assertThat(result.streamStatus()).isEqualTo(StravaActivityStreamStatus.COMPLETED);
+    }
+
     private StravaActivitySummary weightTrainingSummary() {
         return StravaActivitySummary.imported(USER_EMAIL, LINK_ID, SOURCE_ACTIVITY_ID + 1,
                 StravaActivityType.WEIGHT_TRAINING, "WeightTraining", "Strength",

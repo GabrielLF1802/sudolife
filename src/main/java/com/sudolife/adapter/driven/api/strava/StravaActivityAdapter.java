@@ -1,8 +1,12 @@
 package com.sudolife.adapter.driven.api.strava;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sudolife.adapter.driven.api.strava.dto.StravaActivityDetailResponse;
+import com.sudolife.adapter.driven.api.strava.dto.StravaActivityStreamResponse;
 import com.sudolife.adapter.driven.api.strava.dto.StravaActivitySummaryResponse;
 import com.sudolife.application.model.strava.StravaActivityDetailImport;
+import com.sudolife.application.model.strava.StravaActivityStreamImport;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
@@ -24,15 +28,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Component
 public class StravaActivityAdapter implements StravaActivityProvider {
 
     private static final int PAGE_SIZE = 200;
+    private static final String STREAM_KEYS = "time,distance,velocity_smooth,heartrate,cadence,watts";
+    private static final String STREAM_RESOLUTION = "low";
+    private static final Set<String> ALLOWED_STREAM_TYPES = Set.of("time", "distance", "velocity_smooth", "heartrate", "cadence", "watts");
 
     private final StravaApiProperties properties;
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
     @Autowired
     public StravaActivityAdapter(StravaApiProperties properties) {
@@ -44,6 +53,7 @@ public class StravaActivityAdapter implements StravaActivityProvider {
     StravaActivityAdapter(StravaApiProperties properties, RestClient restClient) {
         this.properties = properties;
         this.restClient = restClient;
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
@@ -85,6 +95,60 @@ public class StravaActivityAdapter implements StravaActivityProvider {
             log.warn("Strava activity detail response mapping failed");
             throw new StravaActivityUnavailableException(exception);
         }
+    }
+
+    @Override
+    public StravaActivityStreamImport fetchActivityStreams(String accessToken, Long sourceActivityId) {
+        try {
+            StravaActivityStreamResponse[] response = requestStreams(accessToken, sourceActivityId);
+            List<StravaActivityStreamResponse> availableStreams = Arrays.stream(response)
+                    .filter(this::isAllowedStream)
+                    .toList();
+
+            return new StravaActivityStreamImport(availableStreams.stream()
+                    .map(stream -> metricName(stream.type()))
+                    .toList(), objectMapper.writeValueAsString(availableStreams));
+        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException exception) {
+            throw exception;
+        } catch (JsonProcessingException exception) {
+            log.warn("Strava activity stream snapshot serialization failed");
+            throw new StravaActivityUnavailableException(exception);
+        } catch (RestClientException exception) {
+            log.warn("Strava activity stream request failed category=client_error");
+            throw new StravaActivityUnavailableException(exception);
+        } catch (RuntimeException exception) {
+            log.warn("Strava activity stream response mapping failed");
+            throw new StravaActivityUnavailableException(exception);
+        }
+    }
+
+    private StravaActivityStreamResponse[] requestStreams(String accessToken, Long sourceActivityId) {
+        StravaActivityStreamResponse[] response = restClient.get()
+                .uri(UriComponentsBuilder.fromUriString(properties.activityStreamsUrl())
+                        .queryParam("keys", STREAM_KEYS)
+                        .queryParam("key_by_type", false)
+                        .queryParam("resolution", STREAM_RESOLUTION)
+                        .buildAndExpand(sourceActivityId)
+                        .toUriString())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .onStatus(this::isRateLimited, (request, httpResponse) -> {
+                    log.warn("Strava activity stream request rate limited statusCode={}",
+                            httpResponse.getStatusCode().value());
+                    throw new StravaActivityRateLimitException();
+                })
+                .onStatus(HttpStatusCode::isError, (request, httpResponse) -> {
+                    log.warn("Strava activity stream request failed statusCode={}",
+                            httpResponse.getStatusCode().value());
+                    throw new StravaActivityUnavailableException();
+                })
+                .body(StravaActivityStreamResponse[].class);
+
+        if (response == null) {
+            throw new StravaActivityUnavailableException();
+        }
+
+        return response;
     }
 
     private StravaActivityDetailResponse requestDetail(String accessToken, Long sourceActivityId) {
@@ -179,6 +243,26 @@ public class StravaActivityAdapter implements StravaActivityProvider {
                         response.totalElevationGain(), response.maxSpeed(), response.averageHeartRate(),
                         response.maxHeartRate(), response.averageCadence(), response.averageWatts(),
                         response.calories()));
+    }
+
+    private boolean hasSamples(StravaActivityStreamResponse response) {
+        return response != null && response.type() != null && response.data() != null && !response.data().isEmpty();
+    }
+
+    private boolean isAllowedStream(StravaActivityStreamResponse response) {
+        return hasSamples(response) && ALLOWED_STREAM_TYPES.contains(response.type());
+    }
+
+    private String metricName(String type) {
+        return switch (type) {
+            case "time" -> "time";
+            case "distance" -> "distance";
+            case "velocity_smooth" -> "velocity";
+            case "heartrate" -> "heart_rate";
+            case "cadence" -> "cadence";
+            case "watts" -> "watts";
+            default -> type;
+        };
     }
 
     private Optional<StravaActivityType> activityType(String sportType) {

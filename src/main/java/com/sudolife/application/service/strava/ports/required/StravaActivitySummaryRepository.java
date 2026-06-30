@@ -18,4 +18,6 @@ public interface StravaActivitySummaryRepository {
     StravaActivitySummaryPage findByUserEmail(String userEmail, int page, int size);
 
     Optional<StravaActivitySummary> findByIdAndUserEmail(Long id, String userEmail);
+
+    Optional<StravaActivitySummary> findByUserEmailAndSourceActivityId(String userEmail, Long sourceActivityId);
 }

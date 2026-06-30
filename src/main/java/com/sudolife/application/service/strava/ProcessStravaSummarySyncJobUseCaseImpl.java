@@ -2,12 +2,14 @@ package com.sudolife.application.service.strava;
 
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivitySummary;
+import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.model.strava.StravaSummarySyncJob;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sudolife.application.service.strava.ports.provided.ProcessStravaSummarySyncJobUseCase;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
@@ -34,8 +36,10 @@ public class ProcessStravaSummarySyncJobUseCaseImpl implements ProcessStravaSumm
     private final StravaAccountLinkRepository accountLinkRepository;
     private final StravaActivityProvider activityProvider;
     private final StravaActivitySummaryRepository activitySummaryRepository;
+    private final StravaActivityStreamSyncJobRepository streamSyncJobRepository;
     private final TimeProvider timeProvider;
     private final TransactionTemplate transactionTemplate;
+    private final StravaActivityStreamEligibility streamEligibility = new StravaActivityStreamEligibility();
     @Value("${strava.summary-sync.max-attempts:3}")
     private int maxAttempts;
     @Value("${strava.summary-sync.retry-backoff:PT15M}")
@@ -113,8 +117,23 @@ public class ProcessStravaSummarySyncJobUseCaseImpl implements ProcessStravaSumm
 
         return transactionTemplate.execute(status -> summaries.stream()
                 .map(summary -> toActivitySummary(accountLink, summary, importedAt))
-                .mapToInt(activitySummary -> activitySummaryRepository.saveIfAbsent(activitySummary) ? 1 : 0)
+                .mapToInt(this::saveNewSummary)
                 .sum());
+    }
+
+    private int saveNewSummary(StravaActivitySummary activitySummary) {
+        if (!activitySummaryRepository.saveIfAbsent(activitySummary)) {
+            return 0;
+        }
+
+        if (streamEligibility.requiresStream(activitySummary.getActivityType())) {
+            activitySummaryRepository.findByUserEmailAndSourceActivityId(activitySummary.getUserEmail(),
+                            activitySummary.getSourceActivityId())
+                    .map(savedSummary -> StravaActivityStreamSyncJob.normal(savedSummary, timeProvider.now()))
+                    .ifPresent(streamSyncJobRepository::enqueueIfAbsent);
+        }
+
+        return 1;
     }
 
     private StravaActivitySummary toActivitySummary(StravaAccountLink accountLink, StravaActivitySummaryImport summary,

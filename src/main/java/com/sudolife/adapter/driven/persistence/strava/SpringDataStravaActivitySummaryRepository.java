@@ -21,4 +21,6 @@ public interface SpringDataStravaActivitySummaryRepository extends JpaRepository
     Page<StravaActivitySummaryEntity> findByUserEmail(String userEmail, Pageable pageable);
 
     Optional<StravaActivitySummaryEntity> findByIdAndUserEmail(Long id, String userEmail);
+
+    Optional<StravaActivitySummaryEntity> findByUserEmailAndSourceActivityId(String userEmail, Long sourceActivityId);
 }

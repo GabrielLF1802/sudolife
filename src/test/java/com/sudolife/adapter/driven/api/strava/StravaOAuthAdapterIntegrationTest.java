@@ -180,7 +180,8 @@ class StravaOAuthAdapterIntegrationTest {
 
         return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, baseUrl + AUTHORIZATION_PATH,
                 baseUrl + TOKEN_PATH, baseUrl + DEAUTHORIZATION_PATH, baseUrl + ACTIVITIES_PATH,
-                baseUrl + "/api/v3/activities/{activityId}", Duration.ofSeconds(2), Duration.ofSeconds(5));
+                baseUrl + "/api/v3/activities/{activityId}", baseUrl + "/api/v3/activities/{activityId}/streams",
+                Duration.ofSeconds(2), Duration.ofSeconds(5));
     }
 
     private record CapturedRequest(String method, String path, Map<String, String> form) {

@@ -3,6 +3,7 @@ package com.sudolife.application.service.strava;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSnapshotRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,6 +30,9 @@ class ListStravaActivitiesUseCaseImplUnitTest {
     private StravaActivitySummaryRepository activitySummaryRepository;
 
     @Mock
+    private StravaActivityStreamSnapshotRepository streamSnapshotRepository;
+
+    @Mock
     private StravaActivityListMapper mapper;
 
     @InjectMocks
@@ -41,7 +45,7 @@ class ListStravaActivitiesUseCaseImplUnitTest {
         StravaActivityListItemResult listItem = listItem(StravaActivityStreamStatus.PENDING);
         when(activitySummaryRepository.findByUserEmail(USER_EMAIL, 1, 2))
                 .thenReturn(new StravaActivitySummaryPage(List.of(activitySummary), 1, 2, 3, 2));
-        when(mapper.toResult(activitySummary)).thenReturn(listItem);
+        when(mapper.toResult(activitySummary, false)).thenReturn(listItem);
 
         StravaActivityListResult result = useCase.execute(command);
 

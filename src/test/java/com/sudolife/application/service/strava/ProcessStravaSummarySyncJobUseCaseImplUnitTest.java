@@ -7,6 +7,7 @@ import com.sudolife.application.model.strava.StravaSummarySyncJobStatus;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
@@ -56,6 +57,9 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
     private StravaActivitySummaryRepository activitySummaryRepository;
 
     @Mock
+    private StravaActivityStreamSyncJobRepository streamSyncJobRepository;
+
+    @Mock
     private TimeProvider timeProvider;
 
     @Mock
@@ -74,6 +78,8 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
         when(activityProvider.fetchActivitySummaries(ACCESS_TOKEN, INITIAL_SYNC_AFTER, NOW))
                 .thenReturn(List.of(activitySummaryImport()));
         when(activitySummaryRepository.saveIfAbsent(any())).thenReturn(true);
+        when(activitySummaryRepository.findByUserEmailAndSourceActivityId(USER_EMAIL, SOURCE_ACTIVITY_ID))
+                .thenReturn(Optional.of(savedSummary()));
 
         useCase.execute(new ProcessStravaSummarySyncJobCommand(JOB_ID));
 
@@ -96,6 +102,8 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
         when(activityProvider.fetchActivitySummaries(ACCESS_TOKEN, INITIAL_SYNC_AFTER, NOW))
                 .thenThrow(new StravaActivityRateLimitException(List.of(activitySummaryImport())));
         when(activitySummaryRepository.saveIfAbsent(any())).thenReturn(true);
+        when(activitySummaryRepository.findByUserEmailAndSourceActivityId(USER_EMAIL, SOURCE_ACTIVITY_ID))
+                .thenReturn(Optional.of(savedSummary()));
 
         useCase.execute(new ProcessStravaSummarySyncJobCommand(JOB_ID));
 
@@ -123,6 +131,25 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
         verify(activitySummaryRepository).saveIfAbsent(captor.capture());
 
         return captor.getValue();
+    }
+
+    private StravaActivitySummary savedSummary() {
+        StravaActivitySummary summary = capturedFriendlySummary();
+
+        return new StravaActivitySummary(99L, summary.getUserEmail(), summary.getAccountLinkId(),
+                summary.getSourceActivityId(), summary.getActivityType(), summary.getRawSportType(),
+                summary.getName(), summary.getStartDate(), summary.getDistanceMeters(),
+                summary.getMovingTimeSeconds(), summary.getAverageSpeedMetersPerSecond(),
+                summary.getPaceSecondsPerKilometer(), summary.getTotalElevationGainMeters(),
+                summary.getMaxSpeedMetersPerSecond(), summary.getAverageHeartRate(), summary.getMaxHeartRate(),
+                summary.getAverageCadence(), summary.getAverageWatts(), summary.getCalories(),
+                summary.getImportedAt());
+    }
+
+    private StravaActivitySummary capturedFriendlySummary() {
+        return StravaActivitySummary.imported(USER_EMAIL, LINK_ID, SOURCE_ACTIVITY_ID, StravaActivityType.RUN, "Run",
+                "Morning Run", Instant.parse("2026-05-10T09:00:00Z"), 5000.0, 1500, 3.33, 42.0, 5.5,
+                150.0, 180.0, 82.0, 220.0, 350.0, NOW);
     }
 
     private StravaSummarySyncJob lastSavedJob() {

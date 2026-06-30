@@ -73,4 +73,10 @@ public class StravaActivitySummaryRepositoryJpaAdapter implements StravaActivity
         return jpaRepository.findByIdAndUserEmail(id, userEmail)
                 .map(mapper::toDomain);
     }
+
+    @Override
+    public Optional<StravaActivitySummary> findByUserEmailAndSourceActivityId(String userEmail, Long sourceActivityId) {
+        return jpaRepository.findByUserEmailAndSourceActivityId(userEmail, sourceActivityId)
+                .map(mapper::toDomain);
+    }
 }

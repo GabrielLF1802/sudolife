@@ -3,6 +3,8 @@ package com.sudolife.helper;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivityDetailImport;
 import com.sudolife.application.model.strava.StravaActivityDetailSnapshot;
+import com.sudolife.application.model.strava.StravaActivityStreamImport;
+import com.sudolife.application.model.strava.StravaActivityStreamSnapshot;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
@@ -88,5 +90,15 @@ public class StravaTestHelper {
 
     public static StravaActivityDetailSnapshot stravaActivityDetailSnapshot() {
         return StravaActivityDetailSnapshot.fetched(99L, USER_EMAIL, stravaActivityDetailImport(), NOW);
+    }
+
+    public static StravaActivityStreamImport stravaActivityStreamImport() {
+        return new StravaActivityStreamImport(java.util.List.of("time", "distance", "velocity", "heart_rate"),
+                "[{\"type\":\"time\",\"data\":[0.0,30.0]}]");
+    }
+
+    public static StravaActivityStreamSnapshot stravaActivityStreamSnapshot() {
+        return StravaActivityStreamSnapshot.fetched(99L, LINK_ID, USER_EMAIL, SOURCE_ACTIVITY_ID,
+                stravaActivityStreamImport(), NOW);
     }
 }

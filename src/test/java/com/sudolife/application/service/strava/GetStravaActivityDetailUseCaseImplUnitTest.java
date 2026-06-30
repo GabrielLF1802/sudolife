@@ -1,12 +1,15 @@
 package com.sudolife.application.service.strava;
 
 import com.sudolife.application.model.strava.StravaActivityDetailSnapshot;
+import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.service.strava.exception.StravaActivityNotFoundException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityDetailSnapshotRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSnapshotRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,8 @@ import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.activeStravaAccountLink;
 import static com.sudolife.helper.StravaTestHelper.stravaActivityDetailImport;
 import static com.sudolife.helper.StravaTestHelper.stravaActivityDetailSnapshot;
+import static com.sudolife.helper.StravaTestHelper.stravaActivityStreamImport;
+import static com.sudolife.helper.StravaTestHelper.stravaActivityStreamSnapshot;
 import static com.sudolife.helper.StravaTestHelper.stravaActivitySummary;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,6 +52,12 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
     private StravaActivityDetailSnapshotRepository detailSnapshotRepository;
 
     @Mock
+    private StravaActivityStreamSnapshotRepository streamSnapshotRepository;
+
+    @Mock
+    private StravaActivityStreamSyncJobRepository streamSyncJobRepository;
+
+    @Mock
     private StravaAccountLinkRepository accountLinkRepository;
 
     @Mock
@@ -66,6 +77,10 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
         when(activityProvider.fetchActivityDetail(ACCESS_TOKEN, SOURCE_ACTIVITY_ID)).thenReturn(stravaActivityDetailImport());
         when(timeProvider.now()).thenReturn(NOW);
         when(detailSnapshotRepository.saveIfAbsent(any())).thenReturn(snapshot());
+        when(activityProvider.fetchActivityStreams(ACCESS_TOKEN, SOURCE_ACTIVITY_ID)).thenReturn(stravaActivityStreamImport());
+        when(streamSnapshotRepository.saveIfAbsent(any())).thenReturn(stravaActivityStreamSnapshot());
+        when(streamSnapshotRepository.findByActivitySummaryId(ACTIVITY_ID)).thenReturn(Optional.empty(),
+                Optional.of(stravaActivityStreamSnapshot()), Optional.of(stravaActivityStreamSnapshot()));
 
         StravaActivityDetailResult result = useCase.execute(command());
 
@@ -75,6 +90,9 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
         assertThat(result.name()).isEqualTo("Morning Run Detail");
         assertThat(result.averagePaceSecondsPerKilometer()).isCloseTo(296.078431372549, within(0.000001));
         assertThat(result.enrichmentStatus()).isEqualTo(StravaActivityDetailEnrichmentStatus.COMPLETED);
+        assertThat(result.streamStatus()).isEqualTo(StravaActivityStreamStatus.COMPLETED);
+        assertThat(result.availableStreamMetricNames()).containsExactly("time", "distance", "velocity",
+                "heart_rate");
         assertThat(persistedSnapshot.getActivitySummaryId()).isEqualTo(ACTIVITY_ID);
         assertThat(persistedSnapshot.getFetchedAt()).isEqualTo(NOW);
     }
@@ -83,11 +101,14 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
     void execute_with_existing_detail_snapshot_returns_cached_snapshot_without_fetching() {
         when(activitySummaryRepository.findByIdAndUserEmail(ACTIVITY_ID, USER_EMAIL)).thenReturn(Optional.of(summary()));
         when(detailSnapshotRepository.findByActivitySummaryId(ACTIVITY_ID)).thenReturn(Optional.of(snapshot()));
+        when(streamSnapshotRepository.findByActivitySummaryId(ACTIVITY_ID)).thenReturn(Optional.of(
+                stravaActivityStreamSnapshot()));
 
         StravaActivityDetailResult result = useCase.execute(command());
 
         assertThat(result.name()).isEqualTo("Morning Run Detail");
         assertThat(result.enrichmentStatus()).isEqualTo(StravaActivityDetailEnrichmentStatus.COMPLETED);
+        assertThat(result.streamStatus()).isEqualTo(StravaActivityStreamStatus.COMPLETED);
         verify(activityProvider, never()).fetchActivityDetail(any(), any());
         verify(detailSnapshotRepository, never()).saveIfAbsent(any());
     }
@@ -105,6 +126,25 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
         assertThat(result.name()).isEqualTo("Morning Run");
         assertThat(result.enrichmentStatus()).isEqualTo(StravaActivityDetailEnrichmentStatus.SUMMARY_FALLBACK);
         assertThat(result.availableStreamMetricNames()).isEmpty();
+    }
+
+    @Test
+    void execute_when_stream_inline_attempt_fails_enqueues_high_priority_stream_job() {
+        when(activitySummaryRepository.findByIdAndUserEmail(ACTIVITY_ID, USER_EMAIL)).thenReturn(Optional.of(summary()));
+        when(detailSnapshotRepository.findByActivitySummaryId(ACTIVITY_ID)).thenReturn(Optional.empty());
+        when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL)).thenReturn(Optional.of(activeStravaAccountLink()));
+        when(activityProvider.fetchActivityDetail(ACCESS_TOKEN, SOURCE_ACTIVITY_ID)).thenReturn(stravaActivityDetailImport());
+        when(detailSnapshotRepository.saveIfAbsent(any())).thenReturn(snapshot());
+        when(activityProvider.fetchActivityStreams(ACCESS_TOKEN, SOURCE_ACTIVITY_ID))
+                .thenThrow(new StravaActivityUnavailableException());
+        when(timeProvider.now()).thenReturn(NOW);
+
+        StravaActivityDetailResult result = useCase.execute(command());
+
+        StravaActivityStreamSyncJob job = capturedStreamJob();
+        assertThat(result.streamStatus()).isEqualTo(StravaActivityStreamStatus.PENDING);
+        assertThat(job.getActivitySummaryId()).isEqualTo(ACTIVITY_ID);
+        assertThat(job.getPriority().name()).isEqualTo("HIGH");
     }
 
     @Test
@@ -148,6 +188,13 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
     private StravaActivityDetailSnapshot capturedSnapshot() {
         ArgumentCaptor<StravaActivityDetailSnapshot> captor = ArgumentCaptor.forClass(StravaActivityDetailSnapshot.class);
         verify(detailSnapshotRepository).saveIfAbsent(captor.capture());
+
+        return captor.getValue();
+    }
+
+    private StravaActivityStreamSyncJob capturedStreamJob() {
+        ArgumentCaptor<StravaActivityStreamSyncJob> captor = ArgumentCaptor.forClass(StravaActivityStreamSyncJob.class);
+        verify(streamSyncJobRepository).enqueueIfAbsent(captor.capture());
 
         return captor.getValue();
     }
