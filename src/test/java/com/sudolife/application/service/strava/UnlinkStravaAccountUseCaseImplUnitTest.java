@@ -2,6 +2,7 @@ package com.sudolife.application.service.strava;
 
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaImportedDataRepository;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,9 @@ class UnlinkStravaAccountUseCaseImplUnitTest {
     private StravaAccountLinkRepository accountLinkRepository;
 
     @Mock
+    private StravaImportedDataRepository importedDataRepository;
+
+    @Mock
     private StravaOAuthProvider oAuthProvider;
 
     @Mock
@@ -74,7 +78,8 @@ class UnlinkStravaAccountUseCaseImplUnitTest {
         assertThat(savedLink.getAccessToken()).isNull();
         assertThat(savedLink.getRefreshToken()).isNull();
         assertThat(savedLink.getExpiresAt()).isNull();
-        InOrder unlinkOrder = inOrder(accountLinkRepository, oAuthProvider);
+        InOrder unlinkOrder = inOrder(importedDataRepository, accountLinkRepository, oAuthProvider);
+        unlinkOrder.verify(importedDataRepository).deleteByAccountLinkId(LINK_ID);
         unlinkOrder.verify(accountLinkRepository).save(any());
         unlinkOrder.verify(oAuthProvider).deauthorize(ACCESS_TOKEN);
     }
@@ -88,6 +93,7 @@ class UnlinkStravaAccountUseCaseImplUnitTest {
         assertThat(result.unlinked()).isTrue();
         verify(oAuthProvider, never()).deauthorize(any());
         verify(accountLinkRepository, never()).save(any());
+        verify(importedDataRepository, never()).deleteByAccountLinkId(any());
     }
 
     @Test

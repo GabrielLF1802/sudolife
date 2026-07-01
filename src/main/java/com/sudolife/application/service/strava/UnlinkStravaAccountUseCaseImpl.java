@@ -3,6 +3,7 @@ package com.sudolife.application.service.strava;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.service.strava.ports.provided.UnlinkStravaAccountUseCase;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaImportedDataRepository;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.time.Instant;
 public class UnlinkStravaAccountUseCaseImpl implements UnlinkStravaAccountUseCase {
 
     private final StravaAccountLinkRepository accountLinkRepository;
+    private final StravaImportedDataRepository importedDataRepository;
     private final StravaOAuthProvider oAuthProvider;
     private final TimeProvider timeProvider;
     private final TransactionTemplate transactionTemplate;
@@ -33,7 +35,10 @@ public class UnlinkStravaAccountUseCaseImpl implements UnlinkStravaAccountUseCas
         Instant now = timeProvider.now();
         StravaAuthorizationSnapshot authorizationSnapshot = StravaAuthorizationSnapshot.from(accountLink);
         accountLink.deactivate(now);
-        transactionTemplate.executeWithoutResult(status -> accountLinkRepository.save(accountLink));
+        transactionTemplate.executeWithoutResult(status -> {
+            importedDataRepository.deleteByAccountLinkId(accountLink.getId());
+            accountLinkRepository.save(accountLink);
+        });
         deauthorizeWhenPossible(accountLink, authorizationSnapshot, now);
         log.info("Strava account unlinked for userEmail={} athleteId={}", accountLink.getUserEmail(),
                 accountLink.getAthleteId());

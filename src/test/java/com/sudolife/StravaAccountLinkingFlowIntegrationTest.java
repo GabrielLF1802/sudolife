@@ -1,6 +1,9 @@
 package com.sudolife;
 
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaAccountLinkRepository;
+import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivityDetailSnapshotRepository;
+import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivityStreamSnapshotRepository;
+import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivityStreamSyncJobRepository;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaActivitySummaryRepository;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaAuthorizationStateRepository;
 import com.sudolife.adapter.driven.persistence.strava.SpringDataStravaSummarySyncJobRepository;
@@ -96,6 +99,15 @@ class StravaAccountLinkingFlowIntegrationTest {
     private SpringDataStravaActivitySummaryRepository activitySummaryRepository;
 
     @Autowired
+    private SpringDataStravaActivityDetailSnapshotRepository activityDetailSnapshotRepository;
+
+    @Autowired
+    private SpringDataStravaActivityStreamSnapshotRepository activityStreamSnapshotRepository;
+
+    @Autowired
+    private SpringDataStravaActivityStreamSyncJobRepository activityStreamSyncJobRepository;
+
+    @Autowired
     private SpringDataStravaAuthorizationStateRepository authorizationStateRepository;
 
     @Autowired
@@ -109,8 +121,11 @@ class StravaAccountLinkingFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        activityStreamSyncJobRepository.deleteAll();
         summarySyncJobRepository.deleteAll();
         authorizationStateRepository.deleteAll();
+        activityStreamSnapshotRepository.deleteAll();
+        activityDetailSnapshotRepository.deleteAll();
         activitySummaryRepository.deleteAll();
         accountLinkRepository.deleteAll();
         jdbcTemplate.update("delete from users");
@@ -263,6 +278,44 @@ class StravaAccountLinkingFlowIntegrationTest {
     }
 
     @Test
+    void unlink_deletes_imported_data_and_removes_activity_visibility() throws Exception {
+        register(USER_NAME, USER_EMAIL);
+        String token = login(USER_EMAIL);
+        String state = startLinking(token, ACCESS_TOKEN, REFRESH_TOKEN);
+        callback(state, CODE, SCOPE);
+        Long linkId = activeLink(USER_EMAIL).getId();
+        insertImportedStravaData(linkId, USER_EMAIL, 1001L, 457L);
+
+        mockMvc.perform(get("/api/strava/activities").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activities[0].id").value(1001));
+        mockMvc.perform(get("/api/strava/activities/1001").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1001));
+
+        mockMvc.perform(delete("/api/strava/link").header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        getStatus(token)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.linked").value(false))
+                .andExpect(jsonPath("$.permissionState").value("UNLINKED"))
+                .andExpect(jsonPath("$.importedActivityCount").value(0));
+        mockMvc.perform(get("/api/strava/activities").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activities").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
+        mockMvc.perform(get("/api/strava/activities/1001").header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("STRAVA_ACTIVITY_NOT_FOUND"));
+        assertThat(activityStreamSyncJobRepository.findAll()).isEmpty();
+        assertThat(summarySyncJobRepository.findAll()).isEmpty();
+        assertThat(activityStreamSnapshotRepository.findAll()).isEmpty();
+        assertThat(activityDetailSnapshotRepository.findAll()).isEmpty();
+        assertThat(activitySummaryRepository.findAll()).isEmpty();
+    }
+
+    @Test
     void callback_failure_redirects_for_invalid_state_denied_scope_and_token_exchange_without_token_leakage(CapturedOutput output) throws Exception {
         register(USER_NAME, USER_EMAIL);
         String token = login(USER_EMAIL);
@@ -379,6 +432,43 @@ class StravaAccountLinkingFlowIntegrationTest {
                         """,
                 email, ATHLETE_ID, ATHLETE_ID, email, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT, "read",
                 NOW);
+    }
+
+    private void insertImportedStravaData(Long linkId, String email, Long activitySummaryId, Long sourceActivityId) {
+        jdbcTemplate.update("""
+                        insert into strava_activity_summaries (
+                            id, user_email, account_link_id, source_activity_id, activity_type, raw_sport_type, name,
+                            start_date, distance_meters, moving_time_seconds, average_speed_meters_per_second,
+                            pace_seconds_per_kilometer, total_elevation_gain_meters, max_speed_meters_per_second,
+                            average_heart_rate, max_heart_rate, average_cadence, average_watts, calories, imported_at
+                        ) values (?, ?, ?, ?, 'RUN', 'Run', 'Morning Run', ?, 5000.0, 1500, 3.33, 300.0, 42.0, 5.5,
+                            150.0, 180.0, 82.0, 220.0, 350.0, ?)
+                        """,
+                activitySummaryId, email, linkId, sourceActivityId, NOW, NOW);
+        jdbcTemplate.update("""
+                        insert into strava_activity_detail_snapshots (
+                            activity_summary_id, user_email, source_activity_id, activity_type, raw_sport_type, name,
+                            start_date, distance_meters, moving_time_seconds, average_speed_meters_per_second,
+                            pace_seconds_per_kilometer, total_elevation_gain_meters, max_speed_meters_per_second,
+                            average_heart_rate, max_heart_rate, average_cadence, average_watts, calories, fetched_at
+                        ) values (?, ?, ?, 'RUN', 'Run', 'Morning Run Detail', ?, 5000.0, 1500, 3.33, 300.0, 42.0, 5.5,
+                            150.0, 180.0, 82.0, 220.0, 350.0, ?)
+                        """,
+                activitySummaryId, email, sourceActivityId, NOW, NOW);
+        jdbcTemplate.update("""
+                        insert into strava_activity_stream_snapshots (
+                            activity_summary_id, account_link_id, user_email, source_activity_id,
+                            available_metric_names, stream_samples_json, fetched_at
+                        ) values (?, ?, ?, ?, 'time,distance', ?, ?)
+                        """,
+                activitySummaryId, linkId, email, sourceActivityId, "[{\"time\":0,\"distance\":0}]", NOW);
+        jdbcTemplate.update("""
+                        insert into strava_activity_stream_sync_jobs (
+                            activity_summary_id, open_activity_summary_id, account_link_id, user_email,
+                            source_activity_id, priority, status, attempt_count, run_after, created_at, updated_at
+                        ) values (?, ?, ?, ?, ?, 'NORMAL', 'QUEUED', 0, ?, ?, ?)
+                        """,
+                activitySummaryId, activitySummaryId, linkId, email, sourceActivityId, NOW, NOW, NOW);
     }
 
     private String stateFrom(String authorizationUrl) {

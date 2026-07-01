@@ -16,4 +16,6 @@ public interface SpringDataStravaActivityStreamSnapshotRepository
 
     List<StravaActivityStreamSnapshotEntity> findByAccountLinkIdOrderByFetchedAtDescIdDesc(Long accountLinkId,
                                                                                            Pageable pageable);
+
+    void deleteByAccountLinkId(Long accountLinkId);
 }

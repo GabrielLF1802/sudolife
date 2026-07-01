@@ -15,4 +15,6 @@ public interface SpringDataStravaActivityStreamSyncJobRepository
 
     List<StravaActivityStreamSyncJobEntity> findByStatusAndRunAfterLessThanEqualOrderByPriorityAscRunAfterAscCreatedAtAsc(
             StravaSummarySyncJobStatus status, Instant now, Pageable pageable);
+
+    void deleteByAccountLinkId(Long accountLinkId);
 }

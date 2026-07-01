@@ -1,8 +1,11 @@
 package com.sudolife.adapter.driven.persistence.strava;
 
 import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
+import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaActivitySummaryEntity;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivityDetailSnapshot;
+import com.sudolife.application.model.strava.StravaActivityStreamSnapshot;
+import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
@@ -13,8 +16,11 @@ import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteO
 import com.sudolife.application.service.strava.exception.InvalidStravaAccountLinkStateException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityDetailSnapshotRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSnapshotRepository;
+import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
+import com.sudolife.application.service.strava.ports.required.StravaImportedDataRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,8 +44,9 @@ import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.SOURCE_ACTIVITY_ID;
 import static com.sudolife.helper.StravaTestHelper.pendingAuthorizationState;
-import static com.sudolife.helper.StravaTestHelper.stravaActivitySummary;
 import static com.sudolife.helper.StravaTestHelper.stravaActivityDetailSnapshot;
+import static com.sudolife.helper.StravaTestHelper.stravaActivityStreamImport;
+import static com.sudolife.helper.StravaTestHelper.stravaActivitySummary;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -64,7 +71,16 @@ class StravaPersistenceAdapterIntegrationTest {
     private StravaActivityDetailSnapshotRepository detailSnapshotRepository;
 
     @Autowired
+    private StravaActivityStreamSnapshotRepository streamSnapshotRepository;
+
+    @Autowired
+    private StravaActivityStreamSyncJobRepository streamSyncJobRepository;
+
+    @Autowired
     private StravaSummarySyncJobRepository summarySyncJobRepository;
+
+    @Autowired
+    private StravaImportedDataRepository importedDataRepository;
 
     @Autowired
     private SpringDataStravaAccountLinkRepository springDataAccountLinkRepository;
@@ -76,6 +92,12 @@ class StravaPersistenceAdapterIntegrationTest {
     private SpringDataStravaActivityDetailSnapshotRepository springDataActivityDetailSnapshotRepository;
 
     @Autowired
+    private SpringDataStravaActivityStreamSnapshotRepository springDataActivityStreamSnapshotRepository;
+
+    @Autowired
+    private SpringDataStravaActivityStreamSyncJobRepository springDataActivityStreamSyncJobRepository;
+
+    @Autowired
     private SpringDataStravaAuthorizationStateRepository springDataAuthorizationStateRepository;
 
     @Autowired
@@ -83,8 +105,10 @@ class StravaPersistenceAdapterIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        springDataActivityStreamSyncJobRepository.deleteAll();
         springDataSummarySyncJobRepository.deleteAll();
         springDataAuthorizationStateRepository.deleteAll();
+        springDataActivityStreamSnapshotRepository.deleteAll();
         springDataActivityDetailSnapshotRepository.deleteAll();
         springDataActivitySummaryRepository.deleteAll();
         springDataAccountLinkRepository.deleteAll();
@@ -374,6 +398,34 @@ class StravaPersistenceAdapterIntegrationTest {
         assertThat(result.get().getStatus()).isEqualTo(StravaSummarySyncJobStatus.QUEUED);
     }
 
+    @Test
+    void delete_imported_data_removes_only_rows_for_account_link() {
+        StravaAccountLink firstLink = accountLinkRepository.save(activeLink(USER_EMAIL, ATHLETE_ID));
+        StravaAccountLink secondLink = accountLinkRepository.save(activeLink("other@sudolife.com", ATHLETE_ID + 1));
+        StravaActivitySummary firstSummary = savedSummary(firstLink, SOURCE_ACTIVITY_ID);
+        StravaActivitySummary secondSummary = savedSummary(secondLink, SOURCE_ACTIVITY_ID + 1);
+        saveImportedChildren(firstLink, firstSummary);
+        saveImportedChildren(secondLink, secondSummary);
+
+        importedDataRepository.deleteByAccountLinkId(firstLink.getId());
+
+        assertThat(springDataActivityStreamSyncJobRepository.findAll())
+                .extracting(entity -> entity.getAccountLinkId())
+                .containsExactly(secondLink.getId());
+        assertThat(springDataSummarySyncJobRepository.findAll())
+                .extracting(entity -> entity.getAccountLinkId())
+                .containsExactly(secondLink.getId());
+        assertThat(springDataActivityStreamSnapshotRepository.findAll())
+                .extracting(entity -> entity.getAccountLinkId())
+                .containsExactly(secondLink.getId());
+        assertThat(springDataActivityDetailSnapshotRepository.findAll())
+                .extracting(entity -> entity.getActivitySummaryId())
+                .containsExactly(secondSummary.getId());
+        assertThat(springDataActivitySummaryRepository.findAll())
+                .extracting(StravaActivitySummaryEntity::getAccountLinkId)
+                .containsExactly(secondLink.getId());
+    }
+
     private StravaActivitySummary activitySummaryForUser(String userEmail) {
         StravaActivitySummary summary = stravaActivitySummary();
 
@@ -397,6 +449,22 @@ class StravaPersistenceAdapterIntegrationTest {
         return StravaActivitySummary.imported(userEmail, accountLinkId, sourceActivityId, activityType,
                 activityType.name(), "Activity " + sourceActivityId, NOW, 5000.0, 1500, 3.33, 42.0,
                 5.5, 150.0, 180.0, 82.0, 220.0, 350.0, NOW);
+    }
+
+    private StravaActivitySummary savedSummary(StravaAccountLink link, Long sourceActivityId) {
+        activitySummaryRepository.saveIfAbsent(activitySummary(link.getUserEmail(), link.getId(), sourceActivityId,
+                StravaActivityType.RUN));
+
+        return activitySummaryRepository.findByUserEmailAndSourceActivityId(link.getUserEmail(), sourceActivityId)
+                .orElseThrow();
+    }
+
+    private void saveImportedChildren(StravaAccountLink link, StravaActivitySummary summary) {
+        detailSnapshotRepository.saveIfAbsent(detailSnapshot(summary.getId(), summary.getName()));
+        streamSnapshotRepository.saveIfAbsent(StravaActivityStreamSnapshot.fetched(summary.getId(), link.getId(),
+                link.getUserEmail(), summary.getSourceActivityId(), stravaActivityStreamImport(), NOW));
+        summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(link, NOW));
+        streamSyncJobRepository.enqueueIfAbsent(StravaActivityStreamSyncJob.normal(summary, NOW));
     }
 
     private StravaActivityDetailSnapshot detailSnapshot(Long activityId, String name) {
