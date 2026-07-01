@@ -37,6 +37,7 @@ class StravaAccountLinkPersistenceMapperUnitTest {
         assertThat(entity.getExpiresAt()).isEqualTo(EXPIRES_AT);
         assertThat(entity.getGrantedScopes()).isEqualTo(SCOPE);
         assertThat(entity.isActive()).isTrue();
+        assertThat(entity.isReconnectRequired()).isFalse();
         assertThat(entity.getLinkedAt()).isEqualTo(LINKED_AT);
         assertThat(entity.getUnlinkedAt()).isNull();
     }
@@ -54,6 +55,7 @@ class StravaAccountLinkPersistenceMapperUnitTest {
         assertThat(entity.getExpiresAt()).isNull();
         assertThat(entity.getGrantedScopes()).isNull();
         assertThat(entity.isActive()).isFalse();
+        assertThat(entity.isReconnectRequired()).isFalse();
         assertThat(entity.getUnlinkedAt()).isEqualTo(UNLINKED_AT);
     }
 
@@ -71,8 +73,22 @@ class StravaAccountLinkPersistenceMapperUnitTest {
         assertThat(link.getExpiresAt()).isEqualTo(EXPIRES_AT);
         assertThat(link.getGrantedScopes()).isEqualTo(SCOPE);
         assertThat(link.isLinked()).isTrue();
+        assertThat(link.isReconnectRequired()).isFalse();
         assertThat(link.getLinkedAt()).isEqualTo(LINKED_AT);
         assertThat(link.getUnlinkedAt()).isNull();
+    }
+
+    @Test
+    void to_entity_maps_reconnect_required_link_without_deactivating_it() {
+        StravaAccountLink link = activeStravaAccountLink();
+        link.markReconnectRequired();
+
+        StravaAccountLinkEntity entity = mapper.toEntity(link);
+
+        assertThat(entity.isActive()).isTrue();
+        assertThat(entity.isReconnectRequired()).isTrue();
+        assertThat(entity.getAccessToken()).isEqualTo(ACCESS_TOKEN);
+        assertThat(entity.getRefreshToken()).isEqualTo(REFRESH_TOKEN);
     }
 
     private StravaAccountLinkEntity activeEntity() {
@@ -86,6 +102,7 @@ class StravaAccountLinkPersistenceMapperUnitTest {
         entity.setExpiresAt(EXPIRES_AT);
         entity.setGrantedScopes(SCOPE);
         entity.setActive(true);
+        entity.setReconnectRequired(false);
         entity.setLinkedAt(LINKED_AT);
 
         return entity;

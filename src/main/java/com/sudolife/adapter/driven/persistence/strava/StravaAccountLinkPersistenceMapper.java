@@ -19,6 +19,7 @@ public class StravaAccountLinkPersistenceMapper {
         entity.setExpiresAt(domain.getExpiresAt());
         entity.setGrantedScopes(domain.getGrantedScopes());
         entity.setActive(domain.isLinked());
+        entity.setReconnectRequired(domain.isReconnectRequired());
         entity.setLinkedAt(domain.getLinkedAt());
         entity.setUnlinkedAt(domain.getUnlinkedAt());
 
@@ -35,6 +36,7 @@ public class StravaAccountLinkPersistenceMapper {
                 entity.getExpiresAt(),
                 entity.getGrantedScopes(),
                 entity.isActive(),
+                entity.isReconnectRequired(),
                 entity.getLinkedAt(),
                 entity.getUnlinkedAt()
         );

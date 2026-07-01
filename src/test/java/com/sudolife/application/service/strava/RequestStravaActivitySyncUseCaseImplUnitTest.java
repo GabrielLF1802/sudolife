@@ -24,6 +24,7 @@ import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.activeStravaAccountLink;
+import static com.sudolife.helper.StravaTestHelper.reconnectRequiredStravaAccountLink;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -88,6 +89,18 @@ class RequestStravaActivitySyncUseCaseImplUnitTest {
 
         assertThat(result.status()).isEqualTo(StravaActivitySyncStatus.FAILED);
         assertThat(result.failureReason()).isEqualTo(StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED);
+        verify(summarySyncJobRepository, never()).enqueueIfAbsent(any());
+    }
+
+    @Test
+    void execute_with_reconnect_required_link_returns_reconnect_required_without_queueing() {
+        when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL))
+                .thenReturn(Optional.of(reconnectRequiredStravaAccountLink()));
+
+        StravaActivitySyncResult result = useCase.execute(command());
+
+        assertThat(result.status()).isEqualTo(StravaActivitySyncStatus.FAILED);
+        assertThat(result.failureReason()).isEqualTo(StravaActivitySyncFailureReason.RECONNECT_REQUIRED);
         verify(summarySyncJobRepository, never()).enqueueIfAbsent(any());
     }
 

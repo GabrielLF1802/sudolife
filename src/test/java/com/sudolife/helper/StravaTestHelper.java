@@ -24,6 +24,8 @@ public class StravaTestHelper {
     public static final Long ATHLETE_ID = 9001L;
     public static final String ACCESS_TOKEN = "access-token";
     public static final String REFRESH_TOKEN = "refresh-token";
+    public static final String ROTATED_ACCESS_TOKEN = "rotated-access-token";
+    public static final String ROTATED_REFRESH_TOKEN = "rotated-refresh-token";
     public static final String STATE = "state-token";
     public static final String CODE = "authorization-code";
     public static final String SCOPE = "read,activity:read";
@@ -42,6 +44,13 @@ public class StravaTestHelper {
 
     public static StravaAccountLink inactiveStravaAccountLink() {
         return new StravaAccountLink(LINK_ID, USER_EMAIL, ATHLETE_ID, null, null, null, false, LINKED_AT, UNLINKED_AT);
+    }
+
+    public static StravaAccountLink reconnectRequiredStravaAccountLink() {
+        StravaAccountLink link = activeStravaAccountLink();
+        link.markReconnectRequired();
+
+        return link;
     }
 
     public static StravaAuthorizationState pendingAuthorizationState() {

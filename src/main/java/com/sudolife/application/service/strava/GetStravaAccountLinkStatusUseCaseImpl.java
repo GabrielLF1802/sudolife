@@ -30,6 +30,17 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
     }
 
     private StravaLinkStatusResult linkedStatus(StravaAccountLink accountLink) {
+        if (accountLink.isReconnectRequired()) {
+            long importedActivityCount = activitySummaryRepository.countByAccountLinkId(accountLink.getId());
+            long streamsReadyActivityCount = activitySummaryRepository.countStreamsReadyByAccountLinkId(accountLink.getId()) +
+                    streamSnapshotRepository.countByAccountLinkId(accountLink.getId());
+
+            return new StravaLinkStatusResult(true, accountLink.getAthleteId(),
+                    StravaPermissionState.RECONNECT_REQUIRED, StravaSummaryStatus.FAILED,
+                    StravaPerformanceDataStatus.FAILED, null, null, importedActivityCount, streamsReadyActivityCount,
+                    StravaActivitySyncFailureReason.RECONNECT_REQUIRED);
+        }
+
         if (!accountLink.hasActivityReadScope()) {
             return new StravaLinkStatusResult(true, accountLink.getAthleteId(),
                     StravaPermissionState.PERMISSION_UPGRADE_REQUIRED,

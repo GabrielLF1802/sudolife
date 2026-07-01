@@ -5,6 +5,7 @@ import com.sudolife.application.model.strava.StravaActivityDetailImport;
 import com.sudolife.application.model.strava.StravaActivityStreamImport;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaActivityUnauthorizedException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -101,6 +102,14 @@ class StravaActivityAdapterIntegrationTest {
 
         assertThatThrownBy(() -> adapter.fetchActivitySummaries(ACCESS_TOKEN, AFTER, BEFORE))
                 .isInstanceOf(StravaActivityRateLimitException.class);
+    }
+
+    @Test
+    void fetch_activity_summaries_translates_unauthorized_response() {
+        statusCode = 401;
+
+        assertThatThrownBy(() -> adapter.fetchActivitySummaries(ACCESS_TOKEN, AFTER, BEFORE))
+                .isInstanceOf(StravaActivityUnauthorizedException.class);
     }
 
     @Test

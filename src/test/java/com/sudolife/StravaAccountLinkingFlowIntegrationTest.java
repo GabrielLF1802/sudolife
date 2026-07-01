@@ -374,8 +374,8 @@ class StravaAccountLinkingFlowIntegrationTest {
         jdbcTemplate.update("""
                         insert into strava_account_links (
                             user_email, athlete_id, active_athlete_id, active_user_email, access_token,
-                            refresh_token, expires_at, granted_scopes, active, linked_at
-                        ) values (?, ?, ?, ?, ?, ?, ?, ?, true, ?)
+                            refresh_token, expires_at, granted_scopes, active, reconnect_required, linked_at
+                        ) values (?, ?, ?, ?, ?, ?, ?, ?, true, false, ?)
                         """,
                 email, ATHLETE_ID, ATHLETE_ID, email, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT, "read",
                 NOW);

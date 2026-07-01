@@ -29,6 +29,11 @@ public class RequestStravaActivitySyncUseCaseImpl implements RequestStravaActivi
     }
 
     private StravaActivitySyncResult enqueueSync(StravaAccountLink accountLink) {
+        if (accountLink.isReconnectRequired()) {
+            return result(StravaActivitySyncStatus.FAILED,
+                    StravaActivitySyncFailureReason.RECONNECT_REQUIRED, 0, accountLink.getUserEmail());
+        }
+
         if (!accountLink.hasActivityReadScope()) {
             return result(StravaActivitySyncStatus.FAILED,
                     StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED, 0, accountLink.getUserEmail());

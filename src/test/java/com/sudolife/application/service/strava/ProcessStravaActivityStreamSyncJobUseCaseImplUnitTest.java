@@ -1,5 +1,6 @@
 package com.sudolife.application.service.strava;
 
+import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivityStreamSnapshot;
 import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.model.strava.StravaActivityStreamSyncJobPriority;
@@ -20,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.LINK_ID;
@@ -54,12 +56,16 @@ class ProcessStravaActivityStreamSyncJobUseCaseImplUnitTest {
     @Mock
     private TimeProvider timeProvider;
 
+    @Mock
+    private StravaAccessTokenService accessTokenService;
+
     @InjectMocks
     private ProcessStravaActivityStreamSyncJobUseCaseImpl useCase;
 
     @Test
     void execute_with_stream_job_persists_snapshot_and_completes_job() {
         when(streamSyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
+        stubAccessTokenService();
         when(streamSyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.of(activeStravaAccountLink()));
         when(activityProvider.fetchActivityStreams(ACCESS_TOKEN, SOURCE_ACTIVITY_ID)).thenReturn(stravaActivityStreamImport());
@@ -78,6 +84,7 @@ class ProcessStravaActivityStreamSyncJobUseCaseImplUnitTest {
     void execute_when_rate_limited_schedules_retry_with_backoff() {
         ReflectionTestUtils.setField(useCase, "retryBackoff", Duration.ofMinutes(15));
         ReflectionTestUtils.setField(useCase, "maxAttempts", 3);
+        stubAccessTokenService();
         when(streamSyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
         when(streamSyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.of(activeStravaAccountLink()));
@@ -111,5 +118,14 @@ class ProcessStravaActivityStreamSyncJobUseCaseImplUnitTest {
         verify(streamSyncJobRepository, org.mockito.Mockito.atLeastOnce()).save(captor.capture());
 
         return captor.getAllValues().getLast();
+    }
+
+    private void stubAccessTokenService() {
+        org.mockito.Mockito.doAnswer(invocation -> {
+            StravaAccountLink accountLink = invocation.getArgument(0);
+            Function<StravaAccountLink, Object> activityCall = invocation.getArgument(1);
+
+            return activityCall.apply(accountLink);
+        }).when(accessTokenService).executeWithValidToken(any(), any());
     }
 }

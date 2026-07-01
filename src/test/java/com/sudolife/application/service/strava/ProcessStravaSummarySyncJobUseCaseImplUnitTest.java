@@ -1,10 +1,12 @@
 package com.sudolife.application.service.strava;
 
+import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaSummarySyncJob;
 import com.sudolife.application.model.strava.StravaSummarySyncJobStatus;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaReconnectRequiredException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
 import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSyncJobRepository;
@@ -25,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.LINK_ID;
@@ -32,6 +35,7 @@ import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.SOURCE_ACTIVITY_ID;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.activeStravaAccountLink;
+import static com.sudolife.helper.StravaTestHelper.reconnectRequiredStravaAccountLink;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -65,12 +69,16 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
     @Mock
     private TransactionTemplate transactionTemplate;
 
+    @Mock
+    private StravaAccessTokenService accessTokenService;
+
     @InjectMocks
     private ProcessStravaSummarySyncJobUseCaseImpl useCase;
 
     @Test
     void execute_with_summary_job_imports_summaries_and_completes_job() {
         stubTransaction();
+        stubAccessTokenService();
         when(summarySyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
         when(summarySyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.of(activeStravaAccountLink()));
@@ -93,6 +101,7 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
     @Test
     void execute_when_rate_limited_preserves_partial_import_and_schedules_retry() {
         stubTransaction();
+        stubAccessTokenService();
         ReflectionTestUtils.setField(useCase, "retryBackoff", Duration.ofMinutes(15));
         ReflectionTestUtils.setField(useCase, "maxAttempts", 3);
         when(summarySyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
@@ -113,6 +122,36 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
         assertThat(retryJob.getImportedActivityCount()).isEqualTo(1);
         assertThat(retryJob.getRunAfter()).isEqualTo(NOW.plus(Duration.ofMinutes(15)));
         assertThat(capturedSummary().getSourceActivityId()).isEqualTo(SOURCE_ACTIVITY_ID);
+    }
+
+    @Test
+    void execute_when_refresh_fails_marks_job_reconnect_required_permanently() {
+        when(summarySyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
+        when(summarySyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.of(activeStravaAccountLink()));
+        when(timeProvider.now()).thenReturn(NOW);
+        when(accessTokenService.executeWithValidToken(any(), any())).thenThrow(new StravaReconnectRequiredException());
+
+        useCase.execute(new ProcessStravaSummarySyncJobCommand(JOB_ID));
+
+        StravaSummarySyncJob failedJob = lastSavedJob();
+        assertThat(failedJob.getStatus()).isEqualTo(StravaSummarySyncJobStatus.FAILED);
+        assertThat(failedJob.getFailureReason()).isEqualTo(StravaActivitySyncFailureReason.RECONNECT_REQUIRED.name());
+    }
+
+    @Test
+    void execute_with_reconnect_required_link_marks_job_reconnect_required_without_activity_call() {
+        when(summarySyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
+        when(summarySyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.of(reconnectRequiredStravaAccountLink()));
+        when(timeProvider.now()).thenReturn(NOW);
+
+        useCase.execute(new ProcessStravaSummarySyncJobCommand(JOB_ID));
+
+        StravaSummarySyncJob failedJob = lastSavedJob();
+        assertThat(failedJob.getStatus()).isEqualTo(StravaSummarySyncJobStatus.FAILED);
+        assertThat(failedJob.getFailureReason()).isEqualTo(StravaActivitySyncFailureReason.RECONNECT_REQUIRED.name());
+        org.mockito.Mockito.verifyNoInteractions(activityProvider);
     }
 
     private StravaSummarySyncJob queuedJob() {
@@ -165,5 +204,14 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
 
             return callback.doInTransaction(null);
         }).when(transactionTemplate).execute(any());
+    }
+
+    private void stubAccessTokenService() {
+        doAnswer(invocation -> {
+            StravaAccountLink accountLink = invocation.getArgument(0);
+            Function<StravaAccountLink, Object> activityCall = invocation.getArgument(1);
+
+            return activityCall.apply(accountLink);
+        }).when(accessTokenService).executeWithValidToken(any(), any());
     }
 }

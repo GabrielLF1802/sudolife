@@ -10,6 +10,7 @@ import com.sudolife.application.model.strava.StravaActivityStreamImport;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaActivityUnauthorizedException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
 import lombok.extern.slf4j.Slf4j;
@@ -86,7 +87,8 @@ public class StravaActivityAdapter implements StravaActivityProvider {
             StravaActivityDetailResponse response = requestDetail(accessToken, sourceActivityId);
 
             return toDetailImport(response).orElseThrow(StravaActivityUnavailableException::new);
-        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException exception) {
+        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException |
+                 StravaActivityUnauthorizedException exception) {
             throw exception;
         } catch (RestClientException exception) {
             log.warn("Strava activity detail request failed category=client_error");
@@ -108,7 +110,8 @@ public class StravaActivityAdapter implements StravaActivityProvider {
             return new StravaActivityStreamImport(availableStreams.stream()
                     .map(stream -> metricName(stream.type()))
                     .toList(), objectMapper.writeValueAsString(availableStreams));
-        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException exception) {
+        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException |
+                 StravaActivityUnauthorizedException exception) {
             throw exception;
         } catch (JsonProcessingException exception) {
             log.warn("Strava activity stream snapshot serialization failed");
@@ -137,6 +140,11 @@ public class StravaActivityAdapter implements StravaActivityProvider {
                             httpResponse.getStatusCode().value());
                     throw new StravaActivityRateLimitException();
                 })
+                .onStatus(this::isUnauthorized, (request, httpResponse) -> {
+                    log.warn("Strava activity stream request unauthorized statusCode={}",
+                            httpResponse.getStatusCode().value());
+                    throw new StravaActivityUnauthorizedException();
+                })
                 .onStatus(HttpStatusCode::isError, (request, httpResponse) -> {
                     log.warn("Strava activity stream request failed statusCode={}",
                             httpResponse.getStatusCode().value());
@@ -162,6 +170,11 @@ public class StravaActivityAdapter implements StravaActivityProvider {
                     log.warn("Strava activity detail request rate limited statusCode={}",
                             httpResponse.getStatusCode().value());
                     throw new StravaActivityRateLimitException();
+                })
+                .onStatus(this::isUnauthorized, (request, httpResponse) -> {
+                    log.warn("Strava activity detail request unauthorized statusCode={}",
+                            httpResponse.getStatusCode().value());
+                    throw new StravaActivityUnauthorizedException();
                 })
                 .onStatus(HttpStatusCode::isError, (request, httpResponse) -> {
                     log.warn("Strava activity detail request failed statusCode={}",
@@ -194,6 +207,11 @@ public class StravaActivityAdapter implements StravaActivityProvider {
                                 httpResponse.getStatusCode().value());
                         throw new StravaActivityRateLimitException();
                     })
+                    .onStatus(this::isUnauthorized, (request, httpResponse) -> {
+                        log.warn("Strava activity summary request unauthorized statusCode={}",
+                                httpResponse.getStatusCode().value());
+                        throw new StravaActivityUnauthorizedException();
+                    })
                     .onStatus(HttpStatusCode::isError, (request, httpResponse) -> {
                         log.warn("Strava activity summary request failed statusCode={}",
                                 httpResponse.getStatusCode().value());
@@ -206,7 +224,8 @@ public class StravaActivityAdapter implements StravaActivityProvider {
             }
 
             return response;
-        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException exception) {
+        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException |
+                 StravaActivityUnauthorizedException exception) {
             throw exception;
         } catch (RestClientException exception) {
             log.warn("Strava activity summary request failed category=client_error");
@@ -281,6 +300,10 @@ public class StravaActivityAdapter implements StravaActivityProvider {
 
     private boolean isRateLimited(HttpStatusCode statusCode) {
         return statusCode.value() == HttpStatus.TOO_MANY_REQUESTS.value();
+    }
+
+    private boolean isUnauthorized(HttpStatusCode statusCode) {
+        return statusCode.value() == HttpStatus.UNAUTHORIZED.value();
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(StravaApiProperties properties) {

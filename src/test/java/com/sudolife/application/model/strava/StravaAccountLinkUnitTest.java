@@ -42,6 +42,20 @@ class StravaAccountLinkUnitTest {
         assertThat(link.getRefreshToken()).isNull();
         assertThat(link.getExpiresAt()).isNull();
         assertThat(link.getGrantedScopes()).isNull();
+        assertThat(link.isReconnectRequired()).isFalse();
+    }
+
+    @Test
+    void markReconnectRequired_keeps_link_active_without_clearing_authorization_data() {
+        StravaAccountLink link = activeStravaAccountLink();
+
+        link.markReconnectRequired();
+
+        assertThat(link.isLinked()).isTrue();
+        assertThat(link.isReconnectRequired()).isTrue();
+        assertThat(link.getAccessToken()).isEqualTo(ACCESS_TOKEN);
+        assertThat(link.getRefreshToken()).isEqualTo(REFRESH_TOKEN);
+        assertThat(link.canSyncActivities()).isFalse();
     }
 
     @Test

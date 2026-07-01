@@ -22,7 +22,7 @@ public class EnqueueStravaSummarySyncUseCaseImpl implements EnqueueStravaSummary
     @Override
     public EnqueueStravaSummarySyncResult execute(EnqueueStravaSummarySyncCommand command) {
         return accountLinkRepository.findActiveById(command.accountLinkId())
-                .filter(StravaAccountLink::hasActivityReadScope)
+                .filter(StravaAccountLink::canSyncActivities)
                 .map(this::enqueue)
                 .orElseGet(() -> new EnqueueStravaSummarySyncResult(false));
     }

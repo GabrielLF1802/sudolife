@@ -6,6 +6,7 @@ import com.sudolife.application.model.strava.StravaActivityStreamSnapshot;
 import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
+import com.sudolife.application.service.strava.exception.StravaReconnectRequiredException;
 import com.sudolife.application.service.strava.ports.provided.ProcessStravaActivityStreamSyncJobUseCase;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
@@ -31,6 +32,7 @@ public class ProcessStravaActivityStreamSyncJobUseCaseImpl implements ProcessStr
     private final StravaAccountLinkRepository accountLinkRepository;
     private final StravaActivityProvider activityProvider;
     private final TimeProvider timeProvider;
+    private final StravaAccessTokenService accessTokenService;
     @Value("${strava.stream-sync.max-attempts:3}")
     private int maxAttempts;
     @Value("${strava.stream-sync.retry-backoff:PT15M}")
@@ -53,15 +55,15 @@ public class ProcessStravaActivityStreamSyncJobUseCaseImpl implements ProcessStr
         StravaActivityStreamSyncJob runningJob = streamSyncJobRepository.save(pendingJob.get().running(
                 timeProvider.now()));
         accountLinkRepository.findActiveById(runningJob.getAccountLinkId())
-                .filter(StravaAccountLink::hasActivityReadScope)
+                .filter(StravaAccountLink::canSyncActivities)
                 .ifPresentOrElse(accountLink -> sync(runningJob, accountLink), () -> markPermanentFailure(runningJob,
-                        StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED));
+                        disabledFailureReason(runningJob.getAccountLinkId())));
     }
 
     private void sync(StravaActivityStreamSyncJob job, StravaAccountLink accountLink) {
         try {
-            StravaActivityStreamImport streamImport = activityProvider.fetchActivityStreams(accountLink.getAccessToken(),
-                    job.getSourceActivityId());
+            StravaActivityStreamImport streamImport = accessTokenService.executeWithValidToken(accountLink,
+                    link -> activityProvider.fetchActivityStreams(link.getAccessToken(), job.getSourceActivityId()));
             StravaActivityStreamSnapshot snapshot = StravaActivityStreamSnapshot.fetched(job.getActivitySummaryId(),
                     job.getAccountLinkId(), job.getUserEmail(), job.getSourceActivityId(), streamImport,
                     timeProvider.now());
@@ -73,6 +75,8 @@ public class ProcessStravaActivityStreamSyncJobUseCaseImpl implements ProcessStr
             failTransiently(job, StravaActivitySyncFailureReason.STRAVA_RATE_LIMITED);
         } catch (StravaActivityUnavailableException exception) {
             failTransiently(job, StravaActivitySyncFailureReason.STRAVA_UNAVAILABLE);
+        } catch (StravaReconnectRequiredException exception) {
+            markPermanentFailure(job, StravaActivitySyncFailureReason.RECONNECT_REQUIRED);
         }
     }
 
@@ -89,5 +93,12 @@ public class ProcessStravaActivityStreamSyncJobUseCaseImpl implements ProcessStr
 
     private void markPermanentFailure(StravaActivityStreamSyncJob job, StravaActivitySyncFailureReason failureReason) {
         streamSyncJobRepository.save(job.permanentFailure(failureReason.name(), timeProvider.now()));
+    }
+
+    private StravaActivitySyncFailureReason disabledFailureReason(Long accountLinkId) {
+        return accountLinkRepository.findActiveById(accountLinkId)
+                .filter(StravaAccountLink::isReconnectRequired)
+                .map(link -> StravaActivitySyncFailureReason.RECONNECT_REQUIRED)
+                .orElse(StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED);
     }
 }

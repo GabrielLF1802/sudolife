@@ -21,6 +21,7 @@ import static com.sudolife.helper.StravaTestHelper.LINK_ID;
 import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.activeStravaAccountLink;
+import static com.sudolife.helper.StravaTestHelper.reconnectRequiredStravaAccountLink;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -40,7 +41,8 @@ class StravaSummarySyncSchedulerUnitTest {
 
     @Test
     void enqueueScheduledSummarySyncJobs_only_enqueues_permission_ready_links() {
-        when(accountLinkRepository.findAllActive()).thenReturn(List.of(activeStravaAccountLink(), readOnlyLink()));
+        when(accountLinkRepository.findAllActive()).thenReturn(List.of(activeStravaAccountLink(), readOnlyLink(),
+                reconnectRequiredStravaAccountLink()));
         when(enqueueStravaSummarySyncUseCase.execute(any())).thenReturn(new EnqueueStravaSummarySyncResult(true));
 
         scheduler.enqueueScheduledSummarySyncJobs();

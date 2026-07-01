@@ -22,7 +22,7 @@ public class StravaSummarySyncScheduler {
     @Scheduled(fixedDelayString = "${strava.summary-sync.polling-interval:PT24H}")
     public void enqueueScheduledSummarySyncJobs() {
         int enqueuedCount = accountLinkRepository.findAllActive().stream()
-                .filter(StravaAccountLink::hasActivityReadScope)
+                .filter(StravaAccountLink::canSyncActivities)
                 .map(accountLink -> enqueueStravaSummarySyncUseCase.execute(
                         new EnqueueStravaSummarySyncCommand(accountLink.getId())))
                 .mapToInt(result -> result.enqueued() ? 1 : 0)

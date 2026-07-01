@@ -56,6 +56,8 @@ public class StravaAccountLinkEntity {
     private String grantedScopes;
     @Column(nullable = false)
     private boolean active;
+    @Column(name = "reconnect_required", nullable = false)
+    private boolean reconnectRequired;
     @Column(name = "linked_at", nullable = false)
     private Instant linkedAt;
     @Column(name = "unlinked_at")

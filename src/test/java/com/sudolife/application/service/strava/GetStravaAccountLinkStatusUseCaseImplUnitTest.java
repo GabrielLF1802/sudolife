@@ -25,6 +25,7 @@ import static com.sudolife.helper.StravaTestHelper.REFRESH_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.activeStravaAccountLink;
 import static com.sudolife.helper.StravaTestHelper.getStravaAccountLinkStatusCommand;
+import static com.sudolife.helper.StravaTestHelper.reconnectRequiredStravaAccountLink;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -72,6 +73,24 @@ class GetStravaAccountLinkStatusUseCaseImplUnitTest {
         assertThat(result.activitySummaryStatus()).isEqualTo(StravaSummaryStatus.PERMISSION_UPGRADE_REQUIRED);
         assertThat(result.performanceDataStatus()).isEqualTo(StravaPerformanceDataStatus.PERMISSION_UPGRADE_REQUIRED);
         assertThat(result.failureReason()).isEqualTo(StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED);
+    }
+
+    @Test
+    void execute_with_reconnect_required_link_returns_reconnect_required_status() {
+        when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL))
+                .thenReturn(Optional.of(reconnectRequiredStravaAccountLink()));
+        when(activitySummaryRepository.countByAccountLinkId(LINK_ID)).thenReturn(3L);
+        when(streamSnapshotRepository.countByAccountLinkId(LINK_ID)).thenReturn(2L);
+
+        StravaLinkStatusResult result = useCase.execute(getStravaAccountLinkStatusCommand());
+
+        assertThat(result.linked()).isTrue();
+        assertThat(result.permissionState()).isEqualTo(StravaPermissionState.RECONNECT_REQUIRED);
+        assertThat(result.activitySummaryStatus()).isEqualTo(StravaSummaryStatus.FAILED);
+        assertThat(result.performanceDataStatus()).isEqualTo(StravaPerformanceDataStatus.FAILED);
+        assertThat(result.importedActivityCount()).isEqualTo(3);
+        assertThat(result.streamsReadyActivityCount()).isEqualTo(2);
+        assertThat(result.failureReason()).isEqualTo(StravaActivitySyncFailureReason.RECONNECT_REQUIRED);
     }
 
     @Test

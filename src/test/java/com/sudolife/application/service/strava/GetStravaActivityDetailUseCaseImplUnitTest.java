@@ -1,5 +1,6 @@
 package com.sudolife.application.service.strava;
 
+import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivityDetailSnapshot;
 import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.model.strava.StravaActivitySummary;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.ACTIVITY_START_DATE;
@@ -66,12 +68,16 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
     @Mock
     private TimeProvider timeProvider;
 
+    @Mock
+    private StravaAccessTokenService accessTokenService;
+
     @InjectMocks
     private GetStravaActivityDetailUseCaseImpl useCase;
 
     @Test
     void execute_with_activity_owned_by_user_fetches_and_persists_detail_snapshot() {
         when(activitySummaryRepository.findByIdAndUserEmail(ACTIVITY_ID, USER_EMAIL)).thenReturn(Optional.of(summary()));
+        stubAccessTokenService();
         when(detailSnapshotRepository.findByActivitySummaryId(ACTIVITY_ID)).thenReturn(Optional.empty());
         when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL)).thenReturn(Optional.of(activeStravaAccountLink()));
         when(activityProvider.fetchActivityDetail(ACCESS_TOKEN, SOURCE_ACTIVITY_ID)).thenReturn(stravaActivityDetailImport());
@@ -116,6 +122,7 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
     @Test
     void execute_when_detail_enrichment_fails_returns_summary_fallback() {
         when(activitySummaryRepository.findByIdAndUserEmail(ACTIVITY_ID, USER_EMAIL)).thenReturn(Optional.of(summary()));
+        stubAccessTokenService();
         when(detailSnapshotRepository.findByActivitySummaryId(ACTIVITY_ID)).thenReturn(Optional.empty());
         when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL)).thenReturn(Optional.of(activeStravaAccountLink()));
         when(activityProvider.fetchActivityDetail(ACCESS_TOKEN, SOURCE_ACTIVITY_ID))
@@ -131,6 +138,7 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
     @Test
     void execute_when_stream_inline_attempt_fails_enqueues_high_priority_stream_job() {
         when(activitySummaryRepository.findByIdAndUserEmail(ACTIVITY_ID, USER_EMAIL)).thenReturn(Optional.of(summary()));
+        stubAccessTokenService();
         when(detailSnapshotRepository.findByActivitySummaryId(ACTIVITY_ID)).thenReturn(Optional.empty());
         when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL)).thenReturn(Optional.of(activeStravaAccountLink()));
         when(activityProvider.fetchActivityDetail(ACCESS_TOKEN, SOURCE_ACTIVITY_ID)).thenReturn(stravaActivityDetailImport());
@@ -197,5 +205,14 @@ class GetStravaActivityDetailUseCaseImplUnitTest {
         verify(streamSyncJobRepository).enqueueIfAbsent(captor.capture());
 
         return captor.getValue();
+    }
+
+    private void stubAccessTokenService() {
+        org.mockito.Mockito.doAnswer(invocation -> {
+            StravaAccountLink accountLink = invocation.getArgument(0);
+            Function<StravaAccountLink, Object> activityCall = invocation.getArgument(1);
+
+            return activityCall.apply(accountLink);
+        }).when(accessTokenService).executeWithValidToken(any(), any());
     }
 }

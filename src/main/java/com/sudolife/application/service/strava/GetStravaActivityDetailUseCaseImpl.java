@@ -10,6 +10,7 @@ import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.service.strava.exception.StravaActivityNotFoundException;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
+import com.sudolife.application.service.strava.exception.StravaReconnectRequiredException;
 import com.sudolife.application.service.strava.ports.provided.GetStravaActivityDetailUseCase;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityDetailSnapshotRepository;
@@ -35,6 +36,7 @@ public class GetStravaActivityDetailUseCaseImpl implements GetStravaActivityDeta
     private final StravaAccountLinkRepository accountLinkRepository;
     private final StravaActivityProvider activityProvider;
     private final TimeProvider timeProvider;
+    private final StravaAccessTokenService accessTokenService;
     private final StravaActivityStreamEligibility streamEligibility = new StravaActivityStreamEligibility();
 
     @Override
@@ -59,9 +61,13 @@ public class GetStravaActivityDetailUseCaseImpl implements GetStravaActivityDeta
             return Optional.empty();
         }
 
+        if (!accountLink.get().canSyncActivities()) {
+            return Optional.empty();
+        }
+
         try {
-            StravaActivityDetailImport detail = activityProvider.fetchActivityDetail(accountLink.get().getAccessToken(),
-                    summary.getSourceActivityId());
+            StravaActivityDetailImport detail = accessTokenService.executeWithValidToken(accountLink.get(),
+                    link -> activityProvider.fetchActivityDetail(link.getAccessToken(), summary.getSourceActivityId()));
             StravaActivityDetailSnapshot snapshot = StravaActivityDetailSnapshot.fetched(summary.getId(),
                     summary.getUserEmail(), detail, timeProvider.now());
             StravaActivityDetailSnapshot savedSnapshot = detailSnapshotRepository.saveIfAbsent(snapshot);
@@ -70,7 +76,8 @@ public class GetStravaActivityDetailUseCaseImpl implements GetStravaActivityDeta
 
             return Optional.of(toDetailResult(summary, savedSnapshot,
                     StravaActivityDetailEnrichmentStatus.COMPLETED));
-        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException exception) {
+        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException |
+                 StravaReconnectRequiredException exception) {
             return Optional.empty();
         }
     }
@@ -123,14 +130,19 @@ public class GetStravaActivityDetailUseCaseImpl implements GetStravaActivityDeta
             return;
         }
 
+        if (!accountLink.canSyncActivities()) {
+            return;
+        }
+
         try {
-            StravaActivityStreamImport streamImport = activityProvider.fetchActivityStreams(accountLink.getAccessToken(),
-                    summary.getSourceActivityId());
+            StravaActivityStreamImport streamImport = accessTokenService.executeWithValidToken(accountLink,
+                    link -> activityProvider.fetchActivityStreams(link.getAccessToken(), summary.getSourceActivityId()));
             StravaActivityStreamSnapshot snapshot = StravaActivityStreamSnapshot.fetched(summary.getId(),
                     summary.getAccountLinkId(), summary.getUserEmail(), summary.getSourceActivityId(), streamImport,
                     timeProvider.now());
             streamSnapshotRepository.saveIfAbsent(snapshot);
-        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException exception) {
+        } catch (StravaActivityRateLimitException | StravaActivityUnavailableException |
+                 StravaReconnectRequiredException exception) {
             streamSyncJobRepository.enqueueIfAbsent(StravaActivityStreamSyncJob.highPriority(summary,
                     timeProvider.now()));
         }
