@@ -6,6 +6,7 @@ import com.sudolife.application.service.user.exception.UserAlreadyExistsExceptio
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.StravaAccountLinkingException;
 import com.sudolife.application.service.strava.exception.StravaActivityNotFoundException;
+import com.sudolife.application.service.training.exception.InvalidTrainingProfileException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -50,6 +51,12 @@ public class RestExceptionHandler {
     public ResponseEntity<ErrorResponse> handleStravaActivityNotFound(StravaActivityNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse("STRAVA_ACTIVITY_NOT_FOUND", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidTrainingProfileException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTrainingProfile(InvalidTrainingProfileException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(exception.getFailureCode(), exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
