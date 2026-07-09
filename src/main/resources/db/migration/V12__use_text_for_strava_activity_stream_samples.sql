@@ -1,0 +1,1 @@
+alter table strava_activity_stream_snapshots alter column stream_samples_json type text;

@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
@@ -45,8 +44,7 @@ public class StravaActivityStreamSnapshotEntity {
     private Long sourceActivityId;
     @Column(name = "available_metric_names", nullable = false, length = 512)
     private String availableMetricNames;
-    @Lob
-    @Column(name = "stream_samples_json", nullable = false)
+    @Column(name = "stream_samples_json", nullable = false, columnDefinition = "text")
     private String streamSamplesJson;
     @Column(name = "fetched_at", nullable = false)
     private Instant fetchedAt;
