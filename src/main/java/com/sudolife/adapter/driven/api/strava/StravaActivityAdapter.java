@@ -10,6 +10,7 @@ import com.sudolife.application.model.strava.StravaActivityStreamImport;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaActivityStreamUnavailableException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnauthorizedException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
@@ -18,18 +19,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -102,61 +108,85 @@ public class StravaActivityAdapter implements StravaActivityProvider {
     @Override
     public StravaActivityStreamImport fetchActivityStreams(String accessToken, Long sourceActivityId) {
         try {
-            StravaActivityStreamResponse[] response = requestStreams(accessToken, sourceActivityId);
-            List<StravaActivityStreamResponse> availableStreams = Arrays.stream(response)
+            Map<String, StravaActivityStreamResponse> response = requestStreams(accessToken, sourceActivityId);
+            List<StravaActivityStreamResponse> availableStreams = response.entrySet().stream()
+                    .map(entry -> withType(entry.getKey(), entry.getValue()))
                     .filter(this::isAllowedStream)
                     .toList();
+
+            if (availableStreams.isEmpty()) {
+                log.warn("Strava activity stream response has no allowed samples sourceActivityId={} requestedStreamKeys={} allowedStreamTypes={} returnedStreamShape={}",
+                        sourceActivityId, STREAM_KEYS, ALLOWED_STREAM_TYPES, streamResponseShape(response));
+                throw new StravaActivityStreamUnavailableException("Strava activity stream response has no allowed samples");
+            }
 
             return new StravaActivityStreamImport(availableStreams.stream()
                     .map(stream -> metricName(stream.type()))
                     .toList(), objectMapper.writeValueAsString(availableStreams));
         } catch (StravaActivityRateLimitException | StravaActivityUnavailableException |
-                 StravaActivityUnauthorizedException exception) {
+                 StravaActivityUnauthorizedException | StravaActivityStreamUnavailableException exception) {
             throw exception;
         } catch (JsonProcessingException exception) {
-            log.warn("Strava activity stream snapshot serialization failed");
+            log.warn("Strava activity stream snapshot serialization failed sourceActivityId={} errorMessage={}",
+                    sourceActivityId, exception.getMessage());
             throw new StravaActivityUnavailableException(exception);
         } catch (RestClientException exception) {
-            log.warn("Strava activity stream request failed category=client_error");
+            log.warn("Strava activity stream request failed sourceActivityId={} exceptionType={} errorMessage={}",
+                    sourceActivityId, exception.getClass().getSimpleName(), exception.getMessage());
             throw new StravaActivityUnavailableException(exception);
         } catch (RuntimeException exception) {
-            log.warn("Strava activity stream response mapping failed");
+            log.warn("Strava activity stream response mapping failed sourceActivityId={} exceptionType={} errorMessage={}",
+                    sourceActivityId, exception.getClass().getSimpleName(), exception.getMessage());
             throw new StravaActivityUnavailableException(exception);
         }
     }
 
-    private StravaActivityStreamResponse[] requestStreams(String accessToken, Long sourceActivityId) {
-        StravaActivityStreamResponse[] response = restClient.get()
+    private Map<String, StravaActivityStreamResponse> requestStreams(String accessToken, Long sourceActivityId) {
+        Map<String, StravaActivityStreamResponse> response = restClient.get()
                 .uri(UriComponentsBuilder.fromUriString(properties.activityStreamsUrl())
                         .queryParam("keys", STREAM_KEYS)
-                        .queryParam("key_by_type", false)
+                        .queryParam("key_by_type", true)
                         .queryParam("resolution", STREAM_RESOLUTION)
                         .buildAndExpand(sourceActivityId)
                         .toUriString())
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .retrieve()
                 .onStatus(this::isRateLimited, (request, httpResponse) -> {
-                    log.warn("Strava activity stream request rate limited statusCode={}",
-                            httpResponse.getStatusCode().value());
+                    log.warn("Strava activity stream request rate limited sourceActivityId={} statusCode={} responseBody={}",
+                            sourceActivityId, httpResponse.getStatusCode().value(), responseBody(httpResponse));
                     throw new StravaActivityRateLimitException();
                 })
                 .onStatus(this::isUnauthorized, (request, httpResponse) -> {
-                    log.warn("Strava activity stream request unauthorized statusCode={}",
-                            httpResponse.getStatusCode().value());
+                    log.warn("Strava activity stream request unauthorized sourceActivityId={} statusCode={} responseBody={}",
+                            sourceActivityId, httpResponse.getStatusCode().value(), responseBody(httpResponse));
                     throw new StravaActivityUnauthorizedException();
                 })
+                .onStatus(this::isNotFound, (request, httpResponse) -> {
+                    log.warn("Strava activity stream not available sourceActivityId={} statusCode={}",
+                            sourceActivityId, httpResponse.getStatusCode().value());
+                    throw new StravaActivityStreamUnavailableException("Strava activity stream resource was not found");
+                })
                 .onStatus(HttpStatusCode::isError, (request, httpResponse) -> {
-                    log.warn("Strava activity stream request failed statusCode={}",
-                            httpResponse.getStatusCode().value());
+                    log.warn("Strava activity stream request failed sourceActivityId={} statusCode={} responseBody={}",
+                            sourceActivityId, httpResponse.getStatusCode().value(), responseBody(httpResponse));
                     throw new StravaActivityUnavailableException();
                 })
-                .body(StravaActivityStreamResponse[].class);
+                .body(new org.springframework.core.ParameterizedTypeReference<>() {
+                });
 
         if (response == null) {
             throw new StravaActivityUnavailableException();
         }
 
         return response;
+    }
+
+    private StravaActivityStreamResponse withType(String type, StravaActivityStreamResponse response) {
+        if (response == null || response.type() != null) {
+            return response;
+        }
+
+        return new StravaActivityStreamResponse(type, response.seriesType(), response.resolution(), response.data());
     }
 
     private StravaActivityDetailResponse requestDetail(String accessToken, Long sourceActivityId) {
@@ -272,6 +302,36 @@ public class StravaActivityAdapter implements StravaActivityProvider {
         return hasSamples(response) && ALLOWED_STREAM_TYPES.contains(response.type());
     }
 
+    private String streamResponseShape(Map<String, StravaActivityStreamResponse> response) {
+        if (response.isEmpty()) {
+            return "empty";
+        }
+
+        return response.entrySet().stream()
+                .map(this::streamResponseShape)
+                .sorted()
+                .collect(Collectors.joining(";"));
+    }
+
+    private String streamResponseShape(Map.Entry<String, StravaActivityStreamResponse> entry) {
+        StravaActivityStreamResponse stream = entry.getValue();
+
+        if (stream == null) {
+            return "key=" + entry.getKey() + ",stream=null";
+        }
+
+        return "key=" + entry.getKey() + ",type=" + stream.type() + ",seriesType=" + stream.seriesType() +
+                ",resolution=" + stream.resolution() + ",samples=" + sampleCount(stream);
+    }
+
+    private int sampleCount(StravaActivityStreamResponse stream) {
+        if (stream.data() == null) {
+            return 0;
+        }
+
+        return stream.data().size();
+    }
+
     private String metricName(String type) {
         return switch (type) {
             case "time" -> "time";
@@ -304,6 +364,14 @@ public class StravaActivityAdapter implements StravaActivityProvider {
 
     private boolean isUnauthorized(HttpStatusCode statusCode) {
         return statusCode.value() == HttpStatus.UNAUTHORIZED.value();
+    }
+
+    private boolean isNotFound(HttpStatusCode statusCode) {
+        return statusCode.value() == HttpStatus.NOT_FOUND.value();
+    }
+
+    private String responseBody(ClientHttpResponse response) throws IOException {
+        return new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8);
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(StravaApiProperties properties) {

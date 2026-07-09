@@ -5,6 +5,7 @@ import com.sudolife.application.model.strava.StravaActivityDetailImport;
 import com.sudolife.application.model.strava.StravaActivityStreamImport;
 import com.sudolife.application.service.strava.StravaActivitySummaryImport;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaActivityStreamUnavailableException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnauthorizedException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sun.net.httpserver.HttpExchange;
@@ -155,9 +156,37 @@ class StravaActivityAdapterIntegrationTest {
         assertThat(streamImport.streamSamplesJson()).doesNotContain("latlng", "map", "polyline");
         assertThat(capturedRequest.path()).isEqualTo("/api/v3/activities/457/streams");
         assertThat(capturedRequest.query()).contains("resolution=low");
-        assertThat(capturedRequest.query()).contains("key_by_type=false");
+        assertThat(capturedRequest.query()).contains("key_by_type=true");
         assertThat(capturedRequest.query()).contains("keys=time,distance,velocity_smooth,heartrate,cadence,watts");
         assertThat(capturedRequest.query()).doesNotContain("latlng", "altitude", "grade_smooth");
+    }
+
+    @Test
+    void fetch_activity_streams_rejects_response_without_samples() {
+        responseBody = emptyActivityStreamsResponse();
+
+        assertThatThrownBy(() -> adapter.fetchActivityStreams(ACCESS_TOKEN, 457L))
+                .isInstanceOf(StravaActivityStreamUnavailableException.class);
+    }
+
+    @Test
+    void fetch_activity_streams_translates_not_found_to_unavailable_stream() {
+        statusCode = 404;
+        responseBody = """
+                {
+                  "message": "Resource Not Found",
+                  "errors": [
+                    {
+                      "resource": "Activity",
+                      "field": "",
+                      "code": "not found"
+                    }
+                  ]
+                }
+                """;
+
+        assertThatThrownBy(() -> adapter.fetchActivityStreams(ACCESS_TOKEN, 457L))
+                .isInstanceOf(StravaActivityStreamUnavailableException.class);
     }
 
     private void handleActivities(HttpExchange exchange) throws IOException {
@@ -247,15 +276,28 @@ class StravaActivityAdapterIntegrationTest {
 
     private String activityStreamsResponse() {
         return """
-                [
-                  {"type": "time", "data": [0, 30]},
-                  {"type": "distance", "data": [0.0, 100.0]},
-                  {"type": "velocity_smooth", "data": [3.1, 3.2]},
-                  {"type": "heartrate", "data": [140, 142]},
-                  {"type": "cadence", "data": [82, 83]},
-                  {"type": "watts", "data": [220, 221]},
-                  {"type": "latlng", "data": [[-23.5, -46.6]]}
-                ]
+                {
+                  "time": {"data": [0, 30]},
+                  "distance": {"data": [0.0, 100.0]},
+                  "velocity_smooth": {"data": [3.1, 3.2]},
+                  "heartrate": {"data": [140, 142]},
+                  "cadence": {"data": [82, 83]},
+                  "watts": {"data": [220, 221]},
+                  "latlng": {"data": [[-23.5, -46.6]]}
+                }
+                """;
+    }
+
+    private String emptyActivityStreamsResponse() {
+        return """
+                {
+                  "time": {"series_type": "distance", "resolution": "low", "data": []},
+                  "distance": {"series_type": "distance", "resolution": "low", "data": []},
+                  "velocity_smooth": {"series_type": "distance", "resolution": "low", "data": []},
+                  "heartrate": {"series_type": "distance", "resolution": "low", "data": []},
+                  "cadence": {"series_type": "distance", "resolution": "low", "data": []},
+                  "watts": {"series_type": "distance", "resolution": "low", "data": []}
+                }
                 """;
     }
 

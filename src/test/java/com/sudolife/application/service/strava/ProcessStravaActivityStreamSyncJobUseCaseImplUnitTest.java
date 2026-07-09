@@ -6,6 +6,7 @@ import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.model.strava.StravaActivityStreamSyncJobPriority;
 import com.sudolife.application.model.strava.StravaSummarySyncJobStatus;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaActivityStreamUnavailableException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaActivityProvider;
 import com.sudolife.application.service.strava.ports.required.StravaActivityStreamSnapshotRepository;
@@ -34,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class ProcessStravaActivityStreamSyncJobUseCaseImplUnitTest {
@@ -98,6 +100,24 @@ class ProcessStravaActivityStreamSyncJobUseCaseImplUnitTest {
         assertThat(retryJob.getStatus()).isEqualTo(StravaSummarySyncJobStatus.QUEUED);
         assertThat(retryJob.getFailureReason()).isEqualTo(StravaActivitySyncFailureReason.STRAVA_RATE_LIMITED.name());
         assertThat(retryJob.getRunAfter()).isEqualTo(NOW.plus(Duration.ofMinutes(15)));
+    }
+
+    @Test
+    void execute_when_strava_has_no_stream_samples_marks_job_as_failed() {
+        stubAccessTokenService();
+        when(streamSyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
+        when(streamSyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.of(activeStravaAccountLink()));
+        when(activityProvider.fetchActivityStreams(ACCESS_TOKEN, SOURCE_ACTIVITY_ID))
+                .thenThrow(new StravaActivityStreamUnavailableException("No samples"));
+        when(timeProvider.now()).thenReturn(NOW);
+
+        useCase.execute(new ProcessStravaActivityStreamSyncJobCommand(JOB_ID));
+
+        StravaActivityStreamSyncJob failedJob = lastSavedJob();
+        assertThat(failedJob.getStatus()).isEqualTo(StravaSummarySyncJobStatus.FAILED);
+        assertThat(failedJob.getFailureReason()).isEqualTo(StravaActivitySyncFailureReason.NO_STREAMS_AVAILABLE.name());
+        verify(streamSnapshotRepository, never()).saveIfAbsent(any());
     }
 
     private StravaActivityStreamSyncJob queuedJob() {

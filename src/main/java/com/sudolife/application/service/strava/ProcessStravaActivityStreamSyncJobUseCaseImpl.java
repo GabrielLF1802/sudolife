@@ -5,6 +5,7 @@ import com.sudolife.application.model.strava.StravaActivityStreamImport;
 import com.sudolife.application.model.strava.StravaActivityStreamSnapshot;
 import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaActivityStreamUnavailableException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sudolife.application.service.strava.exception.StravaReconnectRequiredException;
 import com.sudolife.application.service.strava.ports.provided.ProcessStravaActivityStreamSyncJobUseCase;
@@ -75,6 +76,8 @@ public class ProcessStravaActivityStreamSyncJobUseCaseImpl implements ProcessStr
             failTransiently(job, StravaActivitySyncFailureReason.STRAVA_RATE_LIMITED);
         } catch (StravaActivityUnavailableException exception) {
             failTransiently(job, StravaActivitySyncFailureReason.STRAVA_UNAVAILABLE);
+        } catch (StravaActivityStreamUnavailableException exception) {
+            markPermanentFailure(job, StravaActivitySyncFailureReason.NO_STREAMS_AVAILABLE);
         } catch (StravaReconnectRequiredException exception) {
             markPermanentFailure(job, StravaActivitySyncFailureReason.RECONNECT_REQUIRED);
         }

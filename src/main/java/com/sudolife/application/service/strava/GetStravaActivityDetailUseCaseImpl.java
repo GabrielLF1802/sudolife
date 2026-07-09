@@ -9,6 +9,7 @@ import com.sudolife.application.model.strava.StravaActivityStreamSyncJob;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.service.strava.exception.StravaActivityNotFoundException;
 import com.sudolife.application.service.strava.exception.StravaActivityRateLimitException;
+import com.sudolife.application.service.strava.exception.StravaActivityStreamUnavailableException;
 import com.sudolife.application.service.strava.exception.StravaActivityUnavailableException;
 import com.sudolife.application.service.strava.exception.StravaReconnectRequiredException;
 import com.sudolife.application.service.strava.ports.provided.GetStravaActivityDetailUseCase;
@@ -141,6 +142,8 @@ public class GetStravaActivityDetailUseCaseImpl implements GetStravaActivityDeta
                     summary.getAccountLinkId(), summary.getUserEmail(), summary.getSourceActivityId(), streamImport,
                     timeProvider.now());
             streamSnapshotRepository.saveIfAbsent(snapshot);
+        } catch (StravaActivityStreamUnavailableException exception) {
+            return;
         } catch (StravaActivityRateLimitException | StravaActivityUnavailableException |
                  StravaReconnectRequiredException exception) {
             streamSyncJobRepository.enqueueIfAbsent(StravaActivityStreamSyncJob.highPriority(summary,
