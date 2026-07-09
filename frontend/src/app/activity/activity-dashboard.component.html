@@ -93,6 +93,7 @@
               Informe seu ano de nascimento
             }
           </strong>
+          <p>{{ profileZoneStatusText(profile, stravaLinkStatus()) }}</p>
         </div>
 
         <form (submit)="$event.preventDefault(); saveTrainingProfile()">

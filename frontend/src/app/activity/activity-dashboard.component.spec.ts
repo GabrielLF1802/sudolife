@@ -41,10 +41,10 @@ describe('ActivityDashboardComponent', () => {
       'save',
     ]);
     trainingProfileService.get.and.returnValue(
-      of({ birthYear: null, adaptiveCoachingEligible: false }),
+      of(trainingProfile(null, false, 'UNAVAILABLE')),
     );
     trainingProfileService.save.and.returnValue(
-      of({ birthYear: 1990, adaptiveCoachingEligible: true }),
+      of(trainingProfile(1990, true, 'AGE_BASED')),
     );
 
     await TestBed.configureTestingModule({
@@ -185,12 +185,23 @@ describe('ActivityDashboardComponent', () => {
   });
 
   it('should_render_adaptive_coaching_enabled_when_training_profile_exists', () => {
-    trainingProfileService.get.and.returnValue(of({ birthYear: 1990, adaptiveCoachingEligible: true }));
+    trainingProfileService.get.and.returnValue(of(trainingProfile(1990, true, 'AGE_BASED')));
 
     fixture.detectChanges();
 
     expect(pageText()).toContain('Coaching adaptativo habilitado');
+    expect(pageText()).toContain('Zonas calculadas pelo ano de nascimento.');
     expect(trainingProfileInput().value).toBe('1990');
+  });
+
+  it('should_render_strava_zone_enrichment_as_optional', () => {
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
+    trainingProfileService.get.and.returnValue(of(trainingProfile(1990, true, 'STRAVA')));
+
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Zonas de frequencia cardiaca importadas do Strava.');
+    expect(pageText()).toContain('Reconectar Strava');
   });
 
   it('should_save_training_profile_birth_year', () => {
@@ -354,8 +365,10 @@ describe('ActivityDashboardComponent', () => {
       linked: permissionState !== 'UNLINKED',
       athleteId: permissionState === 'UNLINKED' ? null : 123,
       permissionState,
+      profilePermissionState:
+        permissionState === 'UNLINKED' ? 'UNLINKED' : 'OPTIONAL_UPGRADE_AVAILABLE',
       activitySummaryStatus: activitySummaryStatus(permissionState),
-      performanceDataStatus: permissionState === 'READY' ? 'PENDING' : permissionState,
+      performanceDataStatus: performanceDataStatus(permissionState),
       lastSummarySyncTime: permissionState === 'READY' ? '2026-05-11T12:00:00Z' : null,
       lastStreamEnrichmentTime: null,
       importedActivityCount: permissionState === 'READY' ? 2 : 0,
@@ -372,7 +385,47 @@ describe('ActivityDashboardComponent', () => {
       return 'COMPLETED';
     }
 
+    if (permissionState === 'RECONNECT_REQUIRED') {
+      return 'FAILED';
+    }
+
     return permissionState;
+  }
+
+  function performanceDataStatus(
+    permissionState: StravaLinkStatus['permissionState'],
+  ): StravaLinkStatus['performanceDataStatus'] {
+    if (permissionState === 'READY') {
+      return 'PENDING';
+    }
+
+    if (permissionState === 'RECONNECT_REQUIRED') {
+      return 'FAILED';
+    }
+
+    return permissionState;
+  }
+
+  function trainingProfile(
+    birthYear: number | null,
+    adaptiveCoachingEligible: boolean,
+    heartRateZoneSource: 'AGE_BASED' | 'STRAVA' | 'UNAVAILABLE',
+  ) {
+    return {
+      birthYear,
+      adaptiveCoachingEligible,
+      heartRateZoneSource,
+      heartRateZones:
+        heartRateZoneSource === 'UNAVAILABLE'
+          ? []
+          : [
+              { minimumHeartRate: 100, maximumHeartRate: 120 },
+              { minimumHeartRate: 121, maximumHeartRate: 140 },
+              { minimumHeartRate: 141, maximumHeartRate: 160 },
+              { minimumHeartRate: 161, maximumHeartRate: 180 },
+              { minimumHeartRate: 181, maximumHeartRate: 200 },
+            ],
+    };
   }
 
   function emptyActivityList(): ActivityList {

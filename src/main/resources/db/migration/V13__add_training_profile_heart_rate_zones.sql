@@ -1,0 +1,10 @@
+alter table training_profiles add column heart_rate_zone_1_min integer;
+alter table training_profiles add column heart_rate_zone_1_max integer;
+alter table training_profiles add column heart_rate_zone_2_min integer;
+alter table training_profiles add column heart_rate_zone_2_max integer;
+alter table training_profiles add column heart_rate_zone_3_min integer;
+alter table training_profiles add column heart_rate_zone_3_max integer;
+alter table training_profiles add column heart_rate_zone_4_min integer;
+alter table training_profiles add column heart_rate_zone_4_max integer;
+alter table training_profiles add column heart_rate_zone_5_min integer;
+alter table training_profiles add column heart_rate_zone_5_max integer;

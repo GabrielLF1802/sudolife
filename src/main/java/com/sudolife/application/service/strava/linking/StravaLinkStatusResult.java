@@ -5,6 +5,7 @@ import com.sudolife.application.service.strava.activity.StravaActivitySyncFailur
 import java.time.Instant;
 
 public record StravaLinkStatusResult(boolean linked, Long athleteId, StravaPermissionState permissionState,
+                                     StravaProfilePermissionState profilePermissionState,
                                      StravaSummaryStatus activitySummaryStatus,
                                      StravaPerformanceDataStatus performanceDataStatus,
                                      Instant lastSummarySyncTime, Instant lastStreamEnrichmentTime,

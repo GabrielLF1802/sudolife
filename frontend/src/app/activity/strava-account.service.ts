@@ -2,7 +2,17 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-export type StravaPermissionState = 'UNLINKED' | 'READY' | 'PERMISSION_UPGRADE_REQUIRED';
+export type StravaPermissionState =
+  | 'UNLINKED'
+  | 'READY'
+  | 'PERMISSION_UPGRADE_REQUIRED'
+  | 'RECONNECT_REQUIRED';
+
+export type StravaProfilePermissionState =
+  | 'UNLINKED'
+  | 'AVAILABLE'
+  | 'OPTIONAL_UPGRADE_AVAILABLE'
+  | 'RECONNECT_REQUIRED';
 
 export type StravaSummaryStatus =
   | 'UNLINKED'
@@ -33,6 +43,7 @@ export interface StravaLinkStatus {
   linked: boolean;
   athleteId: number | null;
   permissionState: StravaPermissionState;
+  profilePermissionState: StravaProfilePermissionState;
   activitySummaryStatus: StravaSummaryStatus;
   performanceDataStatus: StravaPerformanceDataStatus;
   lastSummarySyncTime: string | null;

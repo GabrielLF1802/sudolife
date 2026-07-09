@@ -286,6 +286,22 @@ export class ActivityDashboardComponent implements OnInit {
     return 'Nao conectado';
   }
 
+  protected profileZoneStatusText(profile: TrainingProfile, status: StravaLinkStatus | null): string {
+    if (profile.heartRateZoneSource === 'STRAVA') {
+      return 'Zonas de frequencia cardiaca importadas do Strava.';
+    }
+
+    if (profile.heartRateZoneSource === 'AGE_BASED') {
+      return 'Zonas calculadas pelo ano de nascimento.';
+    }
+
+    if (status?.profilePermissionState === 'OPTIONAL_UPGRADE_AVAILABLE') {
+      return 'Zonas do Strava sao opcionais; atualize a conexao para tentar importar.';
+    }
+
+    return 'Zonas do Strava sao opcionais e nao bloqueiam o coaching.';
+  }
+
   protected syncStatusLabel(status: StravaActivitySyncStatus): string {
     if (status === 'COMPLETED') {
       return 'Sincronizacao solicitada';

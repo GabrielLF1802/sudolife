@@ -12,6 +12,7 @@ import java.util.Arrays;
 public class StravaAccountLink {
 
     private static final String ACTIVITY_READ_SCOPE = "activity:read";
+    private static final String PROFILE_READ_ALL_SCOPE = "profile:read_all";
     private static final String DEFAULT_GRANTED_SCOPES = "read,activity:read";
 
     private Long id;
@@ -83,6 +84,11 @@ public class StravaAccountLink {
     public boolean hasActivityReadScope() {
         return Arrays.stream(scopeValue().split("[,\\s]+"))
                 .anyMatch(ACTIVITY_READ_SCOPE::equals);
+    }
+
+    public boolean hasProfileReadAllScope() {
+        return Arrays.stream(scopeValue().split("[,\\s]+"))
+                .anyMatch(PROFILE_READ_ALL_SCOPE::equals);
     }
 
     public void rotateAuthorization(String accessToken, String refreshToken, Instant expiresAt, String grantedScopes) {

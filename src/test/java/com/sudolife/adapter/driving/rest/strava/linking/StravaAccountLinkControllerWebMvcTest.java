@@ -21,6 +21,7 @@ import com.sudolife.application.service.strava.linking.StravaCallbackResult;
 import com.sudolife.application.service.strava.linking.StravaLinkStatusResult;
 import com.sudolife.application.service.strava.linking.StravaPerformanceDataStatus;
 import com.sudolife.application.service.strava.linking.StravaPermissionState;
+import com.sudolife.application.service.strava.linking.StravaProfilePermissionState;
 import com.sudolife.application.service.strava.linking.StravaSummaryStatus;
 import com.sudolife.application.service.strava.linking.UnlinkStravaAccountCommand;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
@@ -134,7 +135,8 @@ class StravaAccountLinkControllerWebMvcTest {
         GetStravaAccountLinkStatusCommand command = new GetStravaAccountLinkStatusCommand(USER_EMAIL);
         when(getStravaAccountLinkStatusUseCase.execute(command))
                 .thenReturn(new StravaLinkStatusResult(true, ATHLETE_ID, StravaPermissionState.READY,
-                        StravaSummaryStatus.COMPLETED, StravaPerformanceDataStatus.PENDING, NOW, null, 4, 1,
+                        StravaProfilePermissionState.AVAILABLE, StravaSummaryStatus.COMPLETED,
+                        StravaPerformanceDataStatus.PENDING, NOW, null, 4, 1,
                         StravaActivitySyncFailureReason.STRAVA_RATE_LIMITED));
 
         mockMvc.perform(get("/api/strava/status").with(user(USER_EMAIL)))
@@ -142,6 +144,7 @@ class StravaAccountLinkControllerWebMvcTest {
                 .andExpect(jsonPath("$.linked").value(true))
                 .andExpect(jsonPath("$.athleteId").value(ATHLETE_ID))
                 .andExpect(jsonPath("$.permissionState").value("READY"))
+                .andExpect(jsonPath("$.profilePermissionState").value("AVAILABLE"))
                 .andExpect(jsonPath("$.activitySummaryStatus").value("COMPLETED"))
                 .andExpect(jsonPath("$.performanceDataStatus").value("PENDING"))
                 .andExpect(jsonPath("$.lastSummarySyncTime").value("2026-05-11T12:00:00Z"))

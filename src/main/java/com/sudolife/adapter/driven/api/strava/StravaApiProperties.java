@@ -8,5 +8,6 @@ import java.time.Duration;
 public record StravaApiProperties(String clientId, String clientSecret, String redirectUri,
                                   String authorizationUrl, String tokenUrl, String deauthorizationUrl,
                                   String activitiesUrl, String activityDetailUrl, String activityStreamsUrl,
+                                  String athleteZonesUrl,
                                   Duration connectTimeout, Duration readTimeout) {
 }

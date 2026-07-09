@@ -20,7 +20,7 @@ import java.time.Instant;
 public class StartStravaAccountLinkingUseCaseImpl implements StartStravaAccountLinkingUseCase {
 
     private static final Duration STATE_DURATION = Duration.ofMinutes(10);
-    private static final String STRAVA_LINKING_SCOPE = "read,activity:read";
+    private static final String STRAVA_LINKING_SCOPE = "read,activity:read,profile:read_all";
 
     private final StravaAuthorizationStateRepository authorizationStateRepository;
     private final StravaOAuthProvider oAuthProvider;

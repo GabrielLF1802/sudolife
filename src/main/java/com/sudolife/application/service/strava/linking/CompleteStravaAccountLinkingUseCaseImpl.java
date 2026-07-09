@@ -3,19 +3,24 @@ package com.sudolife.application.service.strava.linking;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
 import com.sudolife.application.model.strava.StravaSummarySyncJob;
+import com.sudolife.application.model.training.TrainingHeartRateZone;
+import com.sudolife.application.model.training.TrainingProfile;
 import com.sudolife.application.service.strava.authorization.StravaTokenAuthorization;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.InsufficientStravaScopeException;
 import com.sudolife.application.service.strava.exception.InvalidStravaAuthorizationStateException;
 import com.sudolife.application.service.strava.exception.StravaAccountLinkingException;
+import com.sudolife.application.service.strava.exception.StravaAthleteProfileUnavailableException;
 import com.sudolife.application.service.strava.exception.StravaAuthorizationDeniedException;
 import com.sudolife.application.service.strava.exception.StravaAuthorizationFailureException;
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaAthleteProfileProvider;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
+import com.sudolife.application.service.training.ports.required.TrainingProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -31,10 +37,13 @@ import java.util.Optional;
 public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAccountLinkingUseCase {
 
     private static final String STRAVA_ACTIVITY_READ_SCOPE = "activity:read";
+    private static final String STRAVA_PROFILE_READ_ALL_SCOPE = "profile:read_all";
 
     private final StravaAuthorizationStateRepository authorizationStateRepository;
     private final StravaAccountLinkRepository accountLinkRepository;
     private final StravaOAuthProvider oAuthProvider;
+    private final StravaAthleteProfileProvider athleteProfileProvider;
+    private final TrainingProfileRepository trainingProfileRepository;
     private final StravaSummarySyncJobRepository summarySyncJobRepository;
     private final TimeProvider timeProvider;
     private final TransactionTemplate transactionTemplate;
@@ -62,6 +71,7 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         validateAthleteOwnership(authorizationState.getUserEmail(), tokenAuthorization.athleteId());
         StravaAccountLink savedLink = saveActiveLink(authorizationState.getUserEmail(), tokenAuthorization, scopeValue(tokenAuthorization.scope()),
                 now);
+        enrichTrainingProfile(authorizationState.getUserEmail(), savedLink, tokenAuthorization.accessToken());
         enqueueInitialSync(savedLink, now);
         log.info("Strava account linking completed for userEmail={} athleteId={}", authorizationState.getUserEmail(),
                 tokenAuthorization.athleteId());
@@ -142,6 +152,23 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         if (summarySyncJobRepository.enqueueIfAbsent(StravaSummarySyncJob.queued(accountLink, now))) {
             log.info("Strava initial summary sync job queued userEmail={} accountLinkId={}", accountLink.getUserEmail(),
                     accountLink.getId());
+        }
+    }
+
+    private void enrichTrainingProfile(String userEmail, StravaAccountLink accountLink, String accessToken) {
+        if (!accountLink.hasProfileReadAllScope()) {
+            return;
+        }
+
+        try {
+            List<TrainingHeartRateZone> zones = athleteProfileProvider.fetchHeartRateZones(accessToken);
+            TrainingProfile profile = trainingProfileRepository.findByUserEmail(userEmail)
+                    .orElseGet(() -> new TrainingProfile(null, userEmail, null));
+            trainingProfileRepository.save(new TrainingProfile(profile.getId(), userEmail, profile.getBirthYear(),
+                    zones));
+            log.info("Strava athlete heart-rate zones imported for userEmail={}", userEmail);
+        } catch (StravaAthleteProfileUnavailableException exception) {
+            log.warn("Strava athlete heart-rate zones unavailable for userEmail={}", userEmail);
         }
     }
 

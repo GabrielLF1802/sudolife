@@ -57,6 +57,7 @@ class GetStravaAccountLinkStatusUseCaseImplUnitTest {
         assertThat(result.linked()).isTrue();
         assertThat(result.athleteId()).isEqualTo(ATHLETE_ID);
         assertThat(result.permissionState()).isEqualTo(StravaPermissionState.READY);
+        assertThat(result.profilePermissionState()).isEqualTo(StravaProfilePermissionState.OPTIONAL_UPGRADE_AVAILABLE);
         assertThat(result.activitySummaryStatus()).isEqualTo(StravaSummaryStatus.NOT_STARTED);
         assertThat(result.performanceDataStatus()).isEqualTo(StravaPerformanceDataStatus.NOT_STARTED);
         assertThat(result.failureReason()).isNull();
@@ -71,6 +72,7 @@ class GetStravaAccountLinkStatusUseCaseImplUnitTest {
         assertThat(result.linked()).isTrue();
         assertThat(result.athleteId()).isEqualTo(ATHLETE_ID);
         assertThat(result.permissionState()).isEqualTo(StravaPermissionState.PERMISSION_UPGRADE_REQUIRED);
+        assertThat(result.profilePermissionState()).isEqualTo(StravaProfilePermissionState.OPTIONAL_UPGRADE_AVAILABLE);
         assertThat(result.activitySummaryStatus()).isEqualTo(StravaSummaryStatus.PERMISSION_UPGRADE_REQUIRED);
         assertThat(result.performanceDataStatus()).isEqualTo(StravaPerformanceDataStatus.PERMISSION_UPGRADE_REQUIRED);
         assertThat(result.failureReason()).isEqualTo(StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED);
@@ -87,6 +89,7 @@ class GetStravaAccountLinkStatusUseCaseImplUnitTest {
 
         assertThat(result.linked()).isTrue();
         assertThat(result.permissionState()).isEqualTo(StravaPermissionState.RECONNECT_REQUIRED);
+        assertThat(result.profilePermissionState()).isEqualTo(StravaProfilePermissionState.RECONNECT_REQUIRED);
         assertThat(result.activitySummaryStatus()).isEqualTo(StravaSummaryStatus.FAILED);
         assertThat(result.performanceDataStatus()).isEqualTo(StravaPerformanceDataStatus.FAILED);
         assertThat(result.importedActivityCount()).isEqualTo(3);
@@ -103,6 +106,7 @@ class GetStravaAccountLinkStatusUseCaseImplUnitTest {
         assertThat(result.linked()).isFalse();
         assertThat(result.athleteId()).isNull();
         assertThat(result.permissionState()).isEqualTo(StravaPermissionState.UNLINKED);
+        assertThat(result.profilePermissionState()).isEqualTo(StravaProfilePermissionState.UNLINKED);
         assertThat(result.activitySummaryStatus()).isEqualTo(StravaSummaryStatus.UNLINKED);
         assertThat(result.performanceDataStatus()).isEqualTo(StravaPerformanceDataStatus.UNLINKED);
         assertThat(result.importedActivityCount()).isZero();
@@ -199,19 +203,34 @@ class GetStravaAccountLinkStatusUseCaseImplUnitTest {
     }
 
     @Test
+    void execute_with_profile_permission_returns_available_profile_permission_state() {
+        when(accountLinkRepository.findActiveByUserEmail(USER_EMAIL)).thenReturn(Optional.of(profileReadableLink()));
+
+        StravaLinkStatusResult result = useCase.execute(getStravaAccountLinkStatusCommand());
+
+        assertThat(result.permissionState()).isEqualTo(StravaPermissionState.READY);
+        assertThat(result.profilePermissionState()).isEqualTo(StravaProfilePermissionState.AVAILABLE);
+    }
+
+    @Test
     void result_does_not_include_token_fields() {
         String[] componentNames = Arrays.stream(StravaLinkStatusResult.class.getRecordComponents())
                 .map(component -> component.getName())
                 .toArray(String[]::new);
 
-        assertThat(componentNames).containsExactly("linked", "athleteId", "permissionState", "activitySummaryStatus",
-                "performanceDataStatus", "lastSummarySyncTime", "lastStreamEnrichmentTime",
-                "importedActivityCount", "streamsReadyActivityCount", "failureReason");
+        assertThat(componentNames).containsExactly("linked", "athleteId", "permissionState", "profilePermissionState",
+                "activitySummaryStatus", "performanceDataStatus", "lastSummarySyncTime",
+                "lastStreamEnrichmentTime", "importedActivityCount", "streamsReadyActivityCount", "failureReason");
     }
 
     private StravaAccountLink readOnlyLink() {
         return StravaAccountLink.active(LINK_ID, USER_EMAIL, ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT,
                 "read", LINKED_AT);
+    }
+
+    private StravaAccountLink profileReadableLink() {
+        return StravaAccountLink.active(LINK_ID, USER_EMAIL, ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN, EXPIRES_AT,
+                "read,activity:read,profile:read_all", LINKED_AT);
     }
 
     private StravaSummarySyncJob queuedJob() {

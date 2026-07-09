@@ -30,6 +30,7 @@ class SaveTrainingProfileUseCaseImplUnitTest {
 
         assertThat(result.birthYear()).isEqualTo(1990);
         assertThat(result.adaptiveCoachingEligible()).isTrue();
+        assertThat(result.heartRateZoneSource()).isEqualTo(TrainingHeartRateZoneSource.AGE_BASED);
     }
 
     @Test

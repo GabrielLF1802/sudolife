@@ -54,7 +54,7 @@ class StravaOAuthAdapterUnitTest {
     private StravaApiProperties stravaApiProperties() {
         return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, AUTHORIZATION_URL, TOKEN_URL,
                 DEAUTHORIZATION_URL, ACTIVITIES_URL, "https://www.strava.com/api/v3/activities/{activityId}",
-                "https://www.strava.com/api/v3/activities/{activityId}/streams", Duration.ofSeconds(2),
-                Duration.ofSeconds(5));
+                "https://www.strava.com/api/v3/activities/{activityId}/streams",
+                "https://www.strava.com/api/v3/athlete/zones", Duration.ofSeconds(2), Duration.ofSeconds(5));
     }
 }

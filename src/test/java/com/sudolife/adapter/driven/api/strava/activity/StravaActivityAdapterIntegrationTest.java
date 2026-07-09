@@ -204,7 +204,8 @@ class StravaActivityAdapterIntegrationTest {
 
         return new StravaApiProperties(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, AUTHORIZATION_URL, TOKEN_URL,
                 DEAUTHORIZATION_URL, baseUrl + ACTIVITIES_PATH, baseUrl + ACTIVITY_DETAIL_PATH,
-                baseUrl + ACTIVITY_STREAMS_PATH, Duration.ofSeconds(2), Duration.ofSeconds(5));
+                baseUrl + ACTIVITY_STREAMS_PATH, baseUrl + "/api/v3/athlete/zones", Duration.ofSeconds(2),
+                Duration.ofSeconds(5));
     }
 
     private String activityResponse() {

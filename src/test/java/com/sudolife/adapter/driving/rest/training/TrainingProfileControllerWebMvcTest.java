@@ -1,6 +1,7 @@
 package com.sudolife.adapter.driving.rest.training;
 
 import com.sudolife.application.service.training.SaveTrainingProfileCommand;
+import com.sudolife.application.service.training.TrainingHeartRateZoneSource;
 import com.sudolife.application.service.training.TrainingProfileResult;
 import com.sudolife.application.service.training.exception.InvalidTrainingProfileException;
 import com.sudolife.application.service.training.ports.provided.GetTrainingProfileUseCase;
@@ -16,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+
+import java.util.List;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,12 +49,15 @@ class TrainingProfileControllerWebMvcTest {
 
     @Test
     void get_returns_training_profile_for_authenticated_user() throws Exception {
-        when(getUseCase.execute("user@sudolife.com")).thenReturn(new TrainingProfileResult(1990, true));
+        when(getUseCase.execute("user@sudolife.com"))
+                .thenReturn(new TrainingProfileResult(1990, true, TrainingHeartRateZoneSource.AGE_BASED,
+                        List.of()));
 
         mockMvc.perform(get("/api/training-profile").principal(authenticated("user@sudolife.com", null, java.util.List.of())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.birthYear").value(1990))
-                .andExpect(jsonPath("$.adaptiveCoachingEligible").value(true));
+                .andExpect(jsonPath("$.adaptiveCoachingEligible").value(true))
+                .andExpect(jsonPath("$.heartRateZoneSource").value("AGE_BASED"));
 
         verify(getUseCase).execute("user@sudolife.com");
     }
@@ -59,7 +65,9 @@ class TrainingProfileControllerWebMvcTest {
     @Test
     void put_saves_training_profile_for_authenticated_user() throws Exception {
         SaveTrainingProfileCommand command = new SaveTrainingProfileCommand(1990);
-        when(saveUseCase.execute("user@sudolife.com", command)).thenReturn(new TrainingProfileResult(1990, true));
+        when(saveUseCase.execute("user@sudolife.com", command))
+                .thenReturn(new TrainingProfileResult(1990, true, TrainingHeartRateZoneSource.AGE_BASED,
+                        List.of()));
 
         mockMvc.perform(put("/api/training-profile")
                         .principal(authenticated("user@sudolife.com", null, java.util.List.of()))
@@ -67,7 +75,8 @@ class TrainingProfileControllerWebMvcTest {
                         .content(objectMapper.writeValueAsString(command)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.birthYear").value(1990))
-                .andExpect(jsonPath("$.adaptiveCoachingEligible").value(true));
+                .andExpect(jsonPath("$.adaptiveCoachingEligible").value(true))
+                .andExpect(jsonPath("$.heartRateZoneSource").value("AGE_BASED"));
 
         verify(saveUseCase).execute("user@sudolife.com", command);
     }

@@ -25,22 +25,24 @@ describe('TrainingProfileService', () => {
     service.get().subscribe((profile) => {
       expect(profile.birthYear).toBe(1990);
       expect(profile.adaptiveCoachingEligible).toBeTrue();
+      expect(profile.heartRateZoneSource).toBe('AGE_BASED');
     });
 
     const request = httpTestingController.expectOne('/api/training-profile');
     expect(request.request.method).toBe('GET');
-    request.flush({ birthYear: 1990, adaptiveCoachingEligible: true });
+    request.flush({ birthYear: 1990, adaptiveCoachingEligible: true, heartRateZoneSource: 'AGE_BASED', heartRateZones: [] });
   });
 
   it('should_save_training_profile', () => {
     service.save({ birthYear: 1990 }).subscribe((profile) => {
       expect(profile.birthYear).toBe(1990);
       expect(profile.adaptiveCoachingEligible).toBeTrue();
+      expect(profile.heartRateZoneSource).toBe('STRAVA');
     });
 
     const request = httpTestingController.expectOne('/api/training-profile');
     expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual({ birthYear: 1990 });
-    request.flush({ birthYear: 1990, adaptiveCoachingEligible: true });
+    request.flush({ birthYear: 1990, adaptiveCoachingEligible: true, heartRateZoneSource: 'STRAVA', heartRateZones: [] });
   });
 });

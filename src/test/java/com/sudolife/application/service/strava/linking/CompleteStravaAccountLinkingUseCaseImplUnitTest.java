@@ -4,12 +4,16 @@ import com.sudolife.application.service.strava.authorization.StravaTokenAuthoriz
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
 import com.sudolife.application.model.strava.StravaSummarySyncJob;
+import com.sudolife.application.model.training.TrainingHeartRateZone;
+import com.sudolife.application.model.training.TrainingProfile;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
+import com.sudolife.application.service.strava.ports.required.StravaAthleteProfileProvider;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
+import com.sudolife.application.service.training.ports.required.TrainingProfileRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -19,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
@@ -59,6 +64,12 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
 
     @Mock
     private StravaOAuthProvider oAuthProvider;
+
+    @Mock
+    private StravaAthleteProfileProvider athleteProfileProvider;
+
+    @Mock
+    private TrainingProfileRepository trainingProfileRepository;
 
     @Mock
     private StravaSummarySyncJobRepository summarySyncJobRepository;
@@ -187,11 +198,39 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
         StravaTokenAuthorization token = new StravaTokenAuthorization(ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN,
                 EXPIRES_AT, "profile:read_all read activity:read");
         when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(token);
+        when(athleteProfileProvider.fetchHeartRateZones(ACCESS_TOKEN)).thenReturn(importedZones());
 
         StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
 
         assertThat(result.linked()).isTrue();
         assertThat(capturedSavedLink().getAthleteId()).isEqualTo(ATHLETE_ID);
+    }
+
+    @Test
+    void execute_with_profile_scope_imports_strava_heart_rate_zones() {
+        stubPendingState();
+        StravaTokenAuthorization token = new StravaTokenAuthorization(ATHLETE_ID, ACCESS_TOKEN, REFRESH_TOKEN,
+                EXPIRES_AT, "read,activity:read,profile:read_all");
+        when(oAuthProvider.exchangeAuthorizationCode(CODE)).thenReturn(token);
+        when(athleteProfileProvider.fetchHeartRateZones(ACCESS_TOKEN)).thenReturn(importedZones());
+        when(trainingProfileRepository.findByUserEmail(USER_EMAIL))
+                .thenReturn(Optional.of(new TrainingProfile(9L, USER_EMAIL, 1990)));
+
+        StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
+
+        assertThat(result.linked()).isTrue();
+        assertThat(capturedSavedTrainingProfile().getImportedHeartRateZones()).containsExactlyElementsOf(importedZones());
+    }
+
+    @Test
+    void execute_without_profile_scope_does_not_import_strava_heart_rate_zones() {
+        stubSuccessfulTokenExchange();
+
+        StravaCallbackResult result = useCase.execute(completeStravaAccountLinkingCommand());
+
+        assertThat(result.linked()).isTrue();
+        verify(athleteProfileProvider, never()).fetchHeartRateZones(any());
+        verify(trainingProfileRepository, never()).save(any());
     }
 
     @Test
@@ -277,5 +316,21 @@ class CompleteStravaAccountLinkingUseCaseImplUnitTest {
         ArgumentCaptor<StravaSummarySyncJob> captor = ArgumentCaptor.forClass(StravaSummarySyncJob.class);
         verify(summarySyncJobRepository).enqueueIfAbsent(captor.capture());
         return captor.getValue();
+    }
+
+    private TrainingProfile capturedSavedTrainingProfile() {
+        ArgumentCaptor<TrainingProfile> captor = ArgumentCaptor.forClass(TrainingProfile.class);
+        verify(trainingProfileRepository).save(captor.capture());
+        return captor.getValue();
+    }
+
+    private List<TrainingHeartRateZone> importedZones() {
+        return List.of(
+                new TrainingHeartRateZone(100, 120),
+                new TrainingHeartRateZone(121, 140),
+                new TrainingHeartRateZone(141, 160),
+                new TrainingHeartRateZone(161, 180),
+                new TrainingHeartRateZone(181, 200)
+        );
     }
 }

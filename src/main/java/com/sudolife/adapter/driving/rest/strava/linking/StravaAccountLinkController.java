@@ -77,8 +77,8 @@ public class StravaAccountLinkController {
         );
 
         return ResponseEntity.ok(new StravaLinkStatusResponse(result.linked(), result.athleteId(),
-                result.permissionState().name(), result.activitySummaryStatus().name(),
-                result.performanceDataStatus().name(), result.lastSummarySyncTime(),
+                result.permissionState().name(), result.profilePermissionState().name(),
+                result.activitySummaryStatus().name(), result.performanceDataStatus().name(), result.lastSummarySyncTime(),
                 result.lastStreamEnrichmentTime(), result.importedActivityCount(),
                 result.streamsReadyActivityCount(), failureReason(result)));
     }

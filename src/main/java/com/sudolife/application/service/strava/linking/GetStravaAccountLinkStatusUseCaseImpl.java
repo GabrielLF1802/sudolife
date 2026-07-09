@@ -37,7 +37,8 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
                     streamSnapshotRepository.countByAccountLinkId(accountLink.getId());
 
             return new StravaLinkStatusResult(true, accountLink.getAthleteId(),
-                    StravaPermissionState.RECONNECT_REQUIRED, StravaSummaryStatus.FAILED,
+                    StravaPermissionState.RECONNECT_REQUIRED, StravaProfilePermissionState.RECONNECT_REQUIRED,
+                    StravaSummaryStatus.FAILED,
                     StravaPerformanceDataStatus.FAILED, null, null, importedActivityCount, streamsReadyActivityCount,
                     StravaActivitySyncFailureReason.RECONNECT_REQUIRED);
         }
@@ -45,6 +46,7 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
         if (!accountLink.hasActivityReadScope()) {
             return new StravaLinkStatusResult(true, accountLink.getAthleteId(),
                     StravaPermissionState.PERMISSION_UPGRADE_REQUIRED,
+                    profilePermissionState(accountLink),
                     StravaSummaryStatus.PERMISSION_UPGRADE_REQUIRED,
                     StravaPerformanceDataStatus.PERMISSION_UPGRADE_REQUIRED, null, null, 0, 0,
                     StravaActivitySyncFailureReason.PERMISSION_UPGRADE_REQUIRED);
@@ -62,13 +64,15 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
     }
 
     private StravaLinkStatusResult unlinkedStatus() {
-        return new StravaLinkStatusResult(false, null, StravaPermissionState.UNLINKED, StravaSummaryStatus.UNLINKED,
+        return new StravaLinkStatusResult(false, null, StravaPermissionState.UNLINKED,
+                StravaProfilePermissionState.UNLINKED, StravaSummaryStatus.UNLINKED,
                 StravaPerformanceDataStatus.UNLINKED, null, null, 0, 0, null);
     }
 
     private StravaLinkStatusResult notStartedStatus(StravaAccountLink accountLink, long importedActivityCount,
                                                     long streamsReadyActivityCount) {
         return new StravaLinkStatusResult(true, accountLink.getAthleteId(), StravaPermissionState.READY,
+                profilePermissionState(accountLink),
                 StravaSummaryStatus.NOT_STARTED, performanceDataStatus(importedActivityCount,
                 streamsReadyActivityCount), null, null, importedActivityCount, streamsReadyActivityCount, null);
     }
@@ -77,9 +81,18 @@ public class GetStravaAccountLinkStatusUseCaseImpl implements GetStravaAccountLi
                                                 Instant lastSummarySyncTime, long importedActivityCount,
                                                 long streamsReadyActivityCount) {
         return new StravaLinkStatusResult(true, accountLink.getAthleteId(), StravaPermissionState.READY,
+                profilePermissionState(accountLink),
                 activitySummaryStatus(job), performanceDataStatus(importedActivityCount, streamsReadyActivityCount),
                 lastSummarySyncTime, streamSnapshotRepository.findLatestFetchedAtByAccountLinkId(accountLink.getId())
                 .orElse(null), importedActivityCount, streamsReadyActivityCount, failureReason(job));
+    }
+
+    private StravaProfilePermissionState profilePermissionState(StravaAccountLink accountLink) {
+        if (accountLink.hasProfileReadAllScope()) {
+            return StravaProfilePermissionState.AVAILABLE;
+        }
+
+        return StravaProfilePermissionState.OPTIONAL_UPGRADE_AVAILABLE;
     }
 
     private StravaSummaryStatus activitySummaryStatus(StravaSummarySyncJob job) {

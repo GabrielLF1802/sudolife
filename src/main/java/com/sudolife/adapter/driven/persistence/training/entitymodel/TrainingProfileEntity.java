@@ -24,6 +24,26 @@ public class TrainingProfileEntity {
     private Long id;
     @Column(name = "user_email", nullable = false)
     private String userEmail;
-    @Column(name = "birth_year", nullable = false)
-    private int birthYear;
+    @Column(name = "birth_year")
+    private Integer birthYear;
+    @Column(name = "heart_rate_zone_1_min")
+    private Integer heartRateZone1Min;
+    @Column(name = "heart_rate_zone_1_max")
+    private Integer heartRateZone1Max;
+    @Column(name = "heart_rate_zone_2_min")
+    private Integer heartRateZone2Min;
+    @Column(name = "heart_rate_zone_2_max")
+    private Integer heartRateZone2Max;
+    @Column(name = "heart_rate_zone_3_min")
+    private Integer heartRateZone3Min;
+    @Column(name = "heart_rate_zone_3_max")
+    private Integer heartRateZone3Max;
+    @Column(name = "heart_rate_zone_4_min")
+    private Integer heartRateZone4Min;
+    @Column(name = "heart_rate_zone_4_max")
+    private Integer heartRateZone4Max;
+    @Column(name = "heart_rate_zone_5_min")
+    private Integer heartRateZone5Min;
+    @Column(name = "heart_rate_zone_5_max")
+    private Integer heartRateZone5Max;
 }
