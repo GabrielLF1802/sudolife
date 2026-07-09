@@ -43,6 +43,7 @@ services:
         condition: service_healthy
     networks:
       - sudolife-network
+    restart: always
 
 networks:
   sudolife-network:
