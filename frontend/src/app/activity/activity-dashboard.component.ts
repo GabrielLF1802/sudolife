@@ -6,6 +6,11 @@ import { forkJoin, finalize } from 'rxjs';
 import { AuthService, CurrentUser } from '../auth/auth.service';
 import { ActivityList, ActivityService } from './activity.service';
 import {
+  CoachingProfile,
+  CoachingProfileService,
+  UserReportedReadiness,
+} from './coaching-profile.service';
+import {
   StravaAccountService,
   StravaActivitySyncFailureReason,
   StravaActivitySyncResult,
@@ -28,24 +33,34 @@ export class ActivityDashboardComponent implements OnInit {
   private readonly activityService = inject(ActivityService);
   private readonly stravaAccountService = inject(StravaAccountService);
   private readonly trainingProfileService = inject(TrainingProfileService);
+  private readonly coachingProfileService = inject(CoachingProfileService);
   private readonly router = inject(Router);
 
   protected readonly currentUser = signal<CurrentUser | null>(null);
   protected readonly activityList = signal<ActivityList | null>(null);
   protected readonly stravaLinkStatus = signal<StravaLinkStatus | null>(null);
   protected readonly trainingProfile = signal<TrainingProfile | null>(null);
+  protected readonly coachingProfile = signal<CoachingProfile | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
   protected readonly linking = signal(false);
   protected readonly syncing = signal(false);
   protected readonly savingTrainingProfile = signal(false);
+  protected readonly savingCoachingProfile = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly linkingErrorMessage = signal('');
   protected readonly syncErrorMessage = signal('');
   protected readonly trainingProfileErrorMessage = signal('');
   protected readonly trainingProfileSuccessMessage = signal('');
+  protected readonly coachingProfileErrorMessage = signal('');
+  protected readonly coachingProfileSuccessMessage = signal('');
   protected readonly syncResult = signal<StravaActivitySyncResult | null>(null);
   protected readonly birthYear = signal('');
+  protected readonly targetDistanceKilometers = signal('');
+  protected readonly targetPace = signal('');
+  protected readonly targetDate = signal('');
+  protected readonly readiness = signal<UserReportedReadiness | ''>('');
+  protected readonly injuryConcern = signal(false);
   protected readonly selectedActivityType = signal('ALL');
   protected readonly selectedPeriod = signal<ActivityPeriodFilter>('ALL');
   protected readonly minimumDistanceKilometers = signal('');
@@ -103,13 +118,16 @@ export class ActivityDashboardComponent implements OnInit {
       activityList: this.activityService.list(),
       stravaLinkStatus: this.stravaAccountService.status(),
       trainingProfile: this.trainingProfileService.get(),
+      coachingProfile: this.coachingProfileService.get(),
     }).subscribe({
-      next: ({ currentUser, activityList, stravaLinkStatus, trainingProfile }) => {
+      next: ({ currentUser, activityList, stravaLinkStatus, trainingProfile, coachingProfile }) => {
         this.currentUser.set(currentUser);
         this.activityList.set(activityList);
         this.stravaLinkStatus.set(stravaLinkStatus);
         this.trainingProfile.set(trainingProfile);
+        this.coachingProfile.set(coachingProfile);
         this.birthYear.set(trainingProfile.birthYear?.toString() ?? '');
+        this.fillCoachingProfileForm(coachingProfile);
         this.loading.set(false);
       },
       error: () => {
@@ -137,6 +155,26 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected updateBirthYear(event: Event): void {
     this.birthYear.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateTargetDistance(event: Event): void {
+    this.targetDistanceKilometers.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateTargetPace(event: Event): void {
+    this.targetPace.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateTargetDate(event: Event): void {
+    this.targetDate.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateReadiness(event: Event): void {
+    this.readiness.set((event.target as HTMLSelectElement).value as UserReportedReadiness | '');
+  }
+
+  protected updateInjuryConcern(event: Event): void {
+    this.injuryConcern.set((event.target as HTMLInputElement).checked);
   }
 
   protected clearActivityFilters(): void {
@@ -262,6 +300,48 @@ export class ActivityDashboardComponent implements OnInit {
       });
   }
 
+  protected saveCoachingProfile(): void {
+    this.savingCoachingProfile.set(true);
+    this.coachingProfileErrorMessage.set('');
+    this.coachingProfileSuccessMessage.set('');
+
+    this.coachingProfileService
+      .save({
+        targetDistanceKilometers: this.parsedTargetDistance(),
+        targetPaceSecondsPerKilometer: this.parsedTargetPaceSeconds(),
+        targetDate: this.targetDate().trim() || null,
+        readiness: this.readiness(),
+        injuryConcern: this.injuryConcern(),
+      })
+      .pipe(finalize(() => this.savingCoachingProfile.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.coachingProfile.set(profile);
+          this.fillCoachingProfileForm(profile);
+          this.coachingProfileSuccessMessage.set('Dados de coaching salvos.');
+        },
+        error: () => {
+          this.coachingProfileErrorMessage.set('Revise a meta e a prontidao informadas.');
+        },
+      });
+  }
+
+  protected readinessLabel(readiness: UserReportedReadiness | null): string {
+    if (readiness === 'LOW') {
+      return 'Baixa';
+    }
+
+    if (readiness === 'MODERATE') {
+      return 'Moderada';
+    }
+
+    if (readiness === 'HIGH') {
+      return 'Alta';
+    }
+
+    return 'Nao informada';
+  }
+
   protected stravaActionLabel(status: StravaLinkStatus): string {
     if (status.permissionState === 'PERMISSION_UPGRADE_REQUIRED') {
       return 'Atualizar permissoes';
@@ -374,5 +454,50 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     return Number(trimmedBirthYear);
+  }
+
+  private fillCoachingProfileForm(profile: CoachingProfile): void {
+    this.targetDistanceKilometers.set(profile.targetDistanceKilometers?.toString() ?? '');
+    this.targetPace.set(this.paceInputValue(profile.targetPaceSecondsPerKilometer));
+    this.targetDate.set(profile.targetDate ?? '');
+    this.readiness.set(profile.readiness ?? '');
+    this.injuryConcern.set(profile.injuryConcern);
+  }
+
+  private parsedTargetDistance(): number | null {
+    const normalizedDistance = this.targetDistanceKilometers().trim().replace(',', '.');
+
+    if (normalizedDistance === '') {
+      return null;
+    }
+
+    return Number(normalizedDistance);
+  }
+
+  private parsedTargetPaceSeconds(): number | null {
+    const trimmedPace = this.targetPace().trim();
+
+    if (trimmedPace === '') {
+      return null;
+    }
+
+    const paceParts = trimmedPace.split(':');
+
+    if (paceParts.length !== 2) {
+      return Number(trimmedPace);
+    }
+
+    return Number(paceParts[0]) * 60 + Number(paceParts[1]);
+  }
+
+  private paceInputValue(seconds: number | null): string {
+    if (seconds === null) {
+      return '';
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
+
+    return `${minutes}:${remainingSeconds}`;
   }
 }

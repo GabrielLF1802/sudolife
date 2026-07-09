@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { ActivityDashboardComponent } from './activity-dashboard.component';
 import { ActivityList, ActivityService } from './activity.service';
+import { CoachingProfileService } from './coaching-profile.service';
 import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
 import { TrainingProfileService } from './training-profile.service';
 
@@ -13,6 +14,7 @@ describe('ActivityDashboardComponent', () => {
   let activityService: jasmine.SpyObj<ActivityService>;
   let stravaAccountService: jasmine.SpyObj<StravaAccountService>;
   let trainingProfileService: jasmine.SpyObj<TrainingProfileService>;
+  let coachingProfileService: jasmine.SpyObj<CoachingProfileService>;
 
   beforeEach(async () => {
     activityService = jasmine.createSpyObj<ActivityService>('ActivityService', ['list']);
@@ -47,6 +49,13 @@ describe('ActivityDashboardComponent', () => {
       of(trainingProfile(1990, true, 'AGE_BASED')),
     );
 
+    coachingProfileService = jasmine.createSpyObj<CoachingProfileService>('CoachingProfileService', [
+      'get',
+      'save',
+    ]);
+    coachingProfileService.get.and.returnValue(of(coachingProfile(false)));
+    coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
+
     await TestBed.configureTestingModule({
       imports: [ActivityDashboardComponent],
       providers: [
@@ -63,6 +72,7 @@ describe('ActivityDashboardComponent', () => {
         },
         { provide: StravaAccountService, useValue: stravaAccountService },
         { provide: TrainingProfileService, useValue: trainingProfileService },
+        { provide: CoachingProfileService, useValue: coachingProfileService },
         { provide: Router, useValue: { navigateByUrl: () => Promise.resolve(true) } },
       ],
     }).compileComponents();
@@ -228,6 +238,57 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Informe um ano de nascimento valido.');
   });
 
+  it('should_render_coaching_profiles_form_when_inputs_are_missing', () => {
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Coaching');
+    expect(pageText()).toContain('Informe sua meta de corrida');
+    expect(pageText()).toContain('Salvar coaching');
+  });
+
+  it('should_render_current_coaching_profiles_when_saved', () => {
+    coachingProfileService.get.and.returnValue(of(coachingProfile(true)));
+
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Meta atual: 10 km');
+    expect(pageText()).toContain('Prontidao: Baixa - com preocupacao de lesao');
+    expect(coachingInput('input[aria-label="Distancia alvo em quilometros"]').value).toBe('10');
+    expect(coachingInput('input[aria-label="Ritmo alvo por quilometro"]').value).toBe('5:30');
+    expect(coachingInput('input[aria-label="Data alvo"]').value).toBe('2026-05-12');
+  });
+
+  it('should_save_coaching_profiles_with_low_readiness_and_injury_concern', () => {
+    fixture.detectChanges();
+
+    typeCoachingInput('input[aria-label="Distancia alvo em quilometros"]', '10');
+    typeCoachingInput('input[aria-label="Ritmo alvo por quilometro"]', '5:30');
+    typeCoachingInput('input[aria-label="Data alvo"]', '2026-05-12');
+    selectCoachingReadiness('LOW');
+    toggleInjuryConcern(true);
+    coachingProfileButton().click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.save).toHaveBeenCalledWith({
+      targetDistanceKilometers: 10,
+      targetPaceSecondsPerKilometer: 330,
+      targetDate: '2026-05-12',
+      readiness: 'LOW',
+      injuryConcern: true,
+    });
+    expect(pageText()).toContain('Dados de coaching salvos.');
+  });
+
+  it('should_show_coaching_profiles_validation_error_when_save_fails', () => {
+    coachingProfileService.save.and.returnValue(throwError(() => new Error('invalid')));
+    fixture.detectChanges();
+
+    coachingProfileButton().click();
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Revise a meta e a prontidao informadas.');
+  });
+
   it('should_show_reconnect_guidance_when_strava_is_not_sync_enabled', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     fixture.detectChanges();
@@ -332,12 +393,22 @@ describe('ActivityDashboardComponent', () => {
     return fixture.nativeElement.querySelector('.training-profile-panel button');
   }
 
+  function coachingProfileButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector('.coaching-profile-panel button');
+  }
+
+  function coachingInput(selector: string): HTMLInputElement {
+    return fixture.nativeElement.querySelector(selector);
+  }
+
   function pageText(): string {
     return fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim();
   }
 
   function selectFilterValue(index: number, value: string): void {
-    const select = fixture.nativeElement.querySelectorAll('select')[index] as HTMLSelectElement;
+    const select = fixture.nativeElement.querySelectorAll('.activity-filters select')[
+      index
+    ] as HTMLSelectElement;
     select.value = value;
 
     select.dispatchEvent(new Event('change'));
@@ -357,6 +428,32 @@ describe('ActivityDashboardComponent', () => {
     input.value = value;
 
     input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function typeCoachingInput(selector: string, value: string): void {
+    const input = coachingInput(selector);
+    input.value = value;
+
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function selectCoachingReadiness(value: string): void {
+    const select = fixture.nativeElement.querySelector(
+      'select[aria-label="Prontidao reportada"]',
+    ) as HTMLSelectElement;
+    select.value = value;
+
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  function toggleInjuryConcern(checked: boolean): void {
+    const input = coachingInput('input[aria-label="Estou com preocupacao de lesao"]');
+    input.checked = checked;
+
+    input.dispatchEvent(new Event('change'));
     fixture.detectChanges();
   }
 
@@ -425,6 +522,17 @@ describe('ActivityDashboardComponent', () => {
               { minimumHeartRate: 161, maximumHeartRate: 180 },
               { minimumHeartRate: 181, maximumHeartRate: 200 },
             ],
+    };
+  }
+
+  function coachingProfile(configured: boolean) {
+    return {
+      targetDistanceKilometers: configured ? 10 : null,
+      targetPaceSecondsPerKilometer: configured ? 330 : null,
+      targetDate: configured ? '2026-05-12' : null,
+      readiness: configured ? ('LOW' as const) : null,
+      injuryConcern: configured,
+      configured,
     };
   }
 

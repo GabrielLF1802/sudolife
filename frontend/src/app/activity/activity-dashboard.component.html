@@ -129,6 +129,104 @@
       </section>
     }
 
+    @if (coachingProfile(); as profile) {
+      <section class="training-profile-panel coaching-profile-panel" aria-label="Dados para coaching">
+        <div>
+          <span>Coaching</span>
+          <strong>
+            @if (profile.configured) {
+              Meta atual: {{ profile.targetDistanceKilometers | number: '1.0-1' }} km
+            } @else {
+              Informe sua meta de corrida
+            }
+          </strong>
+          <p>
+            Prontidao: {{ readinessLabel(profile.readiness) }}
+            @if (profile.injuryConcern) {
+              - com preocupacao de lesao
+            }
+          </p>
+        </div>
+
+        <form (submit)="$event.preventDefault(); saveCoachingProfile()">
+          <label>
+            <span>Distancia alvo</span>
+            <input
+              type="number"
+              min="0.1"
+              step="0.1"
+              inputmode="decimal"
+              [value]="targetDistanceKilometers()"
+              (input)="updateTargetDistance($event)"
+              aria-label="Distancia alvo em quilometros"
+            />
+          </label>
+
+          <label>
+            <span>Ritmo alvo</span>
+            <input
+              type="text"
+              inputmode="numeric"
+              placeholder="5:30"
+              [value]="targetPace()"
+              (input)="updateTargetPace($event)"
+              aria-label="Ritmo alvo por quilometro"
+            />
+          </label>
+
+          <label>
+            <span>Data alvo</span>
+            <input
+              type="date"
+              [value]="targetDate()"
+              (input)="updateTargetDate($event)"
+              aria-label="Data alvo"
+            />
+          </label>
+
+          <label>
+            <span>Prontidao</span>
+            <select
+              [value]="readiness()"
+              (change)="updateReadiness($event)"
+              aria-label="Prontidao reportada"
+            >
+              <option value="">Selecione</option>
+              <option value="LOW">Baixa</option>
+              <option value="MODERATE">Moderada</option>
+              <option value="HIGH">Alta</option>
+            </select>
+          </label>
+
+          <label class="injury-concern-control">
+            <input
+              type="checkbox"
+              [checked]="injuryConcern()"
+              (change)="updateInjuryConcern($event)"
+              aria-label="Estou com preocupacao de lesao"
+            />
+            <span>Preocupacao de lesao</span>
+          </label>
+
+          <button type="submit" [disabled]="savingCoachingProfile()">
+            @if (savingCoachingProfile()) {
+              Salvando...
+            } @else {
+              Salvar coaching
+            }
+          </button>
+        </form>
+
+        @if (coachingProfileSuccessMessage()) {
+          <p class="status">{{ coachingProfileSuccessMessage() }}</p>
+        }
+
+        @if (coachingProfileErrorMessage()) {
+          <p class="status error">{{ coachingProfileErrorMessage() }}</p>
+        }
+      </section>
+    }
+
     @if (stravaLinkStatus(); as stravaStatus) {
       @if (!isSyncEnabled(stravaStatus)) {
         <section class="empty-panel" aria-label="Conexao Strava pendente">

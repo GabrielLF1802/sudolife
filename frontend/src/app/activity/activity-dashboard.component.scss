@@ -134,6 +134,7 @@ button {
 .training-profile-panel form {
   display: flex;
   align-items: end;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -148,7 +149,8 @@ button {
   color: #17211b;
 }
 
-.training-profile-panel input {
+.training-profile-panel input,
+.coaching-profile-panel select {
   width: 180px;
   min-height: 42px;
   border: 1px solid #c9d3cd;
@@ -157,6 +159,17 @@ button {
   color: #17211b;
   font: inherit;
   padding: 0 12px;
+}
+
+.injury-concern-control {
+  align-items: center;
+  grid-template-columns: auto 1fr;
+}
+
+.injury-concern-control input {
+  width: 18px;
+  min-height: 18px;
+  padding: 0;
 }
 
 button:disabled {
