@@ -1,6 +1,7 @@
 package com.sudolife.application.service.training;
 
 import com.sudolife.application.model.training.CoachingProfile;
+import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.model.training.UserReportedReadiness;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
@@ -22,19 +23,15 @@ public class SaveCoachingProfileUseCaseImpl implements SaveCoachingProfileUseCas
 
     @Override
     public CoachingProfileResult execute(String userEmail, SaveCoachingProfileCommand command) {
-        UserReportedReadiness readiness = validReadiness(command.readiness());
-        Double targetDistanceKilometers = validTargetDistance(command.targetDistanceKilometers());
-        LocalDate targetDate = validTargetDate(command.targetDate());
-        Integer targetPaceSecondsPerKilometer = validTargetPace(command.targetPaceSecondsPerKilometer());
+        RunningGoal runningGoal = runningGoal(command);
+        UserReportedReadiness readiness = readiness(command);
         Optional<CoachingProfile> existingProfile = repository.findByUserEmail(userEmail);
         Long profileId = existingProfile.map(CoachingProfile::getId).orElse(null);
 
         CoachingProfile savedProfile = repository.save(new CoachingProfile(
                 profileId,
                 userEmail,
-                targetDistanceKilometers,
-                targetPaceSecondsPerKilometer,
-                targetDate,
+                runningGoal,
                 readiness,
                 command.injuryConcern()
         ));
@@ -42,53 +39,30 @@ public class SaveCoachingProfileUseCaseImpl implements SaveCoachingProfileUseCas
         return result(savedProfile);
     }
 
-    private Double validTargetDistance(Double targetDistanceKilometers) {
-        if (targetDistanceKilometers == null) {
-            throw new InvalidCoachingProfileException("Target distance is required");
-        }
+    private RunningGoal runningGoal(SaveCoachingProfileCommand command) {
+        LocalDate currentDate = null;
 
-        if (!Double.isFinite(targetDistanceKilometers) || targetDistanceKilometers <= 0) {
-            throw new InvalidCoachingProfileException("Target distance must be greater than zero");
-        }
-
-        return targetDistanceKilometers;
-    }
-
-    private Integer validTargetPace(Integer targetPaceSecondsPerKilometer) {
-        if (targetPaceSecondsPerKilometer == null) {
-            return null;
-        }
-
-        if (targetPaceSecondsPerKilometer <= 0) {
-            throw new InvalidCoachingProfileException("Target pace must be greater than zero");
-        }
-
-        return targetPaceSecondsPerKilometer;
-    }
-
-    private LocalDate validTargetDate(LocalDate targetDate) {
-        if (targetDate == null) {
-            return null;
-        }
-
-        LocalDate currentDate = timeProvider.now().atZone(ZoneOffset.UTC).toLocalDate();
-
-        if (targetDate.isBefore(currentDate)) {
-            throw new InvalidCoachingProfileException("Target date cannot be in the past");
-        }
-
-        return targetDate;
-    }
-
-    private UserReportedReadiness validReadiness(String readiness) {
-        if (readiness == null || readiness.trim().isEmpty()) {
-            throw new InvalidCoachingProfileException("Readiness is required");
+        if (command.targetDate() != null) {
+            currentDate = timeProvider.now().atZone(ZoneOffset.UTC).toLocalDate();
         }
 
         try {
-            return UserReportedReadiness.valueOf(readiness.trim());
+            return RunningGoal.createFromUserInput(
+                    command.targetDistanceKilometers(),
+                    command.targetPaceSecondsPerKilometer(),
+                    command.targetDate(),
+                    currentDate
+            );
         } catch (IllegalArgumentException exception) {
-            throw new InvalidCoachingProfileException("Readiness is unsupported");
+            throw new InvalidCoachingProfileException(exception.getMessage());
+        }
+    }
+
+    private UserReportedReadiness readiness(SaveCoachingProfileCommand command) {
+        try {
+            return UserReportedReadiness.from(command.readiness());
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidCoachingProfileException(exception.getMessage());
         }
     }
 

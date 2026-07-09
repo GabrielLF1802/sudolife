@@ -2,6 +2,7 @@ package com.sudolife.adapter.driven.persistence.training.coaching;
 
 import com.sudolife.adapter.driven.persistence.training.coaching.entitymodel.CoachingProfileEntity;
 import com.sudolife.application.model.training.CoachingProfile;
+import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.model.training.UserReportedReadiness;
 import org.springframework.stereotype.Component;
 
@@ -25,9 +26,11 @@ public class CoachingProfilePersistenceMapper {
         return new CoachingProfile(
                 entity.getId(),
                 entity.getUserEmail(),
-                entity.getTargetDistanceKilometers(),
-                entity.getTargetPaceSecondsPerKilometer(),
-                entity.getTargetDate(),
+                new RunningGoal(
+                        entity.getTargetDistanceKilometers(),
+                        entity.getTargetPaceSecondsPerKilometer(),
+                        entity.getTargetDate()
+                ),
                 UserReportedReadiness.valueOf(entity.getReadiness()),
                 entity.isInjuryConcern()
         );

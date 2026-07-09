@@ -1,6 +1,7 @@
 package com.sudolife.application.service.training;
 
 import com.sudolife.application.model.training.CoachingProfile;
+import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.model.training.UserReportedReadiness;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
@@ -100,7 +101,12 @@ class SaveCoachingProfileUseCaseImplUnitTest {
     }
 
     private CoachingProfile savedCoachingProfile(Long id, UserReportedReadiness readiness, boolean injuryConcern) {
-        return new CoachingProfile(id, "user@sudolife.com", 10.0, 330, LocalDate.parse("2026-05-12"), readiness,
-                injuryConcern);
+        return new CoachingProfile(
+                id,
+                "user@sudolife.com",
+                new RunningGoal(10.0, 330, LocalDate.parse("2026-05-12")),
+                readiness,
+                injuryConcern
+        );
     }
 }

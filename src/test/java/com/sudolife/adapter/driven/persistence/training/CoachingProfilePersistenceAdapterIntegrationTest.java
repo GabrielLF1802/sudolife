@@ -1,6 +1,7 @@
 package com.sudolife.adapter.driven.persistence.training;
 
 import com.sudolife.application.model.training.CoachingProfile;
+import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.model.training.UserReportedReadiness;
 import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
 import org.junit.jupiter.api.Test;
@@ -42,8 +43,13 @@ class CoachingProfilePersistenceAdapterIntegrationTest {
     void save_updates_existing_coaching_profiles_for_user() {
         CoachingProfile savedProfile = repository.save(profile(null));
 
-        repository.save(new CoachingProfile(savedProfile.getId(), "user@sudolife.com", 42.2, null, null,
-                UserReportedReadiness.HIGH, false));
+        repository.save(new CoachingProfile(
+                savedProfile.getId(),
+                "user@sudolife.com",
+                new RunningGoal(42.2, null, null),
+                UserReportedReadiness.HIGH,
+                false
+        ));
         Optional<CoachingProfile> result = repository.findByUserEmail("user@sudolife.com");
 
         assertThat(result).isPresent();
@@ -56,7 +62,12 @@ class CoachingProfilePersistenceAdapterIntegrationTest {
     }
 
     private CoachingProfile profile(Long id) {
-        return new CoachingProfile(id, "user@sudolife.com", 21.1, 360, LocalDate.parse("2026-06-01"),
-                UserReportedReadiness.MODERATE, true);
+        return new CoachingProfile(
+                id,
+                "user@sudolife.com",
+                new RunningGoal(21.1, 360, LocalDate.parse("2026-06-01")),
+                UserReportedReadiness.MODERATE,
+                true
+        );
     }
 }

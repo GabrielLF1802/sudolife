@@ -11,18 +11,14 @@ public class CoachingProfile {
 
     private Long id;
     private String userEmail;
-    private double targetDistanceKilometers;
-    private Integer targetPaceSecondsPerKilometer;
-    private LocalDate targetDate;
+    private RunningGoal runningGoal;
     private UserReportedReadiness readiness;
     private boolean injuryConcern;
 
     public CoachingProfile(
             Long id,
             String userEmail,
-            double targetDistanceKilometers,
-            Integer targetPaceSecondsPerKilometer,
-            LocalDate targetDate,
+            RunningGoal runningGoal,
             UserReportedReadiness readiness,
             boolean injuryConcern
     ) {
@@ -30,12 +26,30 @@ public class CoachingProfile {
             throw new IllegalArgumentException("User email is invalid, null or empty");
         }
 
+        if (runningGoal == null) {
+            throw new IllegalArgumentException("Running goal is required");
+        }
+
+        if (readiness == null) {
+            throw new IllegalArgumentException("Readiness is required");
+        }
+
         this.id = id;
         this.userEmail = userEmail;
-        this.targetDistanceKilometers = targetDistanceKilometers;
-        this.targetPaceSecondsPerKilometer = targetPaceSecondsPerKilometer;
-        this.targetDate = targetDate;
+        this.runningGoal = runningGoal;
         this.readiness = readiness;
         this.injuryConcern = injuryConcern;
+    }
+
+    public double getTargetDistanceKilometers() {
+        return runningGoal.getTargetDistanceKilometers();
+    }
+
+    public Integer getTargetPaceSecondsPerKilometer() {
+        return runningGoal.getTargetPaceSecondsPerKilometer();
+    }
+
+    public LocalDate getTargetDate() {
+        return runningGoal.getTargetDate();
     }
 }

@@ -1,6 +1,7 @@
 package com.sudolife.application.service.training;
 
 import com.sudolife.application.model.training.CoachingProfile;
+import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.model.training.UserReportedReadiness;
 import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,12 @@ class GetCoachingProfileUseCaseImplUnitTest {
     }
 
     private CoachingProfile profile() {
-        return new CoachingProfile(3L, "user@sudolife.com", 21.1, 360, LocalDate.parse("2026-06-01"),
-                UserReportedReadiness.MODERATE, true);
+        return new CoachingProfile(
+                3L,
+                "user@sudolife.com",
+                new RunningGoal(21.1, 360, LocalDate.parse("2026-06-01")),
+                UserReportedReadiness.MODERATE,
+                true
+        );
     }
 }
