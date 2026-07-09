@@ -5,7 +5,7 @@ create table strava_activity_stream_snapshots (
     user_email varchar(255) not null,
     source_activity_id bigint not null,
     available_metric_names varchar(512) not null,
-    stream_samples_json clob not null,
+    stream_samples_json text not null,
     fetched_at timestamp with time zone not null,
     constraint fk_strava_activity_stream_snapshots_summary foreign key (activity_summary_id) references strava_activity_summaries(id),
     constraint uk_strava_activity_stream_snapshots_summary unique (activity_summary_id)
