@@ -116,6 +116,49 @@ button {
   line-height: 1.5;
 }
 
+.training-profile-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dbe3df;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.training-profile-panel > div,
+.training-profile-panel label {
+  display: grid;
+  gap: 6px;
+}
+
+.training-profile-panel form {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+
+.training-profile-panel span {
+  color: #52645c;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.training-profile-panel strong {
+  color: #17211b;
+}
+
+.training-profile-panel input {
+  width: 180px;
+  min-height: 42px;
+  border: 1px solid #c9d3cd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17211b;
+  font: inherit;
+  padding: 0 12px;
+}
+
 button:disabled {
   cursor: progress;
   opacity: 0.72;

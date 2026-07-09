@@ -6,11 +6,13 @@ import { AuthService } from '../auth/auth.service';
 import { ActivityDashboardComponent } from './activity-dashboard.component';
 import { ActivityList, ActivityService } from './activity.service';
 import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
+import { TrainingProfileService } from './training-profile.service';
 
 describe('ActivityDashboardComponent', () => {
   let fixture: ComponentFixture<ActivityDashboardComponent>;
   let activityService: jasmine.SpyObj<ActivityService>;
   let stravaAccountService: jasmine.SpyObj<StravaAccountService>;
+  let trainingProfileService: jasmine.SpyObj<TrainingProfileService>;
 
   beforeEach(async () => {
     activityService = jasmine.createSpyObj<ActivityService>('ActivityService', ['list']);
@@ -34,6 +36,17 @@ describe('ActivityDashboardComponent', () => {
       }),
     );
 
+    trainingProfileService = jasmine.createSpyObj<TrainingProfileService>('TrainingProfileService', [
+      'get',
+      'save',
+    ]);
+    trainingProfileService.get.and.returnValue(
+      of({ birthYear: null, adaptiveCoachingEligible: false }),
+    );
+    trainingProfileService.save.and.returnValue(
+      of({ birthYear: 1990, adaptiveCoachingEligible: true }),
+    );
+
     await TestBed.configureTestingModule({
       imports: [ActivityDashboardComponent],
       providers: [
@@ -49,6 +62,7 @@ describe('ActivityDashboardComponent', () => {
           useValue: activityService,
         },
         { provide: StravaAccountService, useValue: stravaAccountService },
+        { provide: TrainingProfileService, useValue: trainingProfileService },
         { provide: Router, useValue: { navigateByUrl: () => Promise.resolve(true) } },
       ],
     }).compileComponents();
@@ -162,6 +176,47 @@ describe('ActivityDashboardComponent', () => {
     expect(fixture.nativeElement.querySelector('.metrics')).toBeNull();
   });
 
+  it('should_render_training_profile_form_when_birth_year_is_missing', () => {
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Perfil de treino');
+    expect(pageText()).toContain('Informe seu ano de nascimento');
+    expect(pageText()).toContain('Salvar perfil');
+  });
+
+  it('should_render_adaptive_coaching_enabled_when_training_profile_exists', () => {
+    trainingProfileService.get.and.returnValue(of({ birthYear: 1990, adaptiveCoachingEligible: true }));
+
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Coaching adaptativo habilitado');
+    expect(trainingProfileInput().value).toBe('1990');
+  });
+
+  it('should_save_training_profile_birth_year', () => {
+    fixture.detectChanges();
+
+    typeTrainingBirthYear('1990');
+    trainingProfileButton().click();
+    fixture.detectChanges();
+
+    expect(trainingProfileService.save).toHaveBeenCalledWith({ birthYear: 1990 });
+    expect(pageText()).toContain('Perfil de treino salvo.');
+    expect(pageText()).toContain('Coaching adaptativo habilitado');
+  });
+
+  it('should_show_training_profile_validation_error_when_save_fails', () => {
+    trainingProfileService.save.and.returnValue(throwError(() => new Error('invalid')));
+    fixture.detectChanges();
+
+    typeTrainingBirthYear('');
+    trainingProfileButton().click();
+    fixture.detectChanges();
+
+    expect(trainingProfileService.save).toHaveBeenCalledWith({ birthYear: null });
+    expect(pageText()).toContain('Informe um ano de nascimento valido.');
+  });
+
   it('should_show_reconnect_guidance_when_strava_is_not_sync_enabled', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     fixture.detectChanges();
@@ -258,6 +313,14 @@ describe('ActivityDashboardComponent', () => {
     return fixture.nativeElement.querySelector('.sync-action');
   }
 
+  function trainingProfileInput(): HTMLInputElement {
+    return fixture.nativeElement.querySelector('input[aria-label="Ano de nascimento"]');
+  }
+
+  function trainingProfileButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector('.training-profile-panel button');
+  }
+
   function pageText(): string {
     return fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim();
   }
@@ -272,6 +335,14 @@ describe('ActivityDashboardComponent', () => {
 
   function typeDistanceValue(selector: string, value: string): void {
     const input = fixture.nativeElement.querySelector(selector) as HTMLInputElement;
+    input.value = value;
+
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function typeTrainingBirthYear(value: string): void {
+    const input = trainingProfileInput();
     input.value = value;
 
     input.dispatchEvent(new Event('input'));

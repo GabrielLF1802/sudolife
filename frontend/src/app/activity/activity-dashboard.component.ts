@@ -12,6 +12,7 @@ import {
   StravaActivitySyncStatus,
   StravaLinkStatus,
 } from './strava-account.service';
+import { TrainingProfile, TrainingProfileService } from './training-profile.service';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
 
@@ -26,19 +27,25 @@ export class ActivityDashboardComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly activityService = inject(ActivityService);
   private readonly stravaAccountService = inject(StravaAccountService);
+  private readonly trainingProfileService = inject(TrainingProfileService);
   private readonly router = inject(Router);
 
   protected readonly currentUser = signal<CurrentUser | null>(null);
   protected readonly activityList = signal<ActivityList | null>(null);
   protected readonly stravaLinkStatus = signal<StravaLinkStatus | null>(null);
+  protected readonly trainingProfile = signal<TrainingProfile | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
   protected readonly linking = signal(false);
   protected readonly syncing = signal(false);
+  protected readonly savingTrainingProfile = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly linkingErrorMessage = signal('');
   protected readonly syncErrorMessage = signal('');
+  protected readonly trainingProfileErrorMessage = signal('');
+  protected readonly trainingProfileSuccessMessage = signal('');
   protected readonly syncResult = signal<StravaActivitySyncResult | null>(null);
+  protected readonly birthYear = signal('');
   protected readonly selectedActivityType = signal('ALL');
   protected readonly selectedPeriod = signal<ActivityPeriodFilter>('ALL');
   protected readonly minimumDistanceKilometers = signal('');
@@ -95,11 +102,14 @@ export class ActivityDashboardComponent implements OnInit {
       currentUser: this.authService.currentUser(),
       activityList: this.activityService.list(),
       stravaLinkStatus: this.stravaAccountService.status(),
+      trainingProfile: this.trainingProfileService.get(),
     }).subscribe({
-      next: ({ currentUser, activityList, stravaLinkStatus }) => {
+      next: ({ currentUser, activityList, stravaLinkStatus, trainingProfile }) => {
         this.currentUser.set(currentUser);
         this.activityList.set(activityList);
         this.stravaLinkStatus.set(stravaLinkStatus);
+        this.trainingProfile.set(trainingProfile);
+        this.birthYear.set(trainingProfile.birthYear?.toString() ?? '');
         this.loading.set(false);
       },
       error: () => {
@@ -123,6 +133,10 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected updateMaximumDistanceFilter(event: Event): void {
     this.maximumDistanceKilometers.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateBirthYear(event: Event): void {
+    this.birthYear.set((event.target as HTMLInputElement).value);
   }
 
   protected clearActivityFilters(): void {
@@ -228,6 +242,26 @@ export class ActivityDashboardComponent implements OnInit {
       });
   }
 
+  protected saveTrainingProfile(): void {
+    this.savingTrainingProfile.set(true);
+    this.trainingProfileErrorMessage.set('');
+    this.trainingProfileSuccessMessage.set('');
+
+    this.trainingProfileService
+      .save({ birthYear: this.parsedBirthYear() })
+      .pipe(finalize(() => this.savingTrainingProfile.set(false)))
+      .subscribe({
+        next: (profile) => {
+          this.trainingProfile.set(profile);
+          this.birthYear.set(profile.birthYear?.toString() ?? '');
+          this.trainingProfileSuccessMessage.set('Perfil de treino salvo.');
+        },
+        error: () => {
+          this.trainingProfileErrorMessage.set('Informe um ano de nascimento valido.');
+        },
+      });
+  }
+
   protected stravaActionLabel(status: StravaLinkStatus): string {
     if (status.permissionState === 'PERMISSION_UPGRADE_REQUIRED') {
       return 'Atualizar permissoes';
@@ -314,5 +348,15 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     return parsedDistance * 1000;
+  }
+
+  private parsedBirthYear(): number | null {
+    const trimmedBirthYear = this.birthYear().trim();
+
+    if (trimmedBirthYear === '') {
+      return null;
+    }
+
+    return Number(trimmedBirthYear);
   }
 }

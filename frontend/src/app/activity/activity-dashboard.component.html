@@ -82,6 +82,52 @@
       }
     }
 
+    @if (trainingProfile(); as profile) {
+      <section class="training-profile-panel" aria-label="Perfil de treino">
+        <div>
+          <span>Perfil de treino</span>
+          <strong>
+            @if (profile.adaptiveCoachingEligible) {
+              Coaching adaptativo habilitado
+            } @else {
+              Informe seu ano de nascimento
+            }
+          </strong>
+        </div>
+
+        <form (submit)="$event.preventDefault(); saveTrainingProfile()">
+          <label>
+            <span>Ano de nascimento</span>
+            <input
+              type="number"
+              min="1900"
+              step="1"
+              inputmode="numeric"
+              [value]="birthYear()"
+              (input)="updateBirthYear($event)"
+              aria-label="Ano de nascimento"
+            />
+          </label>
+
+          <button type="submit" [disabled]="savingTrainingProfile()">
+            @if (savingTrainingProfile()) {
+              Salvando...
+            } @else {
+              Salvar perfil
+            }
+          </button>
+        </form>
+
+        @if (trainingProfileSuccessMessage()) {
+          <p class="status">{{ trainingProfileSuccessMessage() }}</p>
+        }
+
+        @if (trainingProfileErrorMessage()) {
+          <p class="status error">{{ trainingProfileErrorMessage() }}</p>
+        }
+      </section>
+    }
+
     @if (stravaLinkStatus(); as stravaStatus) {
       @if (!isSyncEnabled(stravaStatus)) {
         <section class="empty-panel" aria-label="Conexao Strava pendente">
