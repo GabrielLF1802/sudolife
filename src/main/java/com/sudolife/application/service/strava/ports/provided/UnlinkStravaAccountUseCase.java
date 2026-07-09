@@ -1,7 +1,7 @@
 package com.sudolife.application.service.strava.ports.provided;
 
-import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
-import com.sudolife.application.service.strava.UnlinkStravaAccountResult;
+import com.sudolife.application.service.strava.linking.UnlinkStravaAccountCommand;
+import com.sudolife.application.service.strava.linking.UnlinkStravaAccountResult;
 
 public interface UnlinkStravaAccountUseCase {
 

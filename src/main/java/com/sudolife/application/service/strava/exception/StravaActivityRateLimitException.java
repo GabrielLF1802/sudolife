@@ -1,6 +1,6 @@
 package com.sudolife.application.service.strava.exception;
 
-import com.sudolife.application.service.strava.StravaActivitySummaryImport;
+import com.sudolife.application.service.strava.activity.StravaActivitySummaryImport;
 
 import java.util.List;
 

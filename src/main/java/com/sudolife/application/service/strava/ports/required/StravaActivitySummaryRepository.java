@@ -1,7 +1,7 @@
 package com.sudolife.application.service.strava.ports.required;
 
 import com.sudolife.application.model.strava.StravaActivitySummary;
-import com.sudolife.application.service.strava.StravaActivitySummaryPage;
+import com.sudolife.application.service.strava.activity.StravaActivitySummaryPage;
 
 import java.util.Optional;
 

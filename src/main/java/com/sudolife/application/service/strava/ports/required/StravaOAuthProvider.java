@@ -1,7 +1,7 @@
 package com.sudolife.application.service.strava.ports.required;
 
-import com.sudolife.application.service.strava.StravaAuthorizationRequest;
-import com.sudolife.application.service.strava.StravaTokenAuthorization;
+import com.sudolife.application.service.strava.authorization.StravaAuthorizationRequest;
+import com.sudolife.application.service.strava.authorization.StravaTokenAuthorization;
 
 public interface StravaOAuthProvider {
 

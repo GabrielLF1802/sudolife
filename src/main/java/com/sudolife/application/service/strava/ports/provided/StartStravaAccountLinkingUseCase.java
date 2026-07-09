@@ -1,7 +1,7 @@
 package com.sudolife.application.service.strava.ports.provided;
 
-import com.sudolife.application.service.strava.StartStravaAccountLinkingCommand;
-import com.sudolife.application.service.strava.StravaAuthorizationUrlResult;
+import com.sudolife.application.service.strava.linking.StartStravaAccountLinkingCommand;
+import com.sudolife.application.service.strava.linking.StravaAuthorizationUrlResult;
 
 public interface StartStravaAccountLinkingUseCase {
 

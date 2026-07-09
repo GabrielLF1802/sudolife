@@ -1,7 +1,7 @@
 package com.sudolife.application.service.strava.ports.provided;
 
-import com.sudolife.application.service.strava.ListStravaActivitiesCommand;
-import com.sudolife.application.service.strava.StravaActivityListResult;
+import com.sudolife.application.service.strava.activity.ListStravaActivitiesCommand;
+import com.sudolife.application.service.strava.activity.StravaActivityListResult;
 
 public interface ListStravaActivitiesUseCase {
 

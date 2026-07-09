@@ -1,7 +1,15 @@
 package com.sudolife.adapter.driven.persistence.strava;
 
-import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaAccountLinkEntity;
-import com.sudolife.adapter.driven.persistence.strava.entitymodel.StravaActivitySummaryEntity;
+import com.sudolife.adapter.driven.persistence.strava.sync.StravaSummarySyncJobPersistenceMapper;
+import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityDetailSnapshotRepository;
+import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityStreamSnapshotRepository;
+import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivitySummaryRepository;
+import com.sudolife.adapter.driven.persistence.strava.linking.SpringDataStravaAccountLinkRepository;
+import com.sudolife.adapter.driven.persistence.strava.linking.SpringDataStravaAuthorizationStateRepository;
+import com.sudolife.adapter.driven.persistence.strava.sync.SpringDataStravaActivityStreamSyncJobRepository;
+import com.sudolife.adapter.driven.persistence.strava.sync.SpringDataStravaSummarySyncJobRepository;
+import com.sudolife.adapter.driven.persistence.strava.linking.entitymodel.StravaAccountLinkEntity;
+import com.sudolife.adapter.driven.persistence.strava.activity.entitymodel.StravaActivitySummaryEntity;
 import com.sudolife.application.model.strava.StravaAccountLink;
 import com.sudolife.application.model.strava.StravaActivityDetailSnapshot;
 import com.sudolife.application.model.strava.StravaActivityStreamSnapshot;
@@ -11,7 +19,7 @@ import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
 import com.sudolife.application.model.strava.StravaSummarySyncJob;
 import com.sudolife.application.model.strava.StravaSummarySyncJobStatus;
-import com.sudolife.application.service.strava.StravaActivitySummaryPage;
+import com.sudolife.application.service.strava.activity.StravaActivitySummaryPage;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.InvalidStravaAccountLinkStateException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;

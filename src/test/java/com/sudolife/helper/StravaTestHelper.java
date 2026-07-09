@@ -8,12 +8,12 @@ import com.sudolife.application.model.strava.StravaActivityStreamSnapshot;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
-import com.sudolife.application.service.strava.CompleteStravaAccountLinkingCommand;
-import com.sudolife.application.service.strava.GetStravaAccountLinkStatusCommand;
-import com.sudolife.application.service.strava.StartStravaAccountLinkingCommand;
-import com.sudolife.application.service.strava.StravaAuthorizationRequest;
-import com.sudolife.application.service.strava.StravaTokenAuthorization;
-import com.sudolife.application.service.strava.UnlinkStravaAccountCommand;
+import com.sudolife.application.service.strava.linking.CompleteStravaAccountLinkingCommand;
+import com.sudolife.application.service.strava.linking.GetStravaAccountLinkStatusCommand;
+import com.sudolife.application.service.strava.linking.StartStravaAccountLinkingCommand;
+import com.sudolife.application.service.strava.authorization.StravaAuthorizationRequest;
+import com.sudolife.application.service.strava.authorization.StravaTokenAuthorization;
+import com.sudolife.application.service.strava.linking.UnlinkStravaAccountCommand;
 
 import java.time.Instant;
 

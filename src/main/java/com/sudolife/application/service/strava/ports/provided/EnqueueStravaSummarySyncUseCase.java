@@ -1,7 +1,7 @@
 package com.sudolife.application.service.strava.ports.provided;
 
-import com.sudolife.application.service.strava.EnqueueStravaSummarySyncCommand;
-import com.sudolife.application.service.strava.EnqueueStravaSummarySyncResult;
+import com.sudolife.application.service.strava.sync.EnqueueStravaSummarySyncCommand;
+import com.sudolife.application.service.strava.sync.EnqueueStravaSummarySyncResult;
 
 public interface EnqueueStravaSummarySyncUseCase {
 
