@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.time.Instant;
+import java.util.List;
 
 public interface SpringDataStravaActivitySummaryRepository extends JpaRepository<StravaActivitySummaryEntity, Long> {
 
@@ -23,6 +25,10 @@ public interface SpringDataStravaActivitySummaryRepository extends JpaRepository
     Optional<StravaActivitySummaryEntity> findByIdAndUserEmail(Long id, String userEmail);
 
     Optional<StravaActivitySummaryEntity> findByUserEmailAndSourceActivityId(String userEmail, Long sourceActivityId);
+
+    List<StravaActivitySummaryEntity> findByUserEmailAndActivityTypeAndStartDateBetweenOrderByStartDateDesc(
+            String userEmail, StravaActivityType activityType, Instant startDate, Instant endDate
+    );
 
     void deleteByAccountLinkId(Long accountLinkId);
 }

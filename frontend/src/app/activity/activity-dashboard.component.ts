@@ -8,6 +8,7 @@ import { ActivityList, ActivityService } from './activity.service';
 import {
   CoachingProfile,
   CoachingProfileService,
+  RunningHistorySnapshot,
   UserReportedReadiness,
 } from './coaching-profile.service';
 import {
@@ -41,6 +42,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly stravaLinkStatus = signal<StravaLinkStatus | null>(null);
   protected readonly trainingProfile = signal<TrainingProfile | null>(null);
   protected readonly coachingProfile = signal<CoachingProfile | null>(null);
+  protected readonly runningHistory = signal<RunningHistorySnapshot | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
   protected readonly linking = signal(false);
@@ -119,13 +121,15 @@ export class ActivityDashboardComponent implements OnInit {
       stravaLinkStatus: this.stravaAccountService.status(),
       trainingProfile: this.trainingProfileService.get(),
       coachingProfile: this.coachingProfileService.get(),
+      runningHistory: this.coachingProfileService.getRunningHistory(),
     }).subscribe({
-      next: ({ currentUser, activityList, stravaLinkStatus, trainingProfile, coachingProfile }) => {
+      next: ({ currentUser, activityList, stravaLinkStatus, trainingProfile, coachingProfile, runningHistory }) => {
         this.currentUser.set(currentUser);
         this.activityList.set(activityList);
         this.stravaLinkStatus.set(stravaLinkStatus);
         this.trainingProfile.set(trainingProfile);
         this.coachingProfile.set(coachingProfile);
+        this.runningHistory.set(runningHistory);
         this.birthYear.set(trainingProfile.birthYear?.toString() ?? '');
         this.fillCoachingProfileForm(coachingProfile);
         this.loading.set(false);

@@ -83,6 +83,23 @@
     }
 
     @if (trainingProfile(); as profile) {
+      @if (runningHistory(); as history) {
+        <section class="training-profile-panel" aria-label="Historico recente de corrida">
+          <div>
+            <span>Historico de corrida</span>
+            <strong>
+              @if (history.sufficientRunningHistory) {
+                Historico suficiente para um plano adaptativo normal
+              } @else {
+                Historico insuficiente; o plano deve comecar de forma conservadora
+              }
+            </strong>
+            <p>{{ history.activeWeeks }} de 4 semanas com corridas</p>
+            <p>{{ history.runningActivityCount }} corridas · {{ history.totalDistanceKilometers | number: '1.0-1' }} km</p>
+          </div>
+        </section>
+      }
+
       <section class="training-profile-panel" aria-label="Perfil de treino">
         <div>
           <span>Perfil de treino</span>

@@ -51,9 +51,11 @@ describe('ActivityDashboardComponent', () => {
 
     coachingProfileService = jasmine.createSpyObj<CoachingProfileService>('CoachingProfileService', [
       'get',
+      'getRunningHistory',
       'save',
     ]);
     coachingProfileService.get.and.returnValue(of(coachingProfile(false)));
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(false)));
     coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
 
     await TestBed.configureTestingModule({
@@ -533,6 +535,17 @@ describe('ActivityDashboardComponent', () => {
       readiness: configured ? ('LOW' as const) : null,
       injuryConcern: configured,
       configured,
+    };
+  }
+
+  function runningHistory(sufficientRunningHistory: boolean) {
+    return {
+      sufficientRunningHistory,
+      activeWeeks: sufficientRunningHistory ? 3 : 1,
+      runningActivityCount: sufficientRunningHistory ? 3 : 1,
+      totalDistanceKilometers: sufficientRunningHistory ? 18 : 5,
+      totalMovingTimeSeconds: sufficientRunningHistory ? 5400 : 1800,
+      latestRunAt: '2026-07-08T12:00:00Z',
     };
   }
 

@@ -2,9 +2,11 @@ package com.sudolife.adapter.driving.rest.training;
 
 import com.sudolife.application.service.training.CoachingProfileResult;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
+import com.sudolife.application.service.training.RunningHistorySnapshotResult;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
+import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.time.Instant;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +48,25 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private SaveCoachingProfileUseCase saveUseCase;
+
+    @MockitoBean
+    private GetRunningHistorySnapshotUseCase getRunningHistoryUseCase;
+
+    @Test
+    void get_running_history_returns_snapshot_for_authenticated_user() throws Exception {
+        when(getRunningHistoryUseCase.execute("user@sudolife.com"))
+                .thenReturn(new RunningHistorySnapshotResult(true, 3, 4, 24.5, 7200,
+                        Instant.parse("2026-07-08T12:00:00Z")));
+
+        mockMvc.perform(get("/api/coaching-profiles/running-history")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sufficientRunningHistory").value(true))
+                .andExpect(jsonPath("$.activeWeeks").value(3))
+                .andExpect(jsonPath("$.runningActivityCount").value(4));
+
+        verify(getRunningHistoryUseCase).execute("user@sudolife.com");
+    }
 
     @Test
     void get_returns_coaching_profiles_for_authenticated_user() throws Exception {

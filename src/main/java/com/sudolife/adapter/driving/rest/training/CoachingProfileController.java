@@ -4,6 +4,8 @@ import com.sudolife.application.service.training.CoachingProfileResult;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
+import com.sudolife.application.service.training.RunningHistorySnapshotResult;
+import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,6 +22,12 @@ public class CoachingProfileController {
 
     private final GetCoachingProfileUseCase getCoachingProfileUseCase;
     private final SaveCoachingProfileUseCase saveCoachingProfileUseCase;
+    private final GetRunningHistorySnapshotUseCase getRunningHistorySnapshotUseCase;
+
+    @GetMapping("/running-history")
+    public ResponseEntity<RunningHistorySnapshotResult> getRunningHistory(Authentication authentication) {
+        return ResponseEntity.ok(getRunningHistorySnapshotUseCase.execute(authentication.getName()));
+    }
 
     @GetMapping
     public ResponseEntity<CoachingProfileResult> get(Authentication authentication) {

@@ -53,6 +53,16 @@ describe('CoachingProfileService', () => {
     request.flush(coachingProfile());
   });
 
+  it('should_load_running_history_snapshot', () => {
+    service.getRunningHistory().subscribe((snapshot) => {
+      expect(snapshot.sufficientRunningHistory).toBeTrue();
+    });
+
+    const request = httpTestingController.expectOne('/api/coaching-profiles/running-history');
+
+    request.flush({ sufficientRunningHistory: true });
+  });
+
   function coachingProfile() {
     return {
       targetDistanceKilometers: 10,

@@ -1,7 +1,5 @@
 package com.sudolife.adapter.driven.persistence.strava.activity;
 
-import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivitySummaryRepository;
-import com.sudolife.adapter.driven.persistence.strava.activity.StravaActivitySummaryPersistenceMapper;
 import com.sudolife.adapter.driven.persistence.strava.activity.entitymodel.StravaActivitySummaryEntity;
 import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.model.strava.StravaActivityType;
@@ -16,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
@@ -78,5 +77,16 @@ public class StravaActivitySummaryRepositoryJpaAdapter implements StravaActivity
     public Optional<StravaActivitySummary> findByUserEmailAndSourceActivityId(String userEmail, Long sourceActivityId) {
         return jpaRepository.findByUserEmailAndSourceActivityId(userEmail, sourceActivityId)
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public List<StravaActivitySummary> findByUserEmailAndActivityTypeAndStartDateBetween(
+            String userEmail, StravaActivityType activityType, Instant startDate, Instant endDate
+    ) {
+        return jpaRepository.findByUserEmailAndActivityTypeAndStartDateBetweenOrderByStartDateDesc(
+                        userEmail, activityType, startDate, endDate)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }
