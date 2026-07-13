@@ -18,22 +18,322 @@
   } @else if (errorMessage()) {
     <p class="status error">{{ errorMessage() }}</p>
   } @else if (activityList(); as activityList) {
-    @if (coachingProfile(); as profile) {
-      <app-weekly-rhythm
-        [activityList]="activityList"
-        [coachingProfile]="profile"
-        [plan]="conservativeRunningPlan()"
-      />
-    }
+    <nav class="dashboard-navigation" aria-label="Áreas do painel">
+      <button
+        type="button"
+        [class.active]="activeView() === 'TODAY'"
+        [attr.aria-current]="activeView() === 'TODAY' ? 'page' : null"
+        (click)="selectView('TODAY')"
+      >
+        Hoje
+      </button>
+      <button
+        type="button"
+        [class.active]="activeView() === 'PLAN'"
+        [attr.aria-current]="activeView() === 'PLAN' ? 'page' : null"
+        (click)="selectView('PLAN')"
+      >
+        Plano
+      </button>
+      <button
+        type="button"
+        [class.active]="activeView() === 'ACTIVITIES'"
+        [attr.aria-current]="activeView() === 'ACTIVITIES' ? 'page' : null"
+        (click)="selectView('ACTIVITIES')"
+      >
+        Atividades
+      </button>
+    </nav>
 
-    @if (stravaLinkStatus(); as stravaStatus) {
-      <section class="strava-panel" aria-label="Conta Strava">
-        <div class="strava-status">
-          <span>Strava</span>
-          <strong>{{ stravaStatusText(stravaStatus) }}</strong>
+    <div class="dashboard-view today-view" [hidden]="activeView() !== 'TODAY'">
+      @if (coachingProfile(); as profile) {
+        <app-weekly-rhythm
+          [activityList]="activityList"
+          [coachingProfile]="profile"
+          [plan]="conservativeRunningPlan()"
+        />
+      }
+
+      @if (stravaLinkStatus(); as stravaStatus) {
+        <details class="strava-panel settings-disclosure">
+          <summary class="strava-status">
+            <span>Strava</span>
+            <strong>{{ stravaStatusText(stravaStatus) }}</strong>
+          </summary>
+
+          <div class="strava-actions">
+            <button
+              type="button"
+              class="sync-action"
+              [disabled]="syncing() || linking()"
+              (click)="requestActivitySync()"
+            >
+              @if (syncing()) {
+                Sincronizando...
+              } @else {
+                Sincronizar agora
+              }
+            </button>
+
+            <button
+              type="button"
+              class="strava-action"
+              [disabled]="linking()"
+              (click)="startStravaLinking()"
+            >
+              @if (linking()) {
+                Redirecionando...
+              } @else {
+                {{ stravaActionLabel(stravaStatus) }}
+              }
+            </button>
+          </div>
+        </details>
+
+        @if (linkingErrorMessage()) {
+          <p class="status error">{{ linkingErrorMessage() }}</p>
+        }
+
+        @if (syncErrorMessage()) {
+          <p class="status error">{{ syncErrorMessage() }}</p>
+        }
+
+        @if (syncResult(); as result) {
+          <section class="sync-result" aria-label="Resultado da sincronizacao">
+            <strong>{{ syncStatusLabel(result.status) }}</strong>
+            <dl>
+              <div>
+                <dt>Importadas</dt>
+                <dd>{{ result.importedActivityCount }}</dd>
+              </div>
+              <div>
+                <dt>Total</dt>
+                <dd>{{ result.totalActivityCount }}</dd>
+              </div>
+            </dl>
+            @if (result.failureReason) {
+              <p>{{ syncFailureReasonLabel(result.failureReason) }}</p>
+            }
+          </section>
+        }
+      }
+
+      @if (trainingProfile(); as profile) {
+        @if (runningHistory(); as history) {
+          <section class="training-profile-panel" aria-label="Histórico recente de corrida">
+            <div>
+              <span>Histórico de corrida</span>
+              <strong>
+                @if (history.sufficientRunningHistory) {
+                  Histórico suficiente para um plano adaptativo normal
+                } @else {
+                  Histórico insuficiente; o plano deve começar de forma conservadora
+                }
+              </strong>
+              <p>{{ history.activeWeeks }} de 4 semanas com corridas</p>
+              <p>
+                {{ history.runningActivityCount }} corridas ·
+                {{ history.totalDistanceKilometers | number: '1.0-1' }} km
+              </p>
+            </div>
+          </section>
+        }
+
+        <details class="training-profile-panel settings-disclosure">
+          <summary>
+            <span>Perfil de treino</span>
+            <strong>
+              @if (profile.adaptiveCoachingEligible) {
+                Coaching adaptativo habilitado
+              } @else {
+                Informe seu ano de nascimento
+              }
+            </strong>
+            <p>{{ profileZoneStatusText(profile, stravaLinkStatus()) }}</p>
+          </summary>
+
+          <form (submit)="$event.preventDefault(); saveTrainingProfile()">
+            <label>
+              <span>Ano de nascimento</span>
+              <input
+                type="number"
+                min="1900"
+                step="1"
+                inputmode="numeric"
+                [value]="birthYear()"
+                (input)="updateBirthYear($event)"
+                aria-label="Ano de nascimento"
+              />
+            </label>
+
+            <button type="submit" [disabled]="savingTrainingProfile()">
+              @if (savingTrainingProfile()) {
+                Salvando...
+              } @else {
+                Salvar perfil
+              }
+            </button>
+          </form>
+
+          @if (trainingProfileSuccessMessage()) {
+            <p class="status">{{ trainingProfileSuccessMessage() }}</p>
+          }
+
+          @if (trainingProfileErrorMessage()) {
+            <p class="status error">{{ trainingProfileErrorMessage() }}</p>
+          }
+        </details>
+      }
+
+      @if (coachingProfile(); as profile) {
+        <details class="training-profile-panel coaching-profile-panel">
+          <summary>
+            <span>Coaching</span>
+            <strong>
+              @if (profile.configured) {
+                Meta atual: {{ profile.targetDistanceKilometers | number: '1.0-1' }} km
+              } @else {
+                Informe sua meta de corrida
+              }
+            </strong>
+            <p>
+              Prontidao: {{ readinessLabel(profile.readiness) }}
+              @if (profile.injuryConcern) {
+                - com preocupacao de lesao
+              }
+            </p>
+          </summary>
+
+          <form (submit)="$event.preventDefault(); saveCoachingProfile()">
+            <label>
+              <span>Distância alvo</span>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                inputmode="decimal"
+                [value]="targetDistanceKilometers()"
+                (input)="updateTargetDistance($event)"
+                aria-label="Distância alvo em quilômetros"
+              />
+            </label>
+
+            <label>
+              <span>Ritmo alvo</span>
+              <input
+                type="text"
+                inputmode="numeric"
+                placeholder="5:30"
+                [value]="targetPace()"
+                (input)="updateTargetPace($event)"
+                aria-label="Ritmo alvo por quilometro"
+              />
+            </label>
+
+            <label>
+              <span>Data alvo</span>
+              <input
+                type="date"
+                [value]="targetDate()"
+                (input)="updateTargetDate($event)"
+                aria-label="Data alvo"
+              />
+            </label>
+
+            <label>
+              <span>Prontidao</span>
+              <select
+                [value]="readiness()"
+                (change)="updateReadiness($event)"
+                aria-label="Prontidao reportada"
+              >
+                <option value="">Selecione</option>
+                <option value="LOW">Baixa</option>
+                <option value="MODERATE">Moderada</option>
+                <option value="HIGH">Alta</option>
+              </select>
+            </label>
+
+            <label class="injury-concern-control">
+              <input
+                type="checkbox"
+                [checked]="injuryConcern()"
+                (change)="updateInjuryConcern($event)"
+                aria-label="Estou com preocupacao de lesao"
+              />
+              <span>Preocupacao de lesao</span>
+            </label>
+
+            <button type="submit" [disabled]="savingCoachingProfile()">
+              @if (savingCoachingProfile()) {
+                Salvando...
+              } @else {
+                Salvar coaching
+              }
+            </button>
+          </form>
+
+          @if (coachingProfileSuccessMessage()) {
+            <p class="status">{{ coachingProfileSuccessMessage() }}</p>
+          }
+
+          @if (coachingProfileErrorMessage()) {
+            <p class="status error">{{ coachingProfileErrorMessage() }}</p>
+          }
+        </details>
+      }
+    </div>
+
+    <div class="dashboard-view plan-view" [hidden]="activeView() !== 'PLAN'">
+      <header class="view-heading">
+        <h2>Plano</h2>
+        <p>Consulte a progressão planejada sem misturar ajustes e atividades realizadas.</p>
+      </header>
+      @if (conservativeRunningPlan(); as plan) {
+        @if (futurePlanSessions().length > 0) {
+          <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
+            <div class="conservative-plan-heading">
+              <span>Próximas semanas</span>
+              <strong>Progressão controlada até a semana {{ plan.durationWeeks }}</strong>
+              <p>
+                Meta de longo prazo: {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km.
+                Este bloco reduz o estresse enquanto o histórico e a prontidão evoluem.
+              </p>
+            </div>
+
+            <ol class="planned-session-list">
+              @for (
+                session of futurePlanSessions();
+                track session.weekNumber + '-' + session.sessionNumber
+              ) {
+                <li>
+                  <span>Semana {{ session.weekNumber }} · Sessão {{ session.sessionNumber }}</span>
+                  <strong>{{ plannedSessionTypeLabel(session) }}</strong>
+                  <p>
+                    {{ session.distanceKilometers | number: '1.0-1' }} km ·
+                    {{ plannedSessionTargetLabel(session) }}
+                  </p>
+                </li>
+              }
+            </ol>
+          </section>
+        }
+      } @else {
+        <section class="empty-panel" aria-label="Plano indisponível">
+          <strong>Nenhum plano ativo</strong>
+          <p>Complete seu perfil de treino em Hoje para receber uma progressão adequada.</p>
+          <button type="button" (click)="selectView('TODAY')">Revisar perfil</button>
+        </section>
+      }
+    </div>
+
+    <div class="dashboard-view activities-view" [hidden]="activeView() !== 'ACTIVITIES'">
+      <header class="view-heading activities-heading">
+        <div>
+          <h2>Atividades</h2>
+          <p>Revise o histórico importado e sincronize novos treinos.</p>
         </div>
-
-        <div class="strava-actions">
+        @if (stravaLinkStatus(); as stravaStatus) {
           <button
             type="button"
             class="sync-action"
@@ -43,383 +343,144 @@
             @if (syncing()) {
               Sincronizando...
             } @else {
-              Sincronizar agora
+              Sincronizar Strava
             }
           </button>
+        }
+      </header>
 
-          <button
-            type="button"
-            class="strava-action"
-            [disabled]="linking()"
-            (click)="startStravaLinking()"
-          >
-            @if (linking()) {
-              Redirecionando...
-            } @else {
-              {{ stravaActionLabel(stravaStatus) }}
-            }
-          </button>
-        </div>
-      </section>
-
-      @if (linkingErrorMessage()) {
-        <p class="status error">{{ linkingErrorMessage() }}</p>
+      @if (stravaLinkStatus(); as stravaStatus) {
+        @if (!isSyncEnabled(stravaStatus)) {
+          <section class="empty-panel" aria-label="Conexão Strava pendente">
+            <strong>Atividades ainda não sincronizadas</strong>
+            <p>Conecte ou atualize a conexão com o Strava para importar atividades.</p>
+          </section>
+        }
       }
 
-      @if (syncErrorMessage()) {
-        <p class="status error">{{ syncErrorMessage() }}</p>
-      }
-
-      @if (syncResult(); as result) {
-        <section class="sync-result" aria-label="Resultado da sincronizacao">
-          <strong>{{ syncStatusLabel(result.status) }}</strong>
-          <dl>
-            <div>
-              <dt>Importadas</dt>
-              <dd>{{ result.importedActivityCount }}</dd>
-            </div>
-            <div>
-              <dt>Total</dt>
-              <dd>{{ result.totalActivityCount }}</dd>
-            </div>
-          </dl>
-          @if (result.failureReason) {
-            <p>{{ syncFailureReasonLabel(result.failureReason) }}</p>
-          }
-        </section>
-      }
-    }
-
-    @if (trainingProfile(); as profile) {
-      @if (runningHistory(); as history) {
-        <section class="training-profile-panel" aria-label="Histórico recente de corrida">
-          <div>
-            <span>Histórico de corrida</span>
-            <strong>
-              @if (history.sufficientRunningHistory) {
-                Histórico suficiente para um plano adaptativo normal
-              } @else {
-                Histórico insuficiente; o plano deve começar de forma conservadora
+      @if (activityList.activities.length > 0) {
+        <section class="activity-filters" aria-label="Filtros da página carregada">
+          <label>
+            <span>Tipo</span>
+            <select [value]="selectedActivityType()" (change)="updateActivityTypeFilter($event)">
+              <option value="ALL">Todos</option>
+              @for (activityType of activityTypes(); track $index) {
+                <option [value]="activityType">{{ activityType }}</option>
               }
-            </strong>
-            <p>{{ history.activeWeeks }} de 4 semanas com corridas</p>
-            <p>
-              {{ history.runningActivityCount }} corridas ·
-              {{ history.totalDistanceKilometers | number: '1.0-1' }} km
-            </p>
-          </div>
-        </section>
-      }
-
-      <section class="training-profile-panel" aria-label="Perfil de treino">
-        <div>
-          <span>Perfil de treino</span>
-          <strong>
-            @if (profile.adaptiveCoachingEligible) {
-              Coaching adaptativo habilitado
-            } @else {
-              Informe seu ano de nascimento
-            }
-          </strong>
-          <p>{{ profileZoneStatusText(profile, stravaLinkStatus()) }}</p>
-        </div>
-
-        <form (submit)="$event.preventDefault(); saveTrainingProfile()">
-          <label>
-            <span>Ano de nascimento</span>
-            <input
-              type="number"
-              min="1900"
-              step="1"
-              inputmode="numeric"
-              [value]="birthYear()"
-              (input)="updateBirthYear($event)"
-              aria-label="Ano de nascimento"
-            />
-          </label>
-
-          <button type="submit" [disabled]="savingTrainingProfile()">
-            @if (savingTrainingProfile()) {
-              Salvando...
-            } @else {
-              Salvar perfil
-            }
-          </button>
-        </form>
-
-        @if (trainingProfileSuccessMessage()) {
-          <p class="status">{{ trainingProfileSuccessMessage() }}</p>
-        }
-
-        @if (trainingProfileErrorMessage()) {
-          <p class="status error">{{ trainingProfileErrorMessage() }}</p>
-        }
-      </section>
-    }
-
-    @if (coachingProfile(); as profile) {
-      <section
-        class="training-profile-panel coaching-profile-panel"
-        aria-label="Dados para coaching"
-      >
-        <div>
-          <span>Coaching</span>
-          <strong>
-            @if (profile.configured) {
-              Meta atual: {{ profile.targetDistanceKilometers | number: '1.0-1' }} km
-            } @else {
-              Informe sua meta de corrida
-            }
-          </strong>
-          <p>
-            Prontidao: {{ readinessLabel(profile.readiness) }}
-            @if (profile.injuryConcern) {
-              - com preocupacao de lesao
-            }
-          </p>
-        </div>
-
-        <form (submit)="$event.preventDefault(); saveCoachingProfile()">
-          <label>
-            <span>Distância alvo</span>
-            <input
-              type="number"
-              min="0.1"
-              step="0.1"
-              inputmode="decimal"
-              [value]="targetDistanceKilometers()"
-              (input)="updateTargetDistance($event)"
-              aria-label="Distância alvo em quilômetros"
-            />
-          </label>
-
-          <label>
-            <span>Ritmo alvo</span>
-            <input
-              type="text"
-              inputmode="numeric"
-              placeholder="5:30"
-              [value]="targetPace()"
-              (input)="updateTargetPace($event)"
-              aria-label="Ritmo alvo por quilometro"
-            />
-          </label>
-
-          <label>
-            <span>Data alvo</span>
-            <input
-              type="date"
-              [value]="targetDate()"
-              (input)="updateTargetDate($event)"
-              aria-label="Data alvo"
-            />
-          </label>
-
-          <label>
-            <span>Prontidao</span>
-            <select
-              [value]="readiness()"
-              (change)="updateReadiness($event)"
-              aria-label="Prontidao reportada"
-            >
-              <option value="">Selecione</option>
-              <option value="LOW">Baixa</option>
-              <option value="MODERATE">Moderada</option>
-              <option value="HIGH">Alta</option>
             </select>
           </label>
 
-          <label class="injury-concern-control">
-            <input
-              type="checkbox"
-              [checked]="injuryConcern()"
-              (change)="updateInjuryConcern($event)"
-              aria-label="Estou com preocupacao de lesao"
-            />
-            <span>Preocupacao de lesao</span>
+          <label>
+            <span>Período</span>
+            <select [value]="selectedPeriod()" (change)="updatePeriodFilter($event)">
+              <option value="ALL">Todos</option>
+              <option value="LAST_7_DAYS">Últimos 7 dias</option>
+              <option value="LAST_30_DAYS">Últimos 30 dias</option>
+            </select>
           </label>
 
-          <button type="submit" [disabled]="savingCoachingProfile()">
-            @if (savingCoachingProfile()) {
-              Salvando...
-            } @else {
-              Salvar coaching
-            }
+          <label>
+            <span>Distância mínima</span>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              inputmode="decimal"
+              [value]="minimumDistanceKilometers()"
+              (input)="updateMinimumDistanceFilter($event)"
+              aria-label="Distância mínima em quilômetros"
+            />
+          </label>
+
+          <label>
+            <span>Distância máxima</span>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              inputmode="decimal"
+              [value]="maximumDistanceKilometers()"
+              (input)="updateMaximumDistanceFilter($event)"
+              aria-label="Distância máxima em quilômetros"
+            />
+          </label>
+
+          <button type="button" [disabled]="!hasActiveFilters()" (click)="clearActivityFilters()">
+            Limpar
           </button>
-        </form>
+        </section>
 
-        @if (coachingProfileSuccessMessage()) {
-          <p class="status">{{ coachingProfileSuccessMessage() }}</p>
-        }
+        <p class="filter-summary">
+          Mostrando {{ filteredActivities().length }} de
+          {{ activityList.activities.length }} atividades nesta página carregada.
+        </p>
 
-        @if (coachingProfileErrorMessage()) {
-          <p class="status error">{{ coachingProfileErrorMessage() }}</p>
-        }
-      </section>
-    }
+        <ul class="activity-list">
+          @for (activity of filteredActivities(); track activity.id) {
+            <li>
+              <div class="activity-main">
+                <strong>{{ activity.name }}</strong>
+                <span
+                  >{{ activity.sportType }} -
+                  {{ activity.startDate | date: 'dd/MM/yyyy HH:mm' }}</span
+                >
+              </div>
+              <dl>
+                <div>
+                  <dt>Distância</dt>
+                  <dd>{{ activity.distanceMeters / 1000 | number: '1.1-1' }} km</dd>
+                </div>
+                <div>
+                  <dt>Tempo</dt>
+                  <dd>{{ movingTimeLabel(activity.movingTimeSeconds) }}</dd>
+                </div>
+                <div>
+                  <dt>Ritmo</dt>
+                  <dd>{{ paceOrSpeedLabel(activity) }}</dd>
+                </div>
+                <div>
+                  <dt>Streams</dt>
+                  <dd>{{ activity.streamStatus }}</dd>
+                </div>
+              </dl>
+            </li>
+          } @empty {
+            <li class="empty-panel" aria-label="Sem resultados filtrados">
+              <strong>Nenhuma atividade nesta página carregada corresponde aos filtros.</strong>
+              <p>
+                Ajuste os filtros locais ou carregue outra página para analisar outras atividades.
+              </p>
+            </li>
+          }
+        </ul>
 
-    @if (conservativeRunningPlan(); as plan) {
-      @if (futurePlanSessions().length > 0) {
-        <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
-          <div class="conservative-plan-heading">
-            <span>Próximas semanas</span>
-            <strong>Progressão controlada até a semana {{ plan.durationWeeks }}</strong>
-            <p>
-              Meta de longo prazo: {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km.
-              Este bloco reduz o estresse enquanto o histórico e a prontidão evoluem.
-            </p>
+        <nav class="pagination" aria-label="Paginação de atividades">
+          <span>Página {{ activityList.page + 1 }} de {{ activityList.totalPages || 1 }}</span>
+          <div>
+            <button
+              type="button"
+              class="previous-page"
+              [disabled]="pageLoading() || !hasPreviousPage(activityList)"
+              (click)="loadPage(activityList.page - 1)"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="next-page"
+              [disabled]="pageLoading() || !hasNextPage(activityList)"
+              (click)="loadPage(activityList.page + 1)"
+            >
+              Próxima
+            </button>
           </div>
-
-          <ol class="planned-session-list">
-            @for (
-              session of futurePlanSessions();
-              track session.weekNumber + '-' + session.sessionNumber
-            ) {
-              <li>
-                <span>Semana {{ session.weekNumber }} · Sessão {{ session.sessionNumber }}</span>
-                <strong>{{ plannedSessionTypeLabel(session) }}</strong>
-                <p>
-                  {{ session.distanceKilometers | number: '1.0-1' }} km ·
-                  {{ plannedSessionTargetLabel(session) }}
-                </p>
-              </li>
-            }
-          </ol>
+        </nav>
+      } @else if (shouldShowImportedEmptyState(stravaLinkStatus())) {
+        <section class="empty-panel" aria-label="Sem atividades importadas">
+          <strong>Nenhuma atividade importada ainda.</strong>
+          <p>As atividades importadas aparecem aqui em ordem da mais recente para a mais antiga.</p>
         </section>
       }
-    }
-
-    @if (stravaLinkStatus(); as stravaStatus) {
-      @if (!isSyncEnabled(stravaStatus)) {
-        <section class="empty-panel" aria-label="Conexão Strava pendente">
-          <strong>Atividades ainda não sincronizadas</strong>
-          <p>Conecte ou atualize a conexão com o Strava para importar atividades.</p>
-        </section>
-      }
-    }
-
-    @if (activityList.activities.length > 0) {
-      <section class="activity-filters" aria-label="Filtros da página carregada">
-        <label>
-          <span>Tipo</span>
-          <select [value]="selectedActivityType()" (change)="updateActivityTypeFilter($event)">
-            <option value="ALL">Todos</option>
-            @for (activityType of activityTypes(); track $index) {
-              <option [value]="activityType">{{ activityType }}</option>
-            }
-          </select>
-        </label>
-
-        <label>
-          <span>Período</span>
-          <select [value]="selectedPeriod()" (change)="updatePeriodFilter($event)">
-            <option value="ALL">Todos</option>
-            <option value="LAST_7_DAYS">Últimos 7 dias</option>
-            <option value="LAST_30_DAYS">Últimos 30 dias</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Distância mínima</span>
-          <input
-            type="number"
-            min="0"
-            step="0.1"
-            inputmode="decimal"
-            [value]="minimumDistanceKilometers()"
-            (input)="updateMinimumDistanceFilter($event)"
-            aria-label="Distância mínima em quilômetros"
-          />
-        </label>
-
-        <label>
-          <span>Distância máxima</span>
-          <input
-            type="number"
-            min="0"
-            step="0.1"
-            inputmode="decimal"
-            [value]="maximumDistanceKilometers()"
-            (input)="updateMaximumDistanceFilter($event)"
-            aria-label="Distância máxima em quilômetros"
-          />
-        </label>
-
-        <button type="button" [disabled]="!hasActiveFilters()" (click)="clearActivityFilters()">
-          Limpar
-        </button>
-      </section>
-
-      <p class="filter-summary">
-        Mostrando {{ filteredActivities().length }} de
-        {{ activityList.activities.length }} atividades nesta página carregada.
-      </p>
-
-      <ul class="activity-list">
-        @for (activity of filteredActivities(); track activity.id) {
-          <li>
-            <div class="activity-main">
-              <strong>{{ activity.name }}</strong>
-              <span
-                >{{ activity.sportType }} -
-                {{ activity.startDate | date: 'dd/MM/yyyy HH:mm' }}</span
-              >
-            </div>
-            <dl>
-              <div>
-                <dt>Distância</dt>
-                <dd>{{ activity.distanceMeters / 1000 | number: '1.1-1' }} km</dd>
-              </div>
-              <div>
-                <dt>Tempo</dt>
-                <dd>{{ movingTimeLabel(activity.movingTimeSeconds) }}</dd>
-              </div>
-              <div>
-                <dt>Ritmo</dt>
-                <dd>{{ paceOrSpeedLabel(activity) }}</dd>
-              </div>
-              <div>
-                <dt>Streams</dt>
-                <dd>{{ activity.streamStatus }}</dd>
-              </div>
-            </dl>
-          </li>
-        } @empty {
-          <li class="empty-panel" aria-label="Sem resultados filtrados">
-            <strong>Nenhuma atividade nesta página carregada corresponde aos filtros.</strong>
-            <p>
-              Ajuste os filtros locais ou carregue outra página para analisar outras atividades.
-            </p>
-          </li>
-        }
-      </ul>
-
-      <nav class="pagination" aria-label="Paginação de atividades">
-        <span>Página {{ activityList.page + 1 }} de {{ activityList.totalPages || 1 }}</span>
-        <div>
-          <button
-            type="button"
-            class="previous-page"
-            [disabled]="pageLoading() || !hasPreviousPage(activityList)"
-            (click)="loadPage(activityList.page - 1)"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            class="next-page"
-            [disabled]="pageLoading() || !hasNextPage(activityList)"
-            (click)="loadPage(activityList.page + 1)"
-          >
-            Próxima
-          </button>
-        </div>
-      </nav>
-    } @else if (shouldShowImportedEmptyState(stravaLinkStatus())) {
-      <section class="empty-panel" aria-label="Sem atividades importadas">
-        <strong>Nenhuma atividade importada ainda.</strong>
-        <p>As atividades importadas aparecem aqui em ordem da mais recente para a mais antiga.</p>
-      </section>
-    }
+    </div>
   }
 </section>

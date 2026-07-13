@@ -6,15 +6,15 @@
 
 .dashboard {
   display: grid;
-  gap: var(--space-lg);
+  gap: var(--space-xl);
 }
 
 .dashboard-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 10px;
+  gap: var(--space-xl);
+  margin-bottom: 0;
 }
 
 .eyebrow {
@@ -27,7 +27,7 @@
 h1 {
   margin: 0;
   color: var(--color-ink);
-  font-size: clamp(2.25rem, 6vw, 2.75rem);
+  font-size: 2.75rem;
   line-height: 1.05;
   letter-spacing: -0.035em;
   text-wrap: balance;
@@ -87,10 +87,6 @@ button:disabled {
 }
 
 .strava-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
   padding: var(--space-lg);
 }
 
@@ -105,7 +101,8 @@ button:disabled {
 
 .strava-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
 }
 
 .strava-panel span,
@@ -164,7 +161,7 @@ dd {
 .sync-result {
   display: grid;
   gap: var(--space-md);
-  padding: 16px 18px;
+  padding: var(--space-lg);
 }
 
 .sync-result dl {
@@ -182,7 +179,7 @@ dd {
 
 .training-profile-panel {
   display: grid;
-  gap: 16px;
+  gap: var(--space-lg);
   padding: var(--space-lg);
 }
 
@@ -191,7 +188,7 @@ dd {
   align-items: end;
   flex-wrap: wrap;
   gap: var(--space-md);
-  padding-top: 2px;
+  padding-top: var(--space-lg);
 }
 
 .training-profile-panel input,
@@ -262,8 +259,7 @@ dd {
 
 .planned-session-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-md);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -272,10 +268,12 @@ dd {
 .planned-session-list li {
   display: grid;
   gap: var(--space-xs);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  padding: 14px;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-plan-border);
+}
+
+.planned-session-list li:last-child {
+  border-bottom: 0;
 }
 
 .activity-filters {
@@ -283,12 +281,12 @@ dd {
   grid-template-columns: repeat(4, minmax(120px, 1fr)) auto;
   align-items: end;
   gap: var(--space-md);
-  padding: 16px;
+  padding: var(--space-lg);
 }
 
 .activity-filters label {
   display: grid;
-  gap: 7px;
+  gap: var(--space-xs);
 }
 
 .activity-filters select,
@@ -297,7 +295,7 @@ dd {
 }
 
 .filter-summary {
-  margin: -6px 0 0;
+  margin: 0;
   color: var(--color-label);
   font-size: 1rem;
   font-weight: 700;
@@ -307,7 +305,7 @@ dd {
   display: grid;
   gap: var(--space-sm);
   background: var(--color-surface-soft);
-  padding: 22px;
+  padding: var(--space-lg);
 }
 
 .empty-panel strong {
@@ -317,7 +315,7 @@ dd {
 
 .activity-list {
   display: grid;
-  gap: 10px;
+  gap: var(--space-md);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -327,7 +325,7 @@ dd {
   display: grid;
   grid-template-columns: minmax(180px, 1.2fr) minmax(420px, 2fr);
   gap: var(--space-lg);
-  padding: 16px 18px;
+  padding: var(--space-lg);
   transition:
     border-color var(--transition-state),
     background var(--transition-state);
@@ -355,7 +353,7 @@ dl {
 
 dl div {
   display: grid;
-  gap: 5px;
+  gap: var(--space-xs);
 }
 
 dd {
@@ -367,7 +365,7 @@ dd {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
   padding-top: var(--space-sm);
 }
 
@@ -378,7 +376,7 @@ dd {
 
 .pagination div {
   display: flex;
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .error {
@@ -407,6 +405,10 @@ dd {
   .pagination {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  h1 {
+    font-size: 2.25rem;
   }
 
   .dashboard-header > button {

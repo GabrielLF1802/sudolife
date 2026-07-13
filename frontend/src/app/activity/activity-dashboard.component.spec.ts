@@ -102,6 +102,34 @@ describe('ActivityDashboardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Sincronizar agora');
   });
 
+  it('should_open_dashboard_on_today_and_separate_plan_and_activities', () => {
+    fixture.detectChanges();
+
+    expect(dashboardView('.today-view').hidden).toBeFalse();
+    expect(dashboardView('.plan-view').hidden).toBeTrue();
+    expect(dashboardView('.activities-view').hidden).toBeTrue();
+  });
+
+  it('should_switch_to_plan_from_dashboard_navigation', () => {
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+
+    expect(dashboardView('.today-view').hidden).toBeTrue();
+    expect(dashboardView('.plan-view').hidden).toBeFalse();
+    expect(dashboardNavigationButton('Plano').getAttribute('aria-current')).toBe('page');
+  });
+
+  it('should_keep_recurring_settings_collapsed_on_today', () => {
+    fixture.detectChanges();
+
+    const settings = fixture.nativeElement.querySelectorAll('.settings-disclosure');
+
+    expect(settings.length).toBeGreaterThan(0);
+    expect([...settings].every((setting: HTMLDetailsElement) => !setting.open)).toBeTrue();
+  });
+
   it('should_render_permission_upgrade_action_when_scope_is_incomplete', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     fixture.detectChanges();
@@ -419,6 +447,16 @@ describe('ActivityDashboardComponent', () => {
 
   function syncButton(): HTMLButtonElement {
     return fixture.nativeElement.querySelector('.sync-action');
+  }
+
+  function dashboardNavigationButton(label: string): HTMLButtonElement {
+    return [...fixture.nativeElement.querySelectorAll('.dashboard-navigation button')].find(
+      (button: HTMLButtonElement) => button.textContent.trim() === label,
+    ) as HTMLButtonElement;
+  }
+
+  function dashboardView(selector: string): HTMLDivElement {
+    return fixture.nativeElement.querySelector(selector);
   }
 
   function trainingProfileInput(): HTMLInputElement {

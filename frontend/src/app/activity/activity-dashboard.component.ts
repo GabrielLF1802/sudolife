@@ -24,6 +24,7 @@ import { TrainingProfile, TrainingProfileService } from './training-profile.serv
 import { WeeklyRhythmComponent } from './weekly-rhythm.component';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
+type DashboardView = 'TODAY' | 'PLAN' | 'ACTIVITIES';
 
 @Component({
   selector: 'app-activity-dashboard',
@@ -66,6 +67,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly targetDate = signal('');
   protected readonly readiness = signal<UserReportedReadiness | ''>('');
   protected readonly injuryConcern = signal(false);
+  protected readonly activeView = signal<DashboardView>('TODAY');
   protected readonly selectedActivityType = signal('ALL');
   protected readonly selectedPeriod = signal<ActivityPeriodFilter>('ALL');
   protected readonly minimumDistanceKilometers = signal('');
@@ -195,6 +197,10 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected updateInjuryConcern(event: Event): void {
     this.injuryConcern.set((event.target as HTMLInputElement).checked);
+  }
+
+  protected selectView(view: DashboardView): void {
+    this.activeView.set(view);
   }
 
   protected clearActivityFilters(): void {

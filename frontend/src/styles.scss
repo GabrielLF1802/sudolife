@@ -51,6 +51,120 @@ a:focus-visible {
   box-shadow: var(--focus-ring);
 }
 
+app-activity-dashboard .dashboard-navigation {
+  display: flex;
+  gap: var(--space-xs);
+  width: fit-content;
+  padding: var(--space-xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+app-activity-dashboard .dashboard-navigation button {
+  min-width: 112px;
+  border-color: transparent;
+  background: transparent;
+}
+
+app-activity-dashboard .dashboard-navigation button.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+app-activity-dashboard .dashboard-view {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+app-activity-dashboard .dashboard-view[hidden] {
+  display: none;
+}
+
+app-activity-dashboard .today-view {
+  gap: var(--space-lg);
+}
+
+app-activity-dashboard .view-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+app-activity-dashboard .view-heading h2,
+app-activity-dashboard .view-heading p {
+  margin: 0;
+}
+
+app-activity-dashboard .view-heading h2 {
+  color: var(--color-ink);
+  font-size: 2rem;
+}
+
+app-activity-dashboard .view-heading p {
+  max-width: 65ch;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+app-activity-dashboard .activities-heading > div {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+app-activity-dashboard .settings-disclosure summary {
+  position: relative;
+  padding-right: var(--space-xl);
+  cursor: pointer;
+  list-style: none;
+}
+
+app-activity-dashboard .settings-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+app-activity-dashboard .settings-disclosure summary::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  color: var(--color-primary-deep);
+  content: '+';
+  font-size: 1.25rem;
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+app-activity-dashboard .settings-disclosure[open] summary::after {
+  content: '−';
+}
+
+app-activity-dashboard .settings-disclosure summary:focus-visible {
+  outline: 3px solid rgb(30 127 92 / 16%);
+  outline-offset: var(--space-xs);
+}
+
+@media (max-width: 680px) {
+  app-activity-dashboard .dashboard-navigation {
+    display: grid;
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  app-activity-dashboard .dashboard-navigation button {
+    min-width: 0;
+    padding: 0 var(--space-sm);
+  }
+
+  app-activity-dashboard .dashboard-view {
+    gap: var(--space-lg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
