@@ -87,6 +87,19 @@ describe('ActivityDashboardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Conectar Strava');
   });
 
+  it('should_retry_dashboard_after_initial_load_failure', () => {
+    activityService.list.and.returnValues(
+      throwError(() => new Error('offline')),
+      of(emptyActivityList()),
+    );
+    fixture.detectChanges();
+
+    clickAndRefresh(recoveryButton('Tentar novamente'));
+
+    expect(pageText()).toContain('Ritmo da semana');
+    expect(pageText()).not.toContain('Seus dados não foram carregados');
+  });
+
   it('should_render_reconnect_action_when_strava_is_linked', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
@@ -263,7 +276,7 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(trainingProfileService.save).toHaveBeenCalledWith({ birthYear: null });
-    expect(pageText()).toContain('Informe um ano de nascimento valido.');
+    expect(pageText()).toContain('O ano informado foi preservado');
   });
 
   it('should_render_coaching_profiles_form_when_inputs_are_missing', () => {
@@ -286,6 +299,15 @@ describe('ActivityDashboardComponent', () => {
     expect(coachingInput('input[aria-label="Data alvo"]').value).toBe('2026-05-12');
   });
 
+  it('should_explain_plan_impact_and_medical_limit_when_injury_is_selected', () => {
+    fixture.detectChanges();
+
+    toggleInjuryConcern(true);
+
+    expect(pageText()).toContain('O plano não será gerado');
+    expect(pageText()).toContain('não substitui avaliação médica');
+  });
+
   it('should_render_conservative_classification_and_planned_sessions_for_incomplete_history', () => {
     coachingProfileService.get.and.returnValue(
       of({
@@ -302,6 +324,24 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Corrida leve');
     expect(pageText()).toContain('3 km');
     expect(pageText()).toContain('Esforço percebido 2-4');
+  });
+
+  it('should_retry_plan_generation_without_losing_profile', () => {
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'LOW', injuryConcern: false }),
+    );
+    coachingProfileService.generateConservativeRunningPlan.and.returnValues(
+      throwError(() => new Error('offline')),
+      of(conservativeRunningPlan()),
+    );
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+    clickAndRefresh(recoveryButton('Tentar novamente'));
+
+    expect(pageText()).not.toContain('Seu perfil foi preservado, mas não foi possível atualizar');
+    expect(pageText()).toContain('Meta atual: 10 km');
   });
 
   it('should_render_weekly_rhythm_from_monday_to_sunday_with_supported_plan_state', () => {
@@ -350,7 +390,8 @@ describe('ActivityDashboardComponent', () => {
     coachingProfileButton().click();
     fixture.detectChanges();
 
-    expect(pageText()).toContain('Revise a meta e a prontidao informadas.');
+    expect(pageText()).toContain('Sua meta, prontidão e preocupação de lesão foram preservadas');
+    expect(coachingInput('input[aria-label="Distância alvo em quilômetros"]').value).toBe('');
   });
 
   it('should_show_reconnect_guidance_when_strava_is_not_sync_enabled', () => {
@@ -377,6 +418,21 @@ describe('ActivityDashboardComponent', () => {
 
     expect(activityService.list).toHaveBeenCalledWith(1);
     expect(fixture.nativeElement.textContent).toContain('Evening Ride');
+  });
+
+  it('should_preserve_current_activities_when_next_page_fails', () => {
+    activityService.list.and.returnValues(
+      of(activityListWithSummaries()),
+      throwError(() => new Error('offline')),
+    );
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.next-page').click();
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('As atividades atuais foram preservadas');
+    expect(pageText()).toContain('Morning Run');
   });
 
   it('should_show_linking_error_when_oauth_launch_fails', () => {
@@ -457,6 +513,17 @@ describe('ActivityDashboardComponent', () => {
 
   function dashboardView(selector: string): HTMLDivElement {
     return fixture.nativeElement.querySelector(selector);
+  }
+
+  function recoveryButton(label: string): HTMLButtonElement {
+    return [...fixture.nativeElement.querySelectorAll('.recovery-panel button')].find(
+      (button: HTMLButtonElement) => button.textContent.trim() === label,
+    ) as HTMLButtonElement;
+  }
+
+  function clickAndRefresh(button: HTMLButtonElement): void {
+    button.click();
+    fixture.detectChanges();
   }
 
   function trainingProfileInput(): HTMLInputElement {

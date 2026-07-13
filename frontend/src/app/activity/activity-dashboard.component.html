@@ -14,9 +14,21 @@
   </header>
 
   @if (loading()) {
-    <p class="status">Carregando atividades...</p>
+    <section
+      class="dashboard-skeleton"
+      aria-label="Carregando seus dados de treino"
+      aria-busy="true"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </section>
   } @else if (errorMessage()) {
-    <p class="status error">{{ errorMessage() }}</p>
+    <section class="recovery-panel" role="alert">
+      <strong>Seus dados não foram carregados</strong>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" (click)="loadDashboard()">Tentar novamente</button>
+    </section>
   } @else if (activityList(); as activityList) {
     <nav class="dashboard-navigation" aria-label="Áreas do painel">
       <button
@@ -91,11 +103,17 @@
         </details>
 
         @if (linkingErrorMessage()) {
-          <p class="status error">{{ linkingErrorMessage() }}</p>
+          <section class="inline-recovery" role="alert">
+            <p>{{ linkingErrorMessage() }} Nenhuma configuração foi alterada.</p>
+            <button type="button" (click)="startStravaLinking()">Tentar novamente</button>
+          </section>
         }
 
         @if (syncErrorMessage()) {
-          <p class="status error">{{ syncErrorMessage() }}</p>
+          <section class="inline-recovery" role="alert">
+            <p>{{ syncErrorMessage() }} As atividades atuais continuam disponíveis.</p>
+            <button type="button" (click)="requestActivitySync()">Tentar novamente</button>
+          </section>
         }
 
         @if (syncResult(); as result) {
@@ -180,7 +198,7 @@
           }
 
           @if (trainingProfileErrorMessage()) {
-            <p class="status error">{{ trainingProfileErrorMessage() }}</p>
+            <p class="status error" role="alert">{{ trainingProfileErrorMessage() }}</p>
           }
         </details>
       }
@@ -246,6 +264,7 @@
                 [value]="readiness()"
                 (change)="updateReadiness($event)"
                 aria-label="Prontidao reportada"
+                aria-describedby="readiness-guidance"
               >
                 <option value="">Selecione</option>
                 <option value="LOW">Baixa</option>
@@ -253,6 +272,11 @@
                 <option value="HIGH">Alta</option>
               </select>
             </label>
+
+            <p class="readiness-guidance" id="readiness-guidance">
+              A prontidão ajuda a ajustar a intensidade. Prontidão baixa pode gerar um plano mais
+              conservador; prontidão alta não aumenta a carga automaticamente.
+            </p>
 
             <label class="injury-concern-control">
               <input
@@ -263,6 +287,16 @@
               />
               <span>Preocupacao de lesao</span>
             </label>
+
+            @if (injuryConcern()) {
+              <section class="injury-guidance" role="status">
+                <strong>O plano não será gerado enquanto houver preocupação de lesão.</strong>
+                <p>
+                  Reduza ou interrompa o treino se houver dor. O Sudolife não substitui avaliação
+                  médica; procure um profissional de saúde antes de retomar a carga.
+                </p>
+              </section>
+            }
 
             <button type="submit" [disabled]="savingCoachingProfile()">
               @if (savingCoachingProfile()) {
@@ -278,7 +312,7 @@
           }
 
           @if (coachingProfileErrorMessage()) {
-            <p class="status error">{{ coachingProfileErrorMessage() }}</p>
+            <p class="status error" role="alert">{{ coachingProfileErrorMessage() }}</p>
           }
         </details>
       }
@@ -289,7 +323,18 @@
         <h2>Plano</h2>
         <p>Consulte a progressão planejada sem misturar ajustes e atividades realizadas.</p>
       </header>
-      @if (conservativeRunningPlan(); as plan) {
+      @if (planLoading()) {
+        <section class="inline-loading" aria-live="polite" aria-busy="true">
+          <strong>Atualizando seu plano</strong>
+          <p>Estamos considerando sua prontidão e seu histórico recente.</p>
+        </section>
+      } @else if (planErrorMessage()) {
+        <section class="recovery-panel" role="alert">
+          <strong>O plano não foi atualizado</strong>
+          <p>{{ planErrorMessage() }}</p>
+          <button type="button" (click)="retryConservativeRunningPlan()">Tentar novamente</button>
+        </section>
+      } @else if (conservativeRunningPlan(); as plan) {
         @if (futurePlanSessions().length > 0) {
           <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
             <div class="conservative-plan-heading">
@@ -414,6 +459,13 @@
           Mostrando {{ filteredActivities().length }} de
           {{ activityList.activities.length }} atividades nesta página carregada.
         </p>
+
+        @if (pageErrorMessage()) {
+          <section class="inline-recovery" role="alert">
+            <p>{{ pageErrorMessage() }}</p>
+            <button type="button" (click)="retryCurrentPage()">Tentar novamente</button>
+          </section>
+        }
 
         <ul class="activity-list">
           @for (activity of filteredActivities(); track activity.id) {

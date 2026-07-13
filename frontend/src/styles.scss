@@ -147,6 +147,83 @@ app-activity-dashboard .settings-disclosure summary:focus-visible {
   outline-offset: var(--space-xs);
 }
 
+app-activity-dashboard .dashboard-skeleton,
+app-activity-dashboard .recovery-panel,
+app-activity-dashboard .inline-loading,
+app-activity-dashboard .inline-recovery {
+  display: grid;
+  gap: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-soft);
+  padding: var(--space-lg);
+}
+
+app-activity-dashboard .dashboard-skeleton span {
+  display: block;
+  height: 18px;
+  border-radius: var(--radius-control);
+  background: var(--color-border);
+}
+
+app-activity-dashboard .dashboard-skeleton span:first-child {
+  width: 38%;
+  height: 28px;
+}
+
+app-activity-dashboard .dashboard-skeleton span:last-child {
+  width: 72%;
+}
+
+app-activity-dashboard .recovery-panel strong,
+app-activity-dashboard .inline-loading strong,
+app-activity-dashboard .injury-guidance strong {
+  color: var(--color-ink);
+}
+
+app-activity-dashboard .recovery-panel p,
+app-activity-dashboard .inline-loading p,
+app-activity-dashboard .inline-recovery p,
+app-activity-dashboard .readiness-guidance,
+app-activity-dashboard .injury-guidance p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+app-activity-dashboard .recovery-panel button,
+app-activity-dashboard .inline-recovery button {
+  justify-self: start;
+}
+
+app-activity-dashboard .inline-recovery {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+app-activity-dashboard .readiness-guidance,
+app-activity-dashboard .injury-guidance {
+  flex-basis: 100%;
+}
+
+app-activity-dashboard .injury-guidance {
+  display: grid;
+  gap: var(--space-xs);
+  border: 1px solid var(--color-plan-border);
+  border-radius: var(--radius-control);
+  background: var(--color-plan);
+  padding: var(--space-md);
+}
+
+app-activity-dashboard .activity-main,
+app-activity-dashboard .activity-main strong,
+app-activity-dashboard .activity-main span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 680px) {
   app-activity-dashboard .dashboard-navigation {
     display: grid;
@@ -162,6 +239,10 @@ app-activity-dashboard .settings-disclosure summary:focus-visible {
 
   app-activity-dashboard .dashboard-view {
     gap: var(--space-lg);
+  }
+
+  app-activity-dashboard .inline-recovery {
+    grid-template-columns: 1fr;
   }
 }
 

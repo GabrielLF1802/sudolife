@@ -49,11 +49,14 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly conservativeRunningPlan = signal<ConservativeRunningPlan | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
+  protected readonly planLoading = signal(false);
   protected readonly linking = signal(false);
   protected readonly syncing = signal(false);
   protected readonly savingTrainingProfile = signal(false);
   protected readonly savingCoachingProfile = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly pageErrorMessage = signal('');
+  protected readonly planErrorMessage = signal('');
   protected readonly linkingErrorMessage = signal('');
   protected readonly syncErrorMessage = signal('');
   protected readonly trainingProfileErrorMessage = signal('');
@@ -125,6 +128,13 @@ export class ActivityDashboardComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.loadDashboard();
+  }
+
+  protected loadDashboard(): void {
+    this.loading.set(true);
+    this.errorMessage.set('');
+
     forkJoin({
       currentUser: this.authService.currentUser(),
       activityList: this.activityService.list(),
@@ -153,7 +163,9 @@ export class ActivityDashboardComponent implements OnInit {
         this.loadConservativeRunningPlan(coachingProfile, runningHistory);
       },
       error: () => {
-        this.errorMessage.set('Nao foi possivel carregar o painel.');
+        this.errorMessage.set(
+          'Não foi possível carregar seus dados de treino. Verifique sua conexão e tente novamente.',
+        );
         this.loading.set(false);
       },
     });
@@ -212,7 +224,7 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected loadPage(page: number): void {
     this.pageLoading.set(true);
-    this.errorMessage.set('');
+    this.pageErrorMessage.set('');
 
     this.activityService
       .list(page)
@@ -222,9 +234,17 @@ export class ActivityDashboardComponent implements OnInit {
           this.activityList.set(activityList);
         },
         error: () => {
-          this.errorMessage.set('Nao foi possivel carregar as atividades.');
+          this.pageErrorMessage.set(
+            'Não foi possível carregar outra página. As atividades atuais foram preservadas.',
+          );
         },
       });
+  }
+
+  protected retryCurrentPage(): void {
+    const currentPage = this.activityList()?.page ?? 0;
+
+    this.loadPage(currentPage);
   }
 
   protected hasPreviousPage(activityList: ActivityList): boolean {
@@ -321,7 +341,9 @@ export class ActivityDashboardComponent implements OnInit {
           this.trainingProfileSuccessMessage.set('Perfil de treino salvo.');
         },
         error: () => {
-          this.trainingProfileErrorMessage.set('Informe um ano de nascimento valido.');
+          this.trainingProfileErrorMessage.set(
+            'Não foi possível salvar. O ano informado foi preservado; revise o valor e tente novamente.',
+          );
         },
       });
   }
@@ -353,7 +375,9 @@ export class ActivityDashboardComponent implements OnInit {
           }
         },
         error: () => {
-          this.coachingProfileErrorMessage.set('Revise a meta e a prontidao informadas.');
+          this.coachingProfileErrorMessage.set(
+            'Não foi possível salvar. Sua meta, prontidão e preocupação de lesão foram preservadas.',
+          );
         },
       });
   }
@@ -479,14 +503,31 @@ export class ActivityDashboardComponent implements OnInit {
       (!runningHistory.sufficientRunningHistory || coachingProfile.readiness === 'LOW');
 
     if (!requiresConservativePlan) {
+      this.planErrorMessage.set('');
       return;
     }
 
-    this.coachingProfileService.generateConservativeRunningPlan().subscribe({
-      next: (plan) => this.conservativeRunningPlan.set(plan),
-      error: () =>
-        this.coachingProfileErrorMessage.set('Nao foi possivel gerar o plano conservador.'),
-    });
+    this.planLoading.set(true);
+    this.planErrorMessage.set('');
+    this.coachingProfileService
+      .generateConservativeRunningPlan()
+      .pipe(finalize(() => this.planLoading.set(false)))
+      .subscribe({
+        next: (plan) => this.conservativeRunningPlan.set(plan),
+        error: () =>
+          this.planErrorMessage.set(
+            'Seu perfil foi preservado, mas não foi possível atualizar o plano.',
+          ),
+      });
+  }
+
+  protected retryConservativeRunningPlan(): void {
+    const profile = this.coachingProfile();
+    const history = this.runningHistory();
+
+    if (profile !== null && history !== null) {
+      this.loadConservativeRunningPlan(profile, history);
+    }
   }
 
   private selectedPeriodDays(): number {
