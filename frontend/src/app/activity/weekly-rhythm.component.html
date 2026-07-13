@@ -1,0 +1,78 @@
+<section class="weekly-rhythm" aria-labelledby="weekly-rhythm-title">
+  <div class="weekly-rhythm-heading">
+    <div>
+      <p class="weekly-rhythm-label">Ritmo da semana</p>
+      <h2 id="weekly-rhythm-title">{{ weekRangeLabel() }}</h2>
+    </div>
+
+    <p class="readiness-context">
+      <span>Prontidão</span>
+      <strong>{{ readinessLabel(coachingProfile().readiness) }}</strong>
+    </p>
+  </div>
+
+  <ol class="week-track" aria-label="Atividades da semana na página carregada">
+    @for (day of weekDays(); track day.date.getTime()) {
+      <li [class.today]="day.isToday" [class.has-activity]="day.activities.length > 0">
+        <div class="day-heading">
+          <span>{{ weekDayLabel(day.date) }}</span>
+          <strong>{{ day.date.getDate() }}</strong>
+        </div>
+
+        @if (day.isToday) {
+          <span class="today-label">Hoje</span>
+        }
+
+        <div class="day-activities">
+          @for (activity of day.activities; track activity.id) {
+            <span class="strava-origin">Strava</span>
+            <strong>{{ activity.distanceMeters / 1000 | number: '1.0-1' }} km</strong>
+            <span>{{ activity.name }}</span>
+          } @empty {
+            <span class="day-without-activity" aria-label="Sem atividade importada">—</span>
+          }
+        </div>
+      </li>
+    }
+  </ol>
+
+  @if (plan(); as currentPlan) {
+    <div class="weekly-plan-heading">
+      <div>
+        <h3>Plano da semana</h3>
+        <p>As sessões ainda não possuem um dia definido.</p>
+      </div>
+      <p class="plan-reason">
+        <strong>Por que este plano?</strong> {{ planReasonLabel(currentPlan) }}.
+      </p>
+    </div>
+
+    <ol class="weekly-plan-sessions">
+      @for (session of currentWeekPlanSessions(); track session.sessionNumber) {
+        <li>
+          <span class="session-number" aria-hidden="true">{{ session.sessionNumber }}</span>
+          <div class="session-summary">
+            <strong>{{ plannedSessionTypeLabel(session) }}</strong>
+            <span>
+              {{ session.distanceKilometers | number: '1.0-1' }} km ·
+              {{ plannedSessionTargetLabel(session) }}
+            </span>
+          </div>
+          <span class="unscheduled-session">Sem dia definido</span>
+          <details>
+            <summary>Ver detalhes</summary>
+            <p>
+              Sessão {{ session.sessionNumber }} da semana 1. Mantenha a intensidade em
+              {{ plannedSessionTargetLabel(session) }}.
+            </p>
+          </details>
+        </li>
+      }
+    </ol>
+  } @else {
+    <div class="weekly-plan-empty">
+      <strong>Nenhum plano conservador ativo</strong>
+      <p>A faixa mostra somente atividades importadas nesta página.</p>
+    </div>
+  }
+</section>

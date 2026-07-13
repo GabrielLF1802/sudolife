@@ -21,12 +21,13 @@ import {
   StravaLinkStatus,
 } from './strava-account.service';
 import { TrainingProfile, TrainingProfileService } from './training-profile.service';
+import { WeeklyRhythmComponent } from './weekly-rhythm.component';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
 
 @Component({
   selector: 'app-activity-dashboard',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, WeeklyRhythmComponent],
   templateUrl: './activity-dashboard.component.html',
   styleUrl: './activity-dashboard.component.scss',
 })
@@ -70,6 +71,11 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly minimumDistanceKilometers = signal('');
   protected readonly maximumDistanceKilometers = signal('');
   private readonly currentDate = signal(new Date());
+  protected readonly futurePlanSessions = computed(
+    () =>
+      this.conservativeRunningPlan()?.plannedSessions.filter((session) => session.weekNumber > 1) ??
+      [],
+  );
   protected readonly activityTypes = computed(() => {
     const activityList = this.activityList();
 

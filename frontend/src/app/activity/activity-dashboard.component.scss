@@ -52,7 +52,11 @@ button {
   font: inherit;
   font-weight: 800;
   padding: 0 18px;
-  transition: background var(--transition-state), border-color var(--transition-state), color var(--transition-state), transform var(--transition-state);
+  transition:
+    background var(--transition-state),
+    border-color var(--transition-state),
+    color var(--transition-state),
+    transform var(--transition-state);
 }
 
 button:hover:not(:disabled) {
@@ -203,7 +207,9 @@ dd {
   color: var(--color-ink);
   font: inherit;
   padding: 0 12px;
-  transition: border-color var(--transition-state), box-shadow var(--transition-state);
+  transition:
+    border-color var(--transition-state),
+    box-shadow var(--transition-state);
 }
 
 .training-profile-panel input:hover,
@@ -322,7 +328,9 @@ dd {
   grid-template-columns: minmax(180px, 1.2fr) minmax(420px, 2fr);
   gap: var(--space-lg);
   padding: 16px 18px;
-  transition: border-color var(--transition-state), background var(--transition-state);
+  transition:
+    border-color var(--transition-state),
+    background var(--transition-state);
 }
 
 .activity-list li:not(.empty-panel):hover {

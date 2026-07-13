@@ -270,10 +270,28 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(coachingProfileService.generateConservativeRunningPlan).toHaveBeenCalled();
-    expect(pageText()).toContain('Plano conservador');
+    expect(pageText()).toContain('Plano da semana');
     expect(pageText()).toContain('Corrida leve');
     expect(pageText()).toContain('3 km');
-    expect(pageText()).toContain('Esforco percebido 2-4');
+    expect(pageText()).toContain('Esforço percebido 2-4');
+  });
+
+  it('should_render_weekly_rhythm_from_monday_to_sunday_with_supported_plan_state', () => {
+    activityService.list.and.returnValue(of(activityListWithActivityToday()));
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+
+    fixture.detectChanges();
+
+    const weekDays = fixture.nativeElement.querySelectorAll('.week-track > li');
+    expect(weekDays.length).toBe(7);
+    expect(weekDays[0].textContent).toContain('seg');
+    expect(weekDays[6].textContent).toContain('dom');
+    expect(pageText()).toContain('Ritmo da semana');
+    expect(pageText()).toContain('Corrida de hoje');
+    expect(pageText()).toContain('Sem dia definido');
+    expect(pageText()).toContain('Ver detalhes');
   });
 
   it('should_save_coaching_profiles_with_low_readiness_and_injury_concern', () => {
@@ -621,6 +639,29 @@ describe('ActivityDashboardComponent', () => {
       size: 10,
       totalElements: 2,
       totalPages: 2,
+    };
+  }
+
+  function activityListWithActivityToday(): ActivityList {
+    return {
+      activities: [
+        {
+          id: 301,
+          sourceActivityId: 3001,
+          name: 'Corrida de hoje',
+          sportType: 'RUN',
+          startDate: new Date().toISOString(),
+          distanceMeters: 5200,
+          movingTimeSeconds: 1680,
+          averageSpeedMetersPerSecond: 3.1,
+          averagePaceSecondsPerKilometer: 323,
+          streamStatus: 'IMPORTED',
+        },
+      ],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+      totalPages: 1,
     };
   }
 

@@ -18,6 +18,14 @@
   } @else if (errorMessage()) {
     <p class="status error">{{ errorMessage() }}</p>
   } @else if (activityList(); as activityList) {
+    @if (coachingProfile(); as profile) {
+      <app-weekly-rhythm
+        [activityList]="activityList"
+        [coachingProfile]="profile"
+        [plan]="conservativeRunningPlan()"
+      />
+    }
+
     @if (stravaLinkStatus(); as stravaStatus) {
       <section class="strava-panel" aria-label="Conta Strava">
         <div class="strava-status">
@@ -251,32 +259,34 @@
     }
 
     @if (conservativeRunningPlan(); as plan) {
-      <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
-        <div class="conservative-plan-heading">
-          <span>Plano conservador</span>
-          <strong>4 semanas com progressão controlada</strong>
-          <p>
-            Meta de longo prazo: {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km.
-            Este bloco reduz o estresse enquanto o histórico e a prontidão evoluem.
-          </p>
-        </div>
+      @if (futurePlanSessions().length > 0) {
+        <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
+          <div class="conservative-plan-heading">
+            <span>Próximas semanas</span>
+            <strong>Progressão controlada até a semana {{ plan.durationWeeks }}</strong>
+            <p>
+              Meta de longo prazo: {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km.
+              Este bloco reduz o estresse enquanto o histórico e a prontidão evoluem.
+            </p>
+          </div>
 
-        <ol class="planned-session-list">
-          @for (
-            session of plan.plannedSessions;
-            track session.weekNumber + '-' + session.sessionNumber
-          ) {
-            <li>
-              <span>Semana {{ session.weekNumber }} · Sessão {{ session.sessionNumber }}</span>
-              <strong>{{ plannedSessionTypeLabel(session) }}</strong>
-              <p>
-                {{ session.distanceKilometers | number: '1.0-1' }} km ·
-                {{ plannedSessionTargetLabel(session) }}
-              </p>
-            </li>
-          }
-        </ol>
-      </section>
+          <ol class="planned-session-list">
+            @for (
+              session of futurePlanSessions();
+              track session.weekNumber + '-' + session.sessionNumber
+            ) {
+              <li>
+                <span>Semana {{ session.weekNumber }} · Sessão {{ session.sessionNumber }}</span>
+                <strong>{{ plannedSessionTypeLabel(session) }}</strong>
+                <p>
+                  {{ session.distanceKilometers | number: '1.0-1' }} km ·
+                  {{ plannedSessionTargetLabel(session) }}
+                </p>
+              </li>
+            }
+          </ol>
+        </section>
+      }
     }
 
     @if (stravaLinkStatus(); as stravaStatus) {

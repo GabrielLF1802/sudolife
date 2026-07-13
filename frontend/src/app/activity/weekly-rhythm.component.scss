@@ -1,0 +1,273 @@
+:host {
+  display: block;
+}
+
+.weekly-rhythm {
+  display: grid;
+  gap: var(--space-lg);
+  border: 1px solid var(--color-plan-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  padding: var(--space-lg);
+}
+
+.weekly-rhythm-heading,
+.weekly-plan-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.weekly-rhythm-label,
+.weekly-rhythm h2,
+.weekly-plan-heading h3,
+.weekly-plan-heading p,
+.readiness-context,
+.weekly-plan-empty p {
+  margin: 0;
+}
+
+.weekly-rhythm-label {
+  color: var(--color-primary-deep);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.weekly-rhythm h2 {
+  color: var(--color-ink);
+  font-size: clamp(1.7rem, 4vw, 2.25rem);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.readiness-context,
+.session-summary,
+.weekly-plan-heading > div,
+.weekly-plan-empty {
+  display: grid;
+  gap: 4px;
+}
+
+.readiness-context {
+  text-align: right;
+}
+
+.readiness-context span,
+.weekly-plan-heading p,
+.session-summary span,
+.weekly-plan-empty p {
+  color: var(--color-muted);
+}
+
+.readiness-context span,
+.unscheduled-session {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.week-track {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  list-style: none;
+}
+
+.week-track > li {
+  display: grid;
+  align-content: start;
+  gap: var(--space-sm);
+  min-width: 0;
+  min-height: 154px;
+  padding: 12px 10px;
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.week-track > li:first-child {
+  border-inline-start: 0;
+}
+
+.week-track > li.today {
+  background: var(--color-plan);
+  box-shadow: inset 0 4px 0 var(--color-primary);
+}
+
+.day-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.day-heading span,
+.today-label {
+  color: var(--color-label);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.day-heading strong {
+  color: var(--color-ink);
+  font-size: 1.05rem;
+}
+
+.today-label,
+.unscheduled-session {
+  color: var(--color-primary-deep);
+}
+
+.day-activities {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.day-activities strong,
+.day-activities span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-activities > span:last-child:not(.day-without-activity) {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.strava-origin {
+  color: var(--color-integration);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.day-without-activity {
+  color: var(--color-disabled);
+  font-weight: 800;
+}
+
+.weekly-plan-heading h3 {
+  color: var(--color-ink);
+  font-size: 1.1rem;
+}
+
+.plan-reason {
+  max-width: 42ch;
+  text-align: right;
+}
+
+.weekly-plan-sessions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekly-plan-sessions > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 14px;
+}
+
+.session-number {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: 800;
+}
+
+.weekly-plan-sessions details {
+  grid-column: 2 / -1;
+}
+
+.weekly-plan-sessions summary {
+  width: fit-content;
+  min-height: 44px;
+  color: var(--color-primary-deep);
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 44px;
+}
+
+.weekly-plan-sessions details p {
+  max-width: 65ch;
+  margin: 0 0 4px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.weekly-plan-empty {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+
+@media (max-width: 680px) {
+  .weekly-rhythm {
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+
+  .weekly-rhythm-heading,
+  .weekly-plan-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .readiness-context,
+  .plan-reason {
+    text-align: left;
+  }
+
+  .week-track > li {
+    min-height: 112px;
+    padding: 10px 4px;
+  }
+
+  .day-heading {
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .today-label,
+  .day-activities > span:last-child:not(.day-without-activity) {
+    display: none;
+  }
+
+  .day-activities {
+    text-align: center;
+  }
+
+  .day-activities strong {
+    font-size: 0.75rem;
+  }
+
+  .strava-origin {
+    font-size: 0.58rem;
+  }
+
+  .weekly-plan-sessions {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-plan-sessions > li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .unscheduled-session,
+  .weekly-plan-sessions details {
+    grid-column: 2;
+  }
+}
