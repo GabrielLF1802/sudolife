@@ -8,6 +8,8 @@ import com.sudolife.application.service.strava.exception.StravaAccountLinkingExc
 import com.sudolife.application.service.strava.exception.StravaActivityNotFoundException;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
 import com.sudolife.application.service.training.exception.InvalidTrainingProfileException;
+import com.sudolife.application.service.training.exception.CoachingProfileRequiredException;
+import com.sudolife.application.service.training.exception.ConservativeRunningPlanNotRequiredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -64,6 +66,20 @@ public class RestExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidCoachingProfile(InvalidCoachingProfileException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(exception.getFailureCode(), exception.getMessage()));
+    }
+
+    @ExceptionHandler(CoachingProfileRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleCoachingProfileRequired(CoachingProfileRequiredException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("COACHING_PROFILE_REQUIRED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(ConservativeRunningPlanNotRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleConservativeRunningPlanNotRequired(
+            ConservativeRunningPlanNotRequiredException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("CONSERVATIVE_RUNNING_PLAN_NOT_REQUIRED", exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

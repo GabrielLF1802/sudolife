@@ -125,6 +125,53 @@ button {
   padding: 18px;
 }
 
+.conservative-plan-panel {
+  display: grid;
+  gap: 18px;
+  border: 1px solid #b7c8bc;
+  border-radius: 8px;
+  background: #f4f8f4;
+  padding: 18px;
+}
+
+.conservative-plan-heading {
+  display: grid;
+  gap: 6px;
+}
+
+.conservative-plan-heading span,
+.planned-session-list span {
+  color: #52645c;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.conservative-plan-heading p,
+.planned-session-list p {
+  margin: 0;
+  color: #4c5b54;
+  line-height: 1.5;
+}
+
+.planned-session-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planned-session-list li {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #dbe3df;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
 .training-profile-panel > div,
 .training-profile-panel label {
   display: grid;
@@ -338,5 +385,9 @@ dd {
 
   dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planned-session-list {
+    grid-template-columns: 1fr;
   }
 }

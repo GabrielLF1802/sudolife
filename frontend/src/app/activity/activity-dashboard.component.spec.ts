@@ -38,24 +38,22 @@ describe('ActivityDashboardComponent', () => {
       }),
     );
 
-    trainingProfileService = jasmine.createSpyObj<TrainingProfileService>('TrainingProfileService', [
-      'get',
-      'save',
-    ]);
-    trainingProfileService.get.and.returnValue(
-      of(trainingProfile(null, false, 'UNAVAILABLE')),
+    trainingProfileService = jasmine.createSpyObj<TrainingProfileService>(
+      'TrainingProfileService',
+      ['get', 'save'],
     );
-    trainingProfileService.save.and.returnValue(
-      of(trainingProfile(1990, true, 'AGE_BASED')),
-    );
+    trainingProfileService.get.and.returnValue(of(trainingProfile(null, false, 'UNAVAILABLE')));
+    trainingProfileService.save.and.returnValue(of(trainingProfile(1990, true, 'AGE_BASED')));
 
-    coachingProfileService = jasmine.createSpyObj<CoachingProfileService>('CoachingProfileService', [
-      'get',
-      'getRunningHistory',
-      'save',
-    ]);
+    coachingProfileService = jasmine.createSpyObj<CoachingProfileService>(
+      'CoachingProfileService',
+      ['get', 'getRunningHistory', 'generateConservativeRunningPlan', 'save'],
+    );
     coachingProfileService.get.and.returnValue(of(coachingProfile(false)));
     coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(false)));
+    coachingProfileService.generateConservativeRunningPlan.and.returnValue(
+      of(conservativeRunningPlan()),
+    );
     coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
 
     await TestBed.configureTestingModule({
@@ -258,6 +256,24 @@ describe('ActivityDashboardComponent', () => {
     expect(coachingInput('input[aria-label="Distancia alvo em quilometros"]').value).toBe('10');
     expect(coachingInput('input[aria-label="Ritmo alvo por quilometro"]').value).toBe('5:30');
     expect(coachingInput('input[aria-label="Data alvo"]').value).toBe('2026-05-12');
+  });
+
+  it('should_render_conservative_classification_and_planned_sessions_for_incomplete_history', () => {
+    coachingProfileService.get.and.returnValue(
+      of({
+        ...coachingProfile(true),
+        readiness: 'MODERATE',
+        injuryConcern: false,
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(coachingProfileService.generateConservativeRunningPlan).toHaveBeenCalled();
+    expect(pageText()).toContain('Plano conservador');
+    expect(pageText()).toContain('Corrida leve');
+    expect(pageText()).toContain('3 km');
+    expect(pageText()).toContain('Esforco percebido 2-4');
   });
 
   it('should_save_coaching_profiles_with_low_readiness_and_injury_concern', () => {
@@ -546,6 +562,32 @@ describe('ActivityDashboardComponent', () => {
       totalDistanceKilometers: sufficientRunningHistory ? 18 : 5,
       totalMovingTimeSeconds: sufficientRunningHistory ? 5400 : 1800,
       latestRunAt: '2026-07-08T12:00:00Z',
+    };
+  }
+
+  function conservativeRunningPlan() {
+    return {
+      classification: 'CONSERVATIVE' as const,
+      reasons: ['INSUFFICIENT_HISTORY' as const],
+      longTermGoalDistanceKilometers: 21.1,
+      durationWeeks: 4,
+      sessionsPerWeek: 2,
+      weeklyProgressionPercent: 5,
+      plannedSessions: [
+        {
+          weekNumber: 1,
+          sessionNumber: 1,
+          type: 'EASY_RUN' as const,
+          distanceKilometers: 3,
+          target: {
+            type: 'PERCEIVED_EFFORT' as const,
+            minimumHeartRate: null,
+            maximumHeartRate: null,
+            minimumPerceivedEffort: 2,
+            maximumPerceivedEffort: 4,
+          },
+        },
+      ],
     };
   }
 

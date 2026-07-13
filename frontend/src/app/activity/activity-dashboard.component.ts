@@ -8,6 +8,8 @@ import { ActivityList, ActivityService } from './activity.service';
 import {
   CoachingProfile,
   CoachingProfileService,
+  ConservativeRunningPlan,
+  PlannedSession,
   RunningHistorySnapshot,
   UserReportedReadiness,
 } from './coaching-profile.service';
@@ -29,7 +31,6 @@ type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
   styleUrl: './activity-dashboard.component.scss',
 })
 export class ActivityDashboardComponent implements OnInit {
-
   private readonly authService = inject(AuthService);
   private readonly activityService = inject(ActivityService);
   private readonly stravaAccountService = inject(StravaAccountService);
@@ -43,6 +44,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly trainingProfile = signal<TrainingProfile | null>(null);
   protected readonly coachingProfile = signal<CoachingProfile | null>(null);
   protected readonly runningHistory = signal<RunningHistorySnapshot | null>(null);
+  protected readonly conservativeRunningPlan = signal<ConservativeRunningPlan | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
   protected readonly linking = signal(false);
@@ -123,7 +125,14 @@ export class ActivityDashboardComponent implements OnInit {
       coachingProfile: this.coachingProfileService.get(),
       runningHistory: this.coachingProfileService.getRunningHistory(),
     }).subscribe({
-      next: ({ currentUser, activityList, stravaLinkStatus, trainingProfile, coachingProfile, runningHistory }) => {
+      next: ({
+        currentUser,
+        activityList,
+        stravaLinkStatus,
+        trainingProfile,
+        coachingProfile,
+        runningHistory,
+      }) => {
         this.currentUser.set(currentUser);
         this.activityList.set(activityList);
         this.stravaLinkStatus.set(stravaLinkStatus);
@@ -133,6 +142,7 @@ export class ActivityDashboardComponent implements OnInit {
         this.birthYear.set(trainingProfile.birthYear?.toString() ?? '');
         this.fillCoachingProfileForm(coachingProfile);
         this.loading.set(false);
+        this.loadConservativeRunningPlan(coachingProfile, runningHistory);
       },
       error: () => {
         this.errorMessage.set('Nao foi possivel carregar o painel.');
@@ -323,6 +333,12 @@ export class ActivityDashboardComponent implements OnInit {
           this.coachingProfile.set(profile);
           this.fillCoachingProfileForm(profile);
           this.coachingProfileSuccessMessage.set('Dados de coaching salvos.');
+          this.conservativeRunningPlan.set(null);
+
+          const runningHistory = this.runningHistory();
+          if (runningHistory !== null) {
+            this.loadConservativeRunningPlan(profile, runningHistory);
+          }
         },
         error: () => {
           this.coachingProfileErrorMessage.set('Revise a meta e a prontidao informadas.');
@@ -344,6 +360,18 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     return 'Nao informada';
+  }
+
+  protected plannedSessionTypeLabel(session: PlannedSession): string {
+    return session.type === 'EASY_RUN' ? 'Corrida leve' : 'Corrida longa';
+  }
+
+  protected plannedSessionTargetLabel(session: PlannedSession): string {
+    if (session.target.type === 'HEART_RATE') {
+      return `${session.target.minimumHeartRate}-${session.target.maximumHeartRate} bpm`;
+    }
+
+    return `Esforco percebido ${session.target.minimumPerceivedEffort}-${session.target.maximumPerceivedEffort}`;
   }
 
   protected stravaActionLabel(status: StravaLinkStatus): string {
@@ -370,7 +398,10 @@ export class ActivityDashboardComponent implements OnInit {
     return 'Nao conectado';
   }
 
-  protected profileZoneStatusText(profile: TrainingProfile, status: StravaLinkStatus | null): string {
+  protected profileZoneStatusText(
+    profile: TrainingProfile,
+    status: StravaLinkStatus | null,
+  ): string {
     if (profile.heartRateZoneSource === 'STRAVA') {
       return 'Zonas de frequencia cardiaca importadas do Strava.';
     }
@@ -424,6 +455,26 @@ export class ActivityDashboardComponent implements OnInit {
     periodStart.setDate(periodStart.getDate() - this.selectedPeriodDays());
 
     return new Date(startDate) >= periodStart;
+  }
+
+  private loadConservativeRunningPlan(
+    coachingProfile: CoachingProfile,
+    runningHistory: RunningHistorySnapshot,
+  ): void {
+    const requiresConservativePlan =
+      coachingProfile.configured &&
+      !coachingProfile.injuryConcern &&
+      (!runningHistory.sufficientRunningHistory || coachingProfile.readiness === 'LOW');
+
+    if (!requiresConservativePlan) {
+      return;
+    }
+
+    this.coachingProfileService.generateConservativeRunningPlan().subscribe({
+      next: (plan) => this.conservativeRunningPlan.set(plan),
+      error: () =>
+        this.coachingProfileErrorMessage.set('Nao foi possivel gerar o plano conservador.'),
+    });
   }
 
   private selectedPeriodDays(): number {

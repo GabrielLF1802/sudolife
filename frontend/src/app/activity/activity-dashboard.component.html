@@ -95,7 +95,10 @@
               }
             </strong>
             <p>{{ history.activeWeeks }} de 4 semanas com corridas</p>
-            <p>{{ history.runningActivityCount }} corridas · {{ history.totalDistanceKilometers | number: '1.0-1' }} km</p>
+            <p>
+              {{ history.runningActivityCount }} corridas ·
+              {{ history.totalDistanceKilometers | number: '1.0-1' }} km
+            </p>
           </div>
         </section>
       }
@@ -147,7 +150,10 @@
     }
 
     @if (coachingProfile(); as profile) {
-      <section class="training-profile-panel coaching-profile-panel" aria-label="Dados para coaching">
+      <section
+        class="training-profile-panel coaching-profile-panel"
+        aria-label="Dados para coaching"
+      >
         <div>
           <span>Coaching</span>
           <strong>
@@ -241,6 +247,35 @@
         @if (coachingProfileErrorMessage()) {
           <p class="status error">{{ coachingProfileErrorMessage() }}</p>
         }
+      </section>
+    }
+
+    @if (conservativeRunningPlan(); as plan) {
+      <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
+        <div class="conservative-plan-heading">
+          <span>Plano conservador</span>
+          <strong>4 semanas com progressao controlada</strong>
+          <p>
+            Meta de longo prazo: {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km.
+            Este bloco reduz o estresse enquanto o historico e a prontidao evoluem.
+          </p>
+        </div>
+
+        <ol class="planned-session-list">
+          @for (
+            session of plan.plannedSessions;
+            track session.weekNumber + '-' + session.sessionNumber
+          ) {
+            <li>
+              <span>Semana {{ session.weekNumber }} · Sessao {{ session.sessionNumber }}</span>
+              <strong>{{ plannedSessionTypeLabel(session) }}</strong>
+              <p>
+                {{ session.distanceKilometers | number: '1.0-1' }} km ·
+                {{ plannedSessionTargetLabel(session) }}
+              </p>
+            </li>
+          }
+        </ol>
       </section>
     }
 

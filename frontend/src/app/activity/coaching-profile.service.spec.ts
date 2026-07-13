@@ -63,6 +63,17 @@ describe('CoachingProfileService', () => {
     request.flush({ sufficientRunningHistory: true });
   });
 
+  it('should_request_a_structured_conservative_running_plan', () => {
+    service.generateConservativeRunningPlan().subscribe((plan) => {
+      expect(plan.classification).toBe('CONSERVATIVE');
+      expect(plan.plannedSessions[0].type).toBe('EASY_RUN');
+    });
+
+    const request = httpTestingController.expectOne('/api/coaching-profiles/running-plan');
+    expect(request.request.method).toBe('POST');
+    request.flush(conservativeRunningPlan());
+  });
+
   function coachingProfile() {
     return {
       targetDistanceKilometers: 10,
@@ -71,6 +82,32 @@ describe('CoachingProfileService', () => {
       readiness: 'LOW',
       injuryConcern: true,
       configured: true,
+    };
+  }
+
+  function conservativeRunningPlan() {
+    return {
+      classification: 'CONSERVATIVE',
+      reasons: ['INSUFFICIENT_HISTORY'],
+      longTermGoalDistanceKilometers: 21.1,
+      durationWeeks: 4,
+      sessionsPerWeek: 2,
+      weeklyProgressionPercent: 5,
+      plannedSessions: [
+        {
+          weekNumber: 1,
+          sessionNumber: 1,
+          type: 'EASY_RUN',
+          distanceKilometers: 3,
+          target: {
+            type: 'PERCEIVED_EFFORT',
+            minimumHeartRate: null,
+            maximumHeartRate: null,
+            minimumPerceivedEffort: 2,
+            maximumPerceivedEffort: 4,
+          },
+        },
+      ],
     };
   }
 });

@@ -1,7 +1,9 @@
 package com.sudolife.adapter.driving.rest.training;
 
 import com.sudolife.application.service.training.CoachingProfileResult;
+import com.sudolife.application.service.training.ConservativeRunningPlanResult;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
+import com.sudolife.application.service.training.ports.provided.GenerateConservativeRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.RunningHistorySnapshotResult;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +26,12 @@ public class CoachingProfileController {
     private final GetCoachingProfileUseCase getCoachingProfileUseCase;
     private final SaveCoachingProfileUseCase saveCoachingProfileUseCase;
     private final GetRunningHistorySnapshotUseCase getRunningHistorySnapshotUseCase;
+    private final GenerateConservativeRunningPlanUseCase generateConservativeRunningPlanUseCase;
+
+    @PostMapping("/running-plan")
+    public ResponseEntity<ConservativeRunningPlanResult> generateRunningPlan(Authentication authentication) {
+        return ResponseEntity.ok(generateConservativeRunningPlanUseCase.execute(authentication.getName()));
+    }
 
     @GetMapping("/running-history")
     public ResponseEntity<RunningHistorySnapshotResult> getRunningHistory(Authentication authentication) {

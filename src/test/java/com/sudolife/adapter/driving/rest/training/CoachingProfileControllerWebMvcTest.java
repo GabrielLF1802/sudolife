@@ -1,10 +1,17 @@
 package com.sudolife.adapter.driving.rest.training;
 
 import com.sudolife.application.service.training.CoachingProfileResult;
+import com.sudolife.application.service.training.ConservativeRunningPlanClassification;
+import com.sudolife.application.service.training.ConservativeRunningPlanReason;
+import com.sudolife.application.service.training.ConservativeRunningPlanResult;
+import com.sudolife.application.service.training.PlannedSessionResult;
+import com.sudolife.application.service.training.PlannedSessionTargetResult;
+import com.sudolife.application.service.training.PlannedSessionType;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
 import com.sudolife.application.service.training.RunningHistorySnapshotResult;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
+import com.sudolife.application.service.training.ports.provided.GenerateConservativeRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.config.security.JwtAuthenticationFilter;
@@ -21,12 +28,14 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.time.Instant;
+import java.util.List;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,6 +60,29 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private GetRunningHistorySnapshotUseCase getRunningHistoryUseCase;
+
+    @MockitoBean
+    private GenerateConservativeRunningPlanUseCase generateConservativeRunningPlanUseCase;
+
+    @Test
+    void post_running_plan_returns_structured_conservative_plan_for_authenticated_user() throws Exception {
+        PlannedSessionResult session = new PlannedSessionResult(
+                1, 1, PlannedSessionType.EASY_RUN, 3.0, PlannedSessionTargetResult.perceivedEffort(4));
+        ConservativeRunningPlanResult result = new ConservativeRunningPlanResult(
+                ConservativeRunningPlanClassification.CONSERVATIVE,
+                List.of(ConservativeRunningPlanReason.INSUFFICIENT_HISTORY), 21.1, 4, 2, 5, List.of(session));
+        when(generateConservativeRunningPlanUseCase.execute("user@sudolife.com")).thenReturn(result);
+
+        mockMvc.perform(post("/api/coaching-profiles/running-plan")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.classification").value("CONSERVATIVE"))
+                .andExpect(jsonPath("$.reasons[0]").value("INSUFFICIENT_HISTORY"))
+                .andExpect(jsonPath("$.plannedSessions[0].type").value("EASY_RUN"))
+                .andExpect(jsonPath("$.plannedSessions[0].target.type").value("PERCEIVED_EFFORT"));
+
+        verify(generateConservativeRunningPlanUseCase).execute("user@sudolife.com");
+    }
 
     @Test
     void get_running_history_returns_snapshot_for_authenticated_user() throws Exception {
