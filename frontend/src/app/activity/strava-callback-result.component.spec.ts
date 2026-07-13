@@ -11,7 +11,7 @@ describe('StravaCallbackResultComponent', () => {
 
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Conexao concluida');
+    expect(fixture.nativeElement.textContent).toContain('Conexão concluída');
     expect(fixture.nativeElement.textContent).toContain('Sua conta Strava foi conectada.');
   });
 
@@ -20,7 +20,7 @@ describe('StravaCallbackResultComponent', () => {
 
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Conexao nao concluida');
+    expect(fixture.nativeElement.textContent).toContain('Conexão não concluída');
     expect(fixture.nativeElement.textContent).toContain('Autorize as permissoes solicitadas');
   });
 

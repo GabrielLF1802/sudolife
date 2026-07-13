@@ -135,7 +135,7 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Older Ride');
     expect(pageText()).not.toContain('Recent Run');
     expect(pageText()).not.toContain('Tempo Run');
-    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta pagina carregada.');
+    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta página carregada.');
   });
 
   it('should_filter_loaded_activity_page_by_period', () => {
@@ -147,7 +147,7 @@ describe('ActivityDashboardComponent', () => {
 
     expect(pageText()).toContain('Recent Run');
     expect(pageText()).not.toContain('Older Ride');
-    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta pagina carregada.');
+    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta página carregada.');
   });
 
   it('should_filter_loaded_activity_page_by_distance_in_kilometers', () => {
@@ -155,13 +155,13 @@ describe('ActivityDashboardComponent', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
-    typeDistanceValue('input[aria-label="Distancia minima em quilometros"]', '6');
-    typeDistanceValue('input[aria-label="Distancia maxima em quilometros"]', '15');
+    typeDistanceValue('input[aria-label="Distância mínima em quilômetros"]', '6');
+    typeDistanceValue('input[aria-label="Distância máxima em quilômetros"]', '15');
 
     expect(pageText()).toContain('Tempo Run');
     expect(pageText()).not.toContain('Recent Run');
     expect(pageText()).not.toContain('Older Ride');
-    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta pagina carregada.');
+    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta página carregada.');
   });
 
   it('should_show_filtered_empty_state_for_loaded_page_only', () => {
@@ -169,11 +169,11 @@ describe('ActivityDashboardComponent', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
-    typeDistanceValue('input[aria-label="Distancia minima em quilometros"]', '80');
+    typeDistanceValue('input[aria-label="Distância mínima em quilômetros"]', '80');
 
-    expect(pageText()).toContain('Mostrando 0 de 3 atividades nesta pagina carregada.');
+    expect(pageText()).toContain('Mostrando 0 de 3 atividades nesta página carregada.');
     expect(pageText()).toContain(
-      'Nenhuma atividade nesta pagina carregada corresponde aos filtros.',
+      'Nenhuma atividade nesta página carregada corresponde aos filtros.',
     );
     expect(pageText()).not.toContain('Recent Run');
   });
@@ -253,7 +253,7 @@ describe('ActivityDashboardComponent', () => {
 
     expect(pageText()).toContain('Meta atual: 10 km');
     expect(pageText()).toContain('Prontidao: Baixa - com preocupacao de lesao');
-    expect(coachingInput('input[aria-label="Distancia alvo em quilometros"]').value).toBe('10');
+    expect(coachingInput('input[aria-label="Distância alvo em quilômetros"]').value).toBe('10');
     expect(coachingInput('input[aria-label="Ritmo alvo por quilometro"]').value).toBe('5:30');
     expect(coachingInput('input[aria-label="Data alvo"]').value).toBe('2026-05-12');
   });
@@ -279,7 +279,7 @@ describe('ActivityDashboardComponent', () => {
   it('should_save_coaching_profiles_with_low_readiness_and_injury_concern', () => {
     fixture.detectChanges();
 
-    typeCoachingInput('input[aria-label="Distancia alvo em quilometros"]', '10');
+    typeCoachingInput('input[aria-label="Distância alvo em quilômetros"]', '10');
     typeCoachingInput('input[aria-label="Ritmo alvo por quilometro"]', '5:30');
     typeCoachingInput('input[aria-label="Data alvo"]', '2026-05-12');
     selectCoachingReadiness('LOW');
@@ -312,7 +312,7 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain(
-      'Conecte ou atualize a conexao com o Strava para importar atividades.',
+      'Conecte ou atualize a conexão com o Strava para importar atividades.',
     );
     expect(fixture.nativeElement.textContent).toContain('Atualizar permissoes');
     expect(fixture.nativeElement.textContent).not.toContain('Nenhuma atividade importada ainda.');

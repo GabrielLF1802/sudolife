@@ -84,14 +84,14 @@
 
     @if (trainingProfile(); as profile) {
       @if (runningHistory(); as history) {
-        <section class="training-profile-panel" aria-label="Historico recente de corrida">
+        <section class="training-profile-panel" aria-label="Histórico recente de corrida">
           <div>
-            <span>Historico de corrida</span>
+            <span>Histórico de corrida</span>
             <strong>
               @if (history.sufficientRunningHistory) {
-                Historico suficiente para um plano adaptativo normal
+                Histórico suficiente para um plano adaptativo normal
               } @else {
-                Historico insuficiente; o plano deve comecar de forma conservadora
+                Histórico insuficiente; o plano deve começar de forma conservadora
               }
             </strong>
             <p>{{ history.activeWeeks }} de 4 semanas com corridas</p>
@@ -173,7 +173,7 @@
 
         <form (submit)="$event.preventDefault(); saveCoachingProfile()">
           <label>
-            <span>Distancia alvo</span>
+            <span>Distância alvo</span>
             <input
               type="number"
               min="0.1"
@@ -181,7 +181,7 @@
               inputmode="decimal"
               [value]="targetDistanceKilometers()"
               (input)="updateTargetDistance($event)"
-              aria-label="Distancia alvo em quilometros"
+              aria-label="Distância alvo em quilômetros"
             />
           </label>
 
@@ -254,10 +254,10 @@
       <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
         <div class="conservative-plan-heading">
           <span>Plano conservador</span>
-          <strong>4 semanas com progressao controlada</strong>
+          <strong>4 semanas com progressão controlada</strong>
           <p>
             Meta de longo prazo: {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km.
-            Este bloco reduz o estresse enquanto o historico e a prontidao evoluem.
+            Este bloco reduz o estresse enquanto o histórico e a prontidão evoluem.
           </p>
         </div>
 
@@ -267,7 +267,7 @@
             track session.weekNumber + '-' + session.sessionNumber
           ) {
             <li>
-              <span>Semana {{ session.weekNumber }} · Sessao {{ session.sessionNumber }}</span>
+              <span>Semana {{ session.weekNumber }} · Sessão {{ session.sessionNumber }}</span>
               <strong>{{ plannedSessionTypeLabel(session) }}</strong>
               <p>
                 {{ session.distanceKilometers | number: '1.0-1' }} km ·
@@ -281,15 +281,15 @@
 
     @if (stravaLinkStatus(); as stravaStatus) {
       @if (!isSyncEnabled(stravaStatus)) {
-        <section class="empty-panel" aria-label="Conexao Strava pendente">
-          <strong>Atividades ainda nao sincronizadas</strong>
-          <p>Conecte ou atualize a conexao com o Strava para importar atividades.</p>
+        <section class="empty-panel" aria-label="Conexão Strava pendente">
+          <strong>Atividades ainda não sincronizadas</strong>
+          <p>Conecte ou atualize a conexão com o Strava para importar atividades.</p>
         </section>
       }
     }
 
     @if (activityList.activities.length > 0) {
-      <section class="activity-filters" aria-label="Filtros da pagina carregada">
+      <section class="activity-filters" aria-label="Filtros da página carregada">
         <label>
           <span>Tipo</span>
           <select [value]="selectedActivityType()" (change)="updateActivityTypeFilter($event)">
@@ -301,16 +301,16 @@
         </label>
 
         <label>
-          <span>Periodo</span>
+          <span>Período</span>
           <select [value]="selectedPeriod()" (change)="updatePeriodFilter($event)">
             <option value="ALL">Todos</option>
-            <option value="LAST_7_DAYS">Ultimos 7 dias</option>
-            <option value="LAST_30_DAYS">Ultimos 30 dias</option>
+            <option value="LAST_7_DAYS">Últimos 7 dias</option>
+            <option value="LAST_30_DAYS">Últimos 30 dias</option>
           </select>
         </label>
 
         <label>
-          <span>Distancia minima</span>
+          <span>Distância mínima</span>
           <input
             type="number"
             min="0"
@@ -318,12 +318,12 @@
             inputmode="decimal"
             [value]="minimumDistanceKilometers()"
             (input)="updateMinimumDistanceFilter($event)"
-            aria-label="Distancia minima em quilometros"
+            aria-label="Distância mínima em quilômetros"
           />
         </label>
 
         <label>
-          <span>Distancia maxima</span>
+          <span>Distância máxima</span>
           <input
             type="number"
             min="0"
@@ -331,7 +331,7 @@
             inputmode="decimal"
             [value]="maximumDistanceKilometers()"
             (input)="updateMaximumDistanceFilter($event)"
-            aria-label="Distancia maxima em quilometros"
+            aria-label="Distância máxima em quilômetros"
           />
         </label>
 
@@ -342,7 +342,7 @@
 
       <p class="filter-summary">
         Mostrando {{ filteredActivities().length }} de
-        {{ activityList.activities.length }} atividades nesta pagina carregada.
+        {{ activityList.activities.length }} atividades nesta página carregada.
       </p>
 
       <ul class="activity-list">
@@ -357,7 +357,7 @@
             </div>
             <dl>
               <div>
-                <dt>Distancia</dt>
+                <dt>Distância</dt>
                 <dd>{{ activity.distanceMeters / 1000 | number: '1.1-1' }} km</dd>
               </div>
               <div>
@@ -376,16 +376,16 @@
           </li>
         } @empty {
           <li class="empty-panel" aria-label="Sem resultados filtrados">
-            <strong>Nenhuma atividade nesta pagina carregada corresponde aos filtros.</strong>
+            <strong>Nenhuma atividade nesta página carregada corresponde aos filtros.</strong>
             <p>
-              Ajuste os filtros locais ou carregue outra pagina para analisar outras atividades.
+              Ajuste os filtros locais ou carregue outra página para analisar outras atividades.
             </p>
           </li>
         }
       </ul>
 
-      <nav class="pagination" aria-label="Paginacao de atividades">
-        <span>Pagina {{ activityList.page + 1 }} de {{ activityList.totalPages || 1 }}</span>
+      <nav class="pagination" aria-label="Paginação de atividades">
+        <span>Página {{ activityList.page + 1 }} de {{ activityList.totalPages || 1 }}</span>
         <div>
           <button
             type="button"
@@ -401,7 +401,7 @@
             [disabled]="pageLoading() || !hasNextPage(activityList)"
             (click)="loadPage(activityList.page + 1)"
           >
-            Proxima
+            Próxima
           </button>
         </div>
       </nav>
