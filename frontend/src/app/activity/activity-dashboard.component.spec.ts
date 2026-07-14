@@ -479,7 +479,7 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Sincronização não iniciada');
     expect(pageText()).toContain('Importadas0');
     expect(pageText()).toContain('Total4');
-    expect(pageText()).toContain('Atualize as permissoes do Strava para importar atividades.');
+    expect(pageText()).toContain('Atualize as permissões do Strava para importar atividades.');
     expect(pageText()).toContain('Atualizar permissões');
   });
 

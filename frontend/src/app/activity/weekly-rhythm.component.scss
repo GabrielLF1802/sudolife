@@ -30,13 +30,13 @@
 
 .weekly-rhythm-label {
   color: var(--color-primary-deep);
-  font-size: 0.82rem;
+  font-size: var(--font-size-label);
   font-weight: 800;
 }
 
 .weekly-rhythm h2 {
   color: var(--color-ink);
-  font-size: 2rem;
+  font-size: var(--font-size-headline);
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
@@ -62,7 +62,7 @@
 
 .readiness-context span,
 .unscheduled-session {
-  font-size: 0.78rem;
+  font-size: var(--font-size-label);
   font-weight: 800;
 }
 
@@ -105,13 +105,13 @@
 .day-heading span,
 .today-label {
   color: var(--color-label);
-  font-size: 0.72rem;
+  font-size: var(--font-size-label);
   font-weight: 800;
 }
 
 .day-heading strong {
   color: var(--color-ink);
-  font-size: 1.05rem;
+  font-size: var(--font-size-title);
 }
 
 .today-label,
@@ -134,12 +134,12 @@
 
 .day-activities > span:last-child:not(.day-without-activity) {
   color: var(--color-muted);
-  font-size: 0.75rem;
+  font-size: var(--font-size-label);
 }
 
 .strava-origin {
   color: var(--color-integration);
-  font-size: 0.68rem;
+  font-size: var(--font-size-label);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -151,7 +151,7 @@
 
 .weekly-plan-heading h3 {
   color: var(--color-ink);
-  font-size: 1.1rem;
+  font-size: var(--font-size-title);
 }
 
 .plan-reason {
@@ -250,11 +250,7 @@
   }
 
   .day-activities strong {
-    font-size: 0.75rem;
-  }
-
-  .strava-origin {
-    font-size: 0.58rem;
+    font-size: var(--font-size-label);
   }
 
   .weekly-plan-sessions {

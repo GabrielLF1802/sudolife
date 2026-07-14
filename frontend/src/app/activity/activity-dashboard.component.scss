@@ -18,16 +18,16 @@
 }
 
 .eyebrow {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-sm);
   color: var(--color-primary-deep);
-  font-size: 0.75rem;
+  font-size: var(--font-size-label);
   font-weight: 800;
 }
 
 h1 {
   margin: 0;
   color: var(--color-ink);
-  font-size: 2.75rem;
+  font-size: var(--font-size-display);
   line-height: 1.05;
   letter-spacing: -0.035em;
   text-wrap: balance;
@@ -36,7 +36,7 @@ h1 {
 .summary,
 .status {
   max-width: 65ch;
-  margin: 12px 0 0;
+  margin: var(--space-md) 0 0;
   color: var(--color-muted);
   line-height: 1.55;
   text-wrap: pretty;
@@ -112,7 +112,7 @@ button:disabled {
 .activity-filters span,
 dt {
   color: var(--color-label);
-  font-size: 0.78rem;
+  font-size: var(--font-size-label);
   font-weight: 800;
 }
 
@@ -251,7 +251,7 @@ dd {
 .conservative-plan-panel {
   display: grid;
   gap: var(--space-lg);
-  border: 1px solid #b7c8bc;
+  border: 1px solid var(--color-plan-border);
   border-radius: var(--radius-control);
   background: var(--color-plan);
   padding: var(--space-lg);
@@ -297,7 +297,6 @@ dd {
 .filter-summary {
   margin: 0;
   color: var(--color-label);
-  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -310,7 +309,7 @@ dd {
 
 .empty-panel strong {
   color: var(--color-ink);
-  font-size: 1.1rem;
+  font-size: var(--font-size-title);
 }
 
 .activity-list {
@@ -332,7 +331,7 @@ dd {
 }
 
 .activity-list li:not(.empty-panel):hover {
-  border-color: #b7c8bc;
+  border-color: var(--color-plan-border);
   background: var(--color-surface-soft);
 }
 
@@ -379,11 +378,6 @@ dd {
   gap: var(--space-md);
 }
 
-.error {
-  color: var(--color-error);
-  font-weight: 700;
-}
-
 @media (max-width: 900px) {
   .activity-filters {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
@@ -405,10 +399,6 @@ dd {
   .pagination {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  h1 {
-    font-size: 2.25rem;
   }
 
   .dashboard-header > button {

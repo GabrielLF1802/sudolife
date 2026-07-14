@@ -1,12 +1,12 @@
 <section class="dashboard" aria-labelledby="dashboard-title">
   <header class="dashboard-header">
     <div>
-      <p class="eyebrow">Painel</p>
-      <h1 id="dashboard-title">Atividades</h1>
+      <p class="eyebrow">Seu treino</p>
+      <h1 id="dashboard-title">Hoje</h1>
       @if (currentUser(); as user) {
         <p class="summary">{{ user.name }} - {{ user.email }}</p>
       } @else {
-        <p class="summary">Resumo das atividades importadas do atleta.</p>
+        <p class="summary">Sua semana, seu plano e o próximo passo do treino.</p>
       }
     </div>
 
@@ -78,6 +78,7 @@
               type="button"
               class="sync-action"
               [disabled]="syncing() || linking()"
+              [attr.aria-busy]="syncing()"
               (click)="requestActivitySync()"
             >
               @if (syncing()) {
@@ -91,6 +92,7 @@
               type="button"
               class="strava-action"
               [disabled]="linking()"
+              [attr.aria-busy]="linking()"
               (click)="startStravaLinking()"
             >
               @if (linking()) {
@@ -117,7 +119,7 @@
         }
 
         @if (syncResult(); as result) {
-          <section class="sync-result" aria-label="Resultado da sincronizacao">
+          <section class="sync-result" aria-label="Resultado da sincronização" aria-live="polite">
             <strong>{{ syncStatusLabel(result.status) }}</strong>
             <dl>
               <div>
@@ -184,7 +186,11 @@
               />
             </label>
 
-            <button type="submit" [disabled]="savingTrainingProfile()">
+            <button
+              type="submit"
+              [disabled]="savingTrainingProfile()"
+              [attr.aria-busy]="savingTrainingProfile()"
+            >
               @if (savingTrainingProfile()) {
                 Salvando...
               } @else {
@@ -298,7 +304,11 @@
               </section>
             }
 
-            <button type="submit" [disabled]="savingCoachingProfile()">
+            <button
+              type="submit"
+              [disabled]="savingCoachingProfile()"
+              [attr.aria-busy]="savingCoachingProfile()"
+            >
               @if (savingCoachingProfile()) {
                 Salvando...
               } @else {
@@ -383,6 +393,7 @@
             type="button"
             class="sync-action"
             [disabled]="syncing() || linking()"
+            [attr.aria-busy]="syncing()"
             (click)="requestActivitySync()"
           >
             @if (syncing()) {
@@ -530,7 +541,12 @@
         <section class="empty-panel" aria-label="Sem atividades importadas">
           <strong>Seu histórico ainda está vazio</strong>
           <p>Sincronize o Strava para importar seus treinos mais recentes.</p>
-          <button type="button" [disabled]="syncing()" (click)="requestActivitySync()">
+          <button
+            type="button"
+            [disabled]="syncing()"
+            [attr.aria-busy]="syncing()"
+            (click)="requestActivitySync()"
+          >
             @if (syncing()) {
               Sincronizando atividades...
             } @else {

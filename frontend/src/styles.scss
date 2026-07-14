@@ -17,6 +17,11 @@
   --color-error: #a43122;
   --color-disabled: #a6b7ae;
   --radius-control: 8px;
+  --font-size-label: 0.75rem;
+  --font-size-body: 1rem;
+  --font-size-title: 1.1rem;
+  --font-size-headline: 2rem;
+  --font-size-display: 2.75rem;
   --space-xs: 6px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -41,6 +46,20 @@ input,
 select,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+button[aria-busy='true'] {
+  cursor: wait;
+}
+
+input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+.error {
+  color: var(--color-error);
+  font-weight: 700;
 }
 
 button:focus-visible,
@@ -102,7 +121,8 @@ app-activity-dashboard .view-heading p {
 
 app-activity-dashboard .view-heading h2 {
   color: var(--color-ink);
-  font-size: 2rem;
+  font-size: var(--font-size-headline);
+  text-wrap: balance;
 }
 
 app-activity-dashboard .view-heading p {
@@ -133,7 +153,7 @@ app-activity-dashboard .settings-disclosure summary::after {
   right: 0;
   color: var(--color-primary-deep);
   content: '+';
-  font-size: 1.25rem;
+  font-size: var(--font-size-title);
   font-weight: 800;
   transform: translateY(-50%);
 }
@@ -145,6 +165,11 @@ app-activity-dashboard .settings-disclosure[open] summary::after {
 app-activity-dashboard .settings-disclosure summary:focus-visible {
   outline: 3px solid rgb(30 127 92 / 16%);
   outline-offset: var(--space-xs);
+}
+
+app-activity-dashboard .settings-disclosure summary:hover::after,
+app-activity-dashboard .settings-disclosure summary:focus-visible::after {
+  color: var(--color-primary-dark);
 }
 
 app-activity-dashboard .dashboard-skeleton,
@@ -164,6 +189,13 @@ app-activity-dashboard .dashboard-skeleton span {
   height: 18px;
   border-radius: var(--radius-control);
   background: var(--color-border);
+  animation: skeleton-pulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes skeleton-pulse {
+  to {
+    opacity: 0.45;
+  }
 }
 
 app-activity-dashboard .dashboard-skeleton span:first-child {
@@ -252,5 +284,7 @@ app-activity-dashboard .activity-main span {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

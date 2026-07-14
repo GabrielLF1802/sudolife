@@ -498,7 +498,7 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected syncFailureReasonLabel(failureReason: StravaActivitySyncFailureReason): string {
     if (failureReason === 'PERMISSION_UPGRADE_REQUIRED') {
-      return 'Atualize as permissoes do Strava para importar atividades.';
+      return 'Atualize as permissões do Strava para importar atividades.';
     }
 
     if (failureReason === 'SYNC_ALREADY_RUNNING') {
