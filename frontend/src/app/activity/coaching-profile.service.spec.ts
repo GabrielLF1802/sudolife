@@ -74,6 +74,33 @@ describe('CoachingProfileService', () => {
     request.flush(conservativeRunningPlan());
   });
 
+  it('should_load_the_running_goal_assessment', () => {
+    service.evaluateRunningGoal().subscribe((assessment) => {
+      expect(assessment.realistic).toBeFalse();
+      expect(assessment.longTermGoal.targetDistanceKilometers).toBe(42.2);
+      expect(assessment.safeMilestone.targetDistanceKilometers).toBe(7.3);
+    });
+
+    const request = httpTestingController.expectOne(
+      '/api/coaching-profiles/running-goal-assessment',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush({
+      realistic: false,
+      reasons: ['UNREALISTIC_DISTANCE'],
+      longTermGoal: {
+        targetDistanceKilometers: 42.2,
+        targetPaceSecondsPerKilometer: 240,
+        targetDate: '2026-10-01',
+      },
+      safeMilestone: {
+        targetDistanceKilometers: 7.3,
+        targetPaceSecondsPerKilometer: 332,
+        targetDate: '2026-08-11',
+      },
+    });
+  });
+
   function coachingProfile() {
     return {
       targetDistanceKilometers: 10,

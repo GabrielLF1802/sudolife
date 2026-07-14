@@ -9,11 +9,15 @@ import com.sudolife.application.service.training.PlannedSessionTargetResult;
 import com.sudolife.application.service.training.PlannedSessionType;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
 import com.sudolife.application.service.training.RunningHistorySnapshotResult;
+import com.sudolife.application.service.training.RunningGoalAssessmentReason;
+import com.sudolife.application.service.training.RunningGoalAssessmentResult;
+import com.sudolife.application.service.training.RunningGoalResult;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.GenerateConservativeRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
+import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
 import com.sudolife.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +67,30 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private GenerateConservativeRunningPlanUseCase generateConservativeRunningPlanUseCase;
+
+    @MockitoBean
+    private EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
+
+    @Test
+    void get_running_goal_assessment_returns_long_term_goal_and_safe_milestone() throws Exception {
+        RunningGoalAssessmentResult result = new RunningGoalAssessmentResult(
+                false,
+                List.of(RunningGoalAssessmentReason.UNREALISTIC_DISTANCE),
+                new RunningGoalResult(42.2, 330, LocalDate.parse("2026-10-01")),
+                new RunningGoalResult(7.3, 350, LocalDate.parse("2026-08-11"))
+        );
+        when(evaluateRunningGoalUseCase.execute("user@sudolife.com")).thenReturn(result);
+
+        mockMvc.perform(get("/api/coaching-profiles/running-goal-assessment")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.realistic").value(false))
+                .andExpect(jsonPath("$.reasons[0]").value("UNREALISTIC_DISTANCE"))
+                .andExpect(jsonPath("$.longTermGoal.targetDistanceKilometers").value(42.2))
+                .andExpect(jsonPath("$.safeMilestone.targetDistanceKilometers").value(7.3));
+
+        verify(evaluateRunningGoalUseCase).execute("user@sudolife.com");
+    }
 
     @Test
     void post_running_plan_returns_structured_conservative_plan_for_authenticated_user() throws Exception {

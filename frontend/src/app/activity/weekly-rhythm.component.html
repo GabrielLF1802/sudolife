@@ -36,6 +36,35 @@
     }
   </ol>
 
+  @if (goalAssessment(); as assessment) {
+    <section class="goal-assessment" aria-label="Meta de corrida e marco atual">
+      <article>
+        <span>Meta de longo prazo</span>
+        <strong>{{ assessment.longTermGoal.targetDistanceKilometers | number: '1.0-1' }} km</strong>
+        <p>
+          {{ paceLabel(assessment.longTermGoal.targetPaceSecondsPerKilometer) }} ·
+          {{ goalDateLabel(assessment.longTermGoal.targetDate) }}
+        </p>
+      </article>
+      <article class="safe-milestone">
+        <span>Marco seguro atual</span>
+        <strong>{{ assessment.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km</strong>
+        <p>
+          {{ paceLabel(assessment.safeMilestone.targetPaceSecondsPerKilometer) }} ·
+          {{ goalDateLabel(assessment.safeMilestone.targetDate) }}
+        </p>
+      </article>
+      @if (!assessment.realistic) {
+        <p class="goal-assessment-reasons">
+          Sua meta foi preservada. O marco atual considera
+          @for (reason of assessment.reasons; track reason; let last = $last) {
+            {{ goalReasonLabel(reason) }}{{ last ? '.' : ', ' }}
+          }
+        </p>
+      }
+    </section>
+  }
+
   @if (plan(); as currentPlan) {
     <div class="weekly-plan-heading">
       <div>

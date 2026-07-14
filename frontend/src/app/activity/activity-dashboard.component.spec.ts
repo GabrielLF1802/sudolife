@@ -47,10 +47,11 @@ describe('ActivityDashboardComponent', () => {
 
     coachingProfileService = jasmine.createSpyObj<CoachingProfileService>(
       'CoachingProfileService',
-      ['get', 'getRunningHistory', 'generateConservativeRunningPlan', 'save'],
+      ['get', 'getRunningHistory', 'evaluateRunningGoal', 'generateConservativeRunningPlan', 'save'],
     );
     coachingProfileService.get.and.returnValue(of(coachingProfile(false)));
     coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(false)));
+    coachingProfileService.evaluateRunningGoal.and.returnValue(of(runningGoalAssessment()));
     coachingProfileService.generateConservativeRunningPlan.and.returnValue(
       of(conservativeRunningPlan()),
     );
@@ -297,6 +298,18 @@ describe('ActivityDashboardComponent', () => {
     expect(coachingInput('input[aria-label="Distância alvo em quilômetros"]').value).toBe('10');
     expect(coachingInput('input[aria-label="Ritmo alvo por quilometro"]').value).toBe('5:30');
     expect(coachingInput('input[aria-label="Data alvo"]').value).toBe('2026-05-12');
+  });
+
+  it('should_distinguish_the_preserved_long_term_goal_from_the_safe_milestone', () => {
+    coachingProfileService.get.and.returnValue(of(coachingProfile(true)));
+
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Meta de longo prazo');
+    expect(pageText()).toContain('42.2 km');
+    expect(pageText()).toContain('Marco seguro atual');
+    expect(pageText()).toContain('7.3 km');
+    expect(pageText()).toContain('Sua meta foi preservada');
   });
 
   it('should_explain_plan_impact_and_medical_limit_when_injury_is_selected', () => {
@@ -711,6 +724,23 @@ describe('ActivityDashboardComponent', () => {
           },
         },
       ],
+    };
+  }
+
+  function runningGoalAssessment() {
+    return {
+      realistic: false,
+      reasons: ['UNREALISTIC_DISTANCE' as const],
+      longTermGoal: {
+        targetDistanceKilometers: 42.2,
+        targetPaceSecondsPerKilometer: 240,
+        targetDate: '2026-10-01',
+      },
+      safeMilestone: {
+        targetDistanceKilometers: 7.3,
+        targetPaceSecondsPerKilometer: 332,
+        targetDate: '2026-08-11',
+      },
     };
   }
 

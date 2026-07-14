@@ -30,6 +30,24 @@ export interface RunningHistorySnapshot {
   latestRunAt: string | null;
 }
 
+export type RunningGoalAssessmentReason =
+  | 'UNREALISTIC_DISTANCE'
+  | 'UNREALISTIC_PACE'
+  | 'UNREALISTIC_TARGET_DATE';
+
+export interface RunningGoalSummary {
+  targetDistanceKilometers: number;
+  targetPaceSecondsPerKilometer: number | null;
+  targetDate: string | null;
+}
+
+export interface RunningGoalAssessment {
+  realistic: boolean;
+  reasons: RunningGoalAssessmentReason[];
+  longTermGoal: RunningGoalSummary;
+  safeMilestone: RunningGoalSummary;
+}
+
 export type ConservativeRunningPlanReason = 'INSUFFICIENT_HISTORY' | 'LOW_READINESS';
 export type PlannedSessionType = 'EASY_RUN' | 'LONG_RUN';
 export type PlannedSessionTargetType = 'HEART_RATE' | 'PERCEIVED_EFFORT';
@@ -70,6 +88,12 @@ export class CoachingProfileService {
 
   getRunningHistory(): Observable<RunningHistorySnapshot> {
     return this.http.get<RunningHistorySnapshot>('/api/coaching-profiles/running-history');
+  }
+
+  evaluateRunningGoal(): Observable<RunningGoalAssessment> {
+    return this.http.get<RunningGoalAssessment>(
+      '/api/coaching-profiles/running-goal-assessment',
+    );
   }
 
   generateConservativeRunningPlan(): Observable<ConservativeRunningPlan> {

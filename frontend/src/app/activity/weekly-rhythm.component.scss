@@ -49,6 +49,45 @@
   gap: var(--space-xs);
 }
 
+.goal-assessment {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.goal-assessment article {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.goal-assessment .safe-milestone {
+  border-color: var(--color-plan-border);
+  background: var(--color-plan);
+}
+
+.goal-assessment span,
+.goal-assessment p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.goal-assessment span {
+  font-size: var(--font-size-label);
+  font-weight: 800;
+}
+
+.goal-assessment strong {
+  font-size: var(--font-size-title);
+}
+
+.goal-assessment-reasons {
+  grid-column: 1 / -1;
+  line-height: 1.5;
+}
+
 .readiness-context {
   text-align: right;
 }
@@ -255,6 +294,14 @@
 
   .weekly-plan-sessions {
     grid-template-columns: 1fr;
+  }
+
+  .goal-assessment {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-assessment-reasons {
+    grid-column: auto;
   }
 
   .weekly-plan-sessions > li {

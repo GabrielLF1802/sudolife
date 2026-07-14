@@ -10,6 +10,7 @@ import {
   CoachingProfileService,
   ConservativeRunningPlan,
   PlannedSession,
+  RunningGoalAssessment,
   RunningHistorySnapshot,
   UserReportedReadiness,
 } from './coaching-profile.service';
@@ -47,6 +48,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly coachingProfile = signal<CoachingProfile | null>(null);
   protected readonly runningHistory = signal<RunningHistorySnapshot | null>(null);
   protected readonly conservativeRunningPlan = signal<ConservativeRunningPlan | null>(null);
+  protected readonly runningGoalAssessment = signal<RunningGoalAssessment | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
   protected readonly planLoading = signal(false);
@@ -161,6 +163,7 @@ export class ActivityDashboardComponent implements OnInit {
         this.fillCoachingProfileForm(coachingProfile);
         this.loading.set(false);
         this.loadConservativeRunningPlan(coachingProfile, runningHistory);
+        this.loadRunningGoalAssessment(coachingProfile);
       },
       error: () => {
         this.errorMessage.set(
@@ -376,11 +379,13 @@ export class ActivityDashboardComponent implements OnInit {
             'Meta e prontidão salvas. Seu plano será atualizado com essas informações.',
           );
           this.conservativeRunningPlan.set(null);
+          this.runningGoalAssessment.set(null);
 
           const runningHistory = this.runningHistory();
           if (runningHistory !== null) {
             this.loadConservativeRunningPlan(profile, runningHistory);
           }
+          this.loadRunningGoalAssessment(profile);
         },
         error: () => {
           this.coachingProfileErrorMessage.set(
@@ -550,6 +555,17 @@ export class ActivityDashboardComponent implements OnInit {
             'Seu perfil foi preservado, mas não foi possível atualizar o plano.',
           ),
       });
+  }
+
+  private loadRunningGoalAssessment(coachingProfile: CoachingProfile): void {
+    if (!coachingProfile.configured) {
+      return;
+    }
+
+    this.coachingProfileService.evaluateRunningGoal().subscribe({
+      next: (assessment) => this.runningGoalAssessment.set(assessment),
+      error: () => this.runningGoalAssessment.set(null),
+    });
   }
 
   protected retryConservativeRunningPlan(): void {

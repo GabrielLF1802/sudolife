@@ -6,6 +6,8 @@ import {
   CoachingProfile,
   ConservativeRunningPlan,
   PlannedSession,
+  RunningGoalAssessment,
+  RunningGoalAssessmentReason,
   UserReportedReadiness,
 } from './coaching-profile.service';
 
@@ -25,6 +27,7 @@ export class WeeklyRhythmComponent {
   readonly activityList = input.required<ActivityList>();
   readonly coachingProfile = input.required<CoachingProfile>();
   readonly plan = input<ConservativeRunningPlan | null>(null);
+  readonly goalAssessment = input<RunningGoalAssessment | null>(null);
   private readonly currentDate = new Date();
 
   protected readonly weekDays = computed<WeekDay[]>(() => {
@@ -95,6 +98,37 @@ export class WeeklyRhythmComponent {
         reason === 'LOW_READINESS' ? 'prontidão baixa' : 'histórico recente insuficiente',
       )
       .join(' e ');
+  }
+
+  protected paceLabel(secondsPerKilometer: number | null): string {
+    if (secondsPerKilometer === null) {
+      return 'ritmo livre';
+    }
+
+    const minutes = Math.floor(secondsPerKilometer / 60);
+    const seconds = (secondsPerKilometer % 60).toString().padStart(2, '0');
+
+    return `${minutes}:${seconds} /km`;
+  }
+
+  protected goalReasonLabel(reason: RunningGoalAssessmentReason): string {
+    const labels: Record<RunningGoalAssessmentReason, string> = {
+      UNREALISTIC_DISTANCE: 'distância acima da progressão segura',
+      UNREALISTIC_PACE: 'ritmo mais rápido que o histórico atual permite',
+      UNREALISTIC_TARGET_DATE: 'prazo curto para uma progressão segura',
+    };
+
+    return labels[reason];
+  }
+
+  protected goalDateLabel(date: string | null): string {
+    if (date === null) {
+      return 'sem data definida';
+    }
+
+    const [year, month, day] = date.split('-');
+
+    return `${day}/${month}/${year}`;
   }
 
   private startOfDay(date: Date): Date {

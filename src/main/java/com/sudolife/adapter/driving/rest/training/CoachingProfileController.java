@@ -7,6 +7,8 @@ import com.sudolife.application.service.training.ports.provided.GenerateConserva
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.RunningHistorySnapshotResult;
+import com.sudolife.application.service.training.RunningGoalAssessmentResult;
+import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,12 @@ public class CoachingProfileController {
     private final SaveCoachingProfileUseCase saveCoachingProfileUseCase;
     private final GetRunningHistorySnapshotUseCase getRunningHistorySnapshotUseCase;
     private final GenerateConservativeRunningPlanUseCase generateConservativeRunningPlanUseCase;
+    private final EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
+
+    @GetMapping("/running-goal-assessment")
+    public ResponseEntity<RunningGoalAssessmentResult> evaluateRunningGoal(Authentication authentication) {
+        return ResponseEntity.ok(evaluateRunningGoalUseCase.execute(authentication.getName()));
+    }
 
     @PostMapping("/running-plan")
     public ResponseEntity<ConservativeRunningPlanResult> generateRunningPlan(Authentication authentication) {
