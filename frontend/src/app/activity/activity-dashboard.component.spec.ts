@@ -83,7 +83,7 @@ describe('ActivityDashboardComponent', () => {
   it('should_render_connect_action_when_strava_is_unlinked', () => {
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Nao conectado');
+    expect(fixture.nativeElement.textContent).toContain('Não conectado');
     expect(fixture.nativeElement.textContent).toContain('Conectar Strava');
   });
 
@@ -147,8 +147,8 @@ describe('ActivityDashboardComponent', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Permissoes incompletas');
-    expect(fixture.nativeElement.textContent).toContain('Atualizar permissoes');
+    expect(fixture.nativeElement.textContent).toContain('Permissões incompletas');
+    expect(fixture.nativeElement.textContent).toContain('Atualizar permissões');
   });
 
   it('should_render_imported_activity_summary_fields', () => {
@@ -158,12 +158,13 @@ describe('ActivityDashboardComponent', () => {
 
     const textContent = fixture.nativeElement.textContent;
     expect(textContent).toContain('Morning Run');
-    expect(textContent).toContain('RUN');
+    expect(textContent).toContain('Corrida');
     expect(textContent).toContain('10/05/2026 06:00');
     expect(textContent).toContain('5.0 km');
     expect(textContent).toContain('25 min');
     expect(textContent).toContain('5:00 /km');
-    expect(textContent).toContain('PENDING');
+    expect(textContent).toContain('Dados de desempenho');
+    expect(textContent).toContain('Sendo preparados');
   });
 
   it('should_filter_loaded_activity_page_by_type', () => {
@@ -176,7 +177,7 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Older Ride');
     expect(pageText()).not.toContain('Recent Run');
     expect(pageText()).not.toContain('Tempo Run');
-    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta página carregada.');
+    expect(pageText()).toContain('1 correspondem aos filtros.');
   });
 
   it('should_filter_loaded_activity_page_by_period', () => {
@@ -188,7 +189,7 @@ describe('ActivityDashboardComponent', () => {
 
     expect(pageText()).toContain('Recent Run');
     expect(pageText()).not.toContain('Older Ride');
-    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta página carregada.');
+    expect(pageText()).toContain('1 correspondem aos filtros.');
   });
 
   it('should_filter_loaded_activity_page_by_distance_in_kilometers', () => {
@@ -202,7 +203,7 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Tempo Run');
     expect(pageText()).not.toContain('Recent Run');
     expect(pageText()).not.toContain('Older Ride');
-    expect(pageText()).toContain('Mostrando 1 de 3 atividades nesta página carregada.');
+    expect(pageText()).toContain('1 correspondem aos filtros.');
   });
 
   it('should_show_filtered_empty_state_for_loaded_page_only', () => {
@@ -212,10 +213,8 @@ describe('ActivityDashboardComponent', () => {
 
     typeDistanceValue('input[aria-label="Distância mínima em quilômetros"]', '80');
 
-    expect(pageText()).toContain('Mostrando 0 de 3 atividades nesta página carregada.');
-    expect(pageText()).toContain(
-      'Nenhuma atividade nesta página carregada corresponde aos filtros.',
-    );
+    expect(pageText()).toContain('0 correspondem aos filtros.');
+    expect(pageText()).toContain('Nenhuma atividade desta página corresponde aos filtros.');
     expect(pageText()).not.toContain('Recent Run');
   });
 
@@ -223,7 +222,8 @@ describe('ActivityDashboardComponent', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Nenhuma atividade importada ainda.');
+    expect(fixture.nativeElement.textContent).toContain('Seu histórico ainda está vazio');
+    expect(fixture.nativeElement.textContent).toContain('Sincronizar atividades');
     expect(fixture.nativeElement.querySelector('.metrics')).toBeNull();
   });
 
@@ -240,7 +240,7 @@ describe('ActivityDashboardComponent', () => {
 
     fixture.detectChanges();
 
-    expect(pageText()).toContain('Coaching adaptativo habilitado');
+    expect(pageText()).toContain('Orientação de treino disponível');
     expect(pageText()).toContain('Zonas calculadas pelo ano de nascimento.');
     expect(trainingProfileInput().value).toBe('1990');
   });
@@ -251,7 +251,7 @@ describe('ActivityDashboardComponent', () => {
 
     fixture.detectChanges();
 
-    expect(pageText()).toContain('Zonas de frequencia cardiaca importadas do Strava.');
+    expect(pageText()).toContain('Zonas de frequência cardíaca importadas do Strava.');
     expect(pageText()).toContain('Reconectar Strava');
   });
 
@@ -263,8 +263,8 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(trainingProfileService.save).toHaveBeenCalledWith({ birthYear: 1990 });
-    expect(pageText()).toContain('Perfil de treino salvo.');
-    expect(pageText()).toContain('Coaching adaptativo habilitado');
+    expect(pageText()).toContain('Perfil salvo.');
+    expect(pageText()).toContain('Orientação de treino disponível');
   });
 
   it('should_show_training_profile_validation_error_when_save_fails', () => {
@@ -282,9 +282,9 @@ describe('ActivityDashboardComponent', () => {
   it('should_render_coaching_profiles_form_when_inputs_are_missing', () => {
     fixture.detectChanges();
 
-    expect(pageText()).toContain('Coaching');
+    expect(pageText()).toContain('Meta e prontidão');
     expect(pageText()).toContain('Informe sua meta de corrida');
-    expect(pageText()).toContain('Salvar coaching');
+    expect(pageText()).toContain('Salvar meta e prontidão');
   });
 
   it('should_render_current_coaching_profiles_when_saved', () => {
@@ -293,7 +293,7 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(pageText()).toContain('Meta atual: 10 km');
-    expect(pageText()).toContain('Prontidao: Baixa - com preocupacao de lesao');
+    expect(pageText()).toContain('Prontidão: Baixa · com preocupação de lesão');
     expect(coachingInput('input[aria-label="Distância alvo em quilômetros"]').value).toBe('10');
     expect(coachingInput('input[aria-label="Ritmo alvo por quilometro"]').value).toBe('5:30');
     expect(coachingInput('input[aria-label="Data alvo"]').value).toBe('2026-05-12');
@@ -380,7 +380,7 @@ describe('ActivityDashboardComponent', () => {
       readiness: 'LOW',
       injuryConcern: true,
     });
-    expect(pageText()).toContain('Dados de coaching salvos.');
+    expect(pageText()).toContain('Meta e prontidão salvas.');
   });
 
   it('should_show_coaching_profiles_validation_error_when_save_fails', () => {
@@ -401,8 +401,8 @@ describe('ActivityDashboardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Conecte ou atualize a conexão com o Strava para importar atividades.',
     );
-    expect(fixture.nativeElement.textContent).toContain('Atualizar permissoes');
-    expect(fixture.nativeElement.textContent).not.toContain('Nenhuma atividade importada ainda.');
+    expect(fixture.nativeElement.textContent).toContain('Atualizar permissões');
+    expect(fixture.nativeElement.textContent).not.toContain('Seu histórico ainda está vazio');
   });
 
   it('should_load_next_activity_page', () => {
@@ -444,7 +444,7 @@ describe('ActivityDashboardComponent', () => {
 
     expect(stravaAccountService.startLinking).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain(
-      'Nao foi possivel iniciar a conexao com o Strava.',
+      'Não foi possível abrir a conexão com o Strava.',
     );
   });
 
@@ -456,7 +456,7 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(stravaAccountService.requestSync).toHaveBeenCalled();
-    expect(pageText()).toContain('Sincronizacao solicitada');
+    expect(pageText()).toContain('Sincronização iniciada');
     expect(pageText()).toContain('Importadas2');
     expect(pageText()).toContain('Total12');
   });
@@ -476,11 +476,11 @@ describe('ActivityDashboardComponent', () => {
     syncButton().click();
     fixture.detectChanges();
 
-    expect(pageText()).toContain('Sincronizacao nao solicitada');
+    expect(pageText()).toContain('Sincronização não iniciada');
     expect(pageText()).toContain('Importadas0');
     expect(pageText()).toContain('Total4');
     expect(pageText()).toContain('Atualize as permissoes do Strava para importar atividades.');
-    expect(pageText()).toContain('Atualizar permissoes');
+    expect(pageText()).toContain('Atualizar permissões');
   });
 
   it('should_keep_dashboard_usable_when_manual_sync_request_fails', () => {
@@ -492,7 +492,7 @@ describe('ActivityDashboardComponent', () => {
     syncButton().click();
     fixture.detectChanges();
 
-    expect(pageText()).toContain('Nao foi possivel solicitar a sincronizacao.');
+    expect(pageText()).toContain('Não foi possível iniciar a sincronização.');
     expect(pageText()).toContain('Morning Run');
     expect(fixture.nativeElement.querySelector('.next-page').disabled).toBeFalse();
   });
@@ -582,7 +582,7 @@ describe('ActivityDashboardComponent', () => {
 
   function selectCoachingReadiness(value: string): void {
     const select = fixture.nativeElement.querySelector(
-      'select[aria-label="Prontidao reportada"]',
+      'select[aria-label="Prontidão informada"]',
     ) as HTMLSelectElement;
     select.value = value;
 
@@ -591,7 +591,7 @@ describe('ActivityDashboardComponent', () => {
   }
 
   function toggleInjuryConcern(checked: boolean): void {
-    const input = coachingInput('input[aria-label="Estou com preocupacao de lesao"]');
+    const input = coachingInput('input[aria-label="Estou com dor ou preocupação de lesão"]');
     input.checked = checked;
 
     input.dispatchEvent(new Event('change'));

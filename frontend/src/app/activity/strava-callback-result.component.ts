@@ -19,17 +19,17 @@ export class StravaCallbackResultComponent {
 
   protected message(): string {
     if (this.isSuccess()) {
-      return 'Sua conta Strava foi conectada.';
+      return 'Sua conta Strava foi conectada. Agora você pode sincronizar suas atividades.';
     }
 
     if (this.failureCode() === 'INSUFFICIENT_SCOPE') {
-      return 'Autorize as permissoes solicitadas para importar suas atividades.';
+      return 'Autorize as permissões de atividades no Strava para concluir a conexão e importar seus treinos.';
     }
 
     if (this.failureCode() === 'DUPLICATE_ATHLETE_OWNERSHIP') {
-      return 'Essa conta Strava ja esta conectada a outro atleta.';
+      return 'Essa conta Strava já está conectada a outro atleta. Volte e conecte uma conta diferente.';
     }
 
-    return 'Nao foi possivel conectar sua conta Strava.';
+    return 'Não foi possível conectar sua conta Strava. Volte ao painel e tente novamente.';
   }
 }

@@ -162,7 +162,7 @@
             <span>Perfil de treino</span>
             <strong>
               @if (profile.adaptiveCoachingEligible) {
-                Coaching adaptativo habilitado
+                Orientação de treino disponível
               } @else {
                 Informe seu ano de nascimento
               }
@@ -206,7 +206,7 @@
       @if (coachingProfile(); as profile) {
         <details class="training-profile-panel coaching-profile-panel">
           <summary>
-            <span>Coaching</span>
+            <span>Meta e prontidão</span>
             <strong>
               @if (profile.configured) {
                 Meta atual: {{ profile.targetDistanceKilometers | number: '1.0-1' }} km
@@ -215,9 +215,9 @@
               }
             </strong>
             <p>
-              Prontidao: {{ readinessLabel(profile.readiness) }}
+              Prontidão: {{ readinessLabel(profile.readiness) }}
               @if (profile.injuryConcern) {
-                - com preocupacao de lesao
+                · com preocupação de lesão
               }
             </p>
           </summary>
@@ -259,11 +259,11 @@
             </label>
 
             <label>
-              <span>Prontidao</span>
+              <span>Prontidão para treinar</span>
               <select
                 [value]="readiness()"
                 (change)="updateReadiness($event)"
-                aria-label="Prontidao reportada"
+                aria-label="Prontidão informada"
                 aria-describedby="readiness-guidance"
               >
                 <option value="">Selecione</option>
@@ -283,9 +283,9 @@
                 type="checkbox"
                 [checked]="injuryConcern()"
                 (change)="updateInjuryConcern($event)"
-                aria-label="Estou com preocupacao de lesao"
+                aria-label="Estou com dor ou preocupação de lesão"
               />
-              <span>Preocupacao de lesao</span>
+              <span>Estou com dor ou preocupação de lesão</span>
             </label>
 
             @if (injuryConcern()) {
@@ -302,7 +302,7 @@
               @if (savingCoachingProfile()) {
                 Salvando...
               } @else {
-                Salvar coaching
+                Salvar meta e prontidão
               }
             </button>
           </form>
@@ -404,13 +404,13 @@
       }
 
       @if (activityList.activities.length > 0) {
-        <section class="activity-filters" aria-label="Filtros da página carregada">
+        <section class="activity-filters" aria-label="Filtros das atividades exibidas">
           <label>
             <span>Tipo</span>
             <select [value]="selectedActivityType()" (change)="updateActivityTypeFilter($event)">
               <option value="ALL">Todos</option>
               @for (activityType of activityTypes(); track $index) {
-                <option [value]="activityType">{{ activityType }}</option>
+                <option [value]="activityType">{{ activityTypeLabel(activityType) }}</option>
               }
             </select>
           </label>
@@ -451,13 +451,13 @@
           </label>
 
           <button type="button" [disabled]="!hasActiveFilters()" (click)="clearActivityFilters()">
-            Limpar
+            Limpar filtros
           </button>
         </section>
 
         <p class="filter-summary">
-          Mostrando {{ filteredActivities().length }} de
-          {{ activityList.activities.length }} atividades nesta página carregada.
+          Os filtros consideram as {{ activityList.activities.length }} atividades desta página.
+          {{ filteredActivities().length }} correspondem aos filtros.
         </p>
 
         @if (pageErrorMessage()) {
@@ -473,7 +473,7 @@
               <div class="activity-main">
                 <strong>{{ activity.name }}</strong>
                 <span
-                  >{{ activity.sportType }} -
+                  >{{ activityTypeLabel(activity.sportType) }} ·
                   {{ activity.startDate | date: 'dd/MM/yyyy HH:mm' }}</span
                 >
               </div>
@@ -491,17 +491,16 @@
                   <dd>{{ paceOrSpeedLabel(activity) }}</dd>
                 </div>
                 <div>
-                  <dt>Streams</dt>
-                  <dd>{{ activity.streamStatus }}</dd>
+                  <dt>Dados de desempenho</dt>
+                  <dd>{{ performanceDataStatusLabel(activity.streamStatus) }}</dd>
                 </div>
               </dl>
             </li>
           } @empty {
             <li class="empty-panel" aria-label="Sem resultados filtrados">
-              <strong>Nenhuma atividade nesta página carregada corresponde aos filtros.</strong>
-              <p>
-                Ajuste os filtros locais ou carregue outra página para analisar outras atividades.
-              </p>
+              <strong>Nenhuma atividade desta página corresponde aos filtros.</strong>
+              <p>Limpe os filtros ou navegue pelas outras páginas do histórico.</p>
+              <button type="button" (click)="clearActivityFilters()">Limpar filtros</button>
             </li>
           }
         </ul>
@@ -529,8 +528,15 @@
         </nav>
       } @else if (shouldShowImportedEmptyState(stravaLinkStatus())) {
         <section class="empty-panel" aria-label="Sem atividades importadas">
-          <strong>Nenhuma atividade importada ainda.</strong>
-          <p>As atividades importadas aparecem aqui em ordem da mais recente para a mais antiga.</p>
+          <strong>Seu histórico ainda está vazio</strong>
+          <p>Sincronize o Strava para importar seus treinos mais recentes.</p>
+          <button type="button" [disabled]="syncing()" (click)="requestActivitySync()">
+            @if (syncing()) {
+              Sincronizando atividades...
+            } @else {
+              Sincronizar atividades
+            }
+          </button>
         </section>
       }
     </div>

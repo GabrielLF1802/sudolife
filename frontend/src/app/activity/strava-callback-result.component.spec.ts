@@ -21,7 +21,7 @@ describe('StravaCallbackResultComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Conexão não concluída');
-    expect(fixture.nativeElement.textContent).toContain('Autorize as permissoes solicitadas');
+    expect(fixture.nativeElement.textContent).toContain('Autorize as permissões de atividades');
   });
 
   async function createComponent(

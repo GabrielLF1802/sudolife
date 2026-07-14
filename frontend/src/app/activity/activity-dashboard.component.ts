@@ -303,7 +303,9 @@ export class ActivityDashboardComponent implements OnInit {
       },
       error: () => {
         this.linking.set(false);
-        this.linkingErrorMessage.set('Nao foi possivel iniciar a conexao com o Strava.');
+        this.linkingErrorMessage.set(
+          'Não foi possível abrir a conexão com o Strava. Verifique sua conexão e tente novamente.',
+        );
       },
     });
   }
@@ -321,7 +323,9 @@ export class ActivityDashboardComponent implements OnInit {
           this.syncResult.set(result);
         },
         error: () => {
-          this.syncErrorMessage.set('Nao foi possivel solicitar a sincronizacao.');
+          this.syncErrorMessage.set(
+            'Não foi possível iniciar a sincronização. Verifique sua conexão e tente novamente.',
+          );
         },
       });
   }
@@ -338,7 +342,9 @@ export class ActivityDashboardComponent implements OnInit {
         next: (profile) => {
           this.trainingProfile.set(profile);
           this.birthYear.set(profile.birthYear?.toString() ?? '');
-          this.trainingProfileSuccessMessage.set('Perfil de treino salvo.');
+          this.trainingProfileSuccessMessage.set(
+            'Perfil salvo. O ano de nascimento já pode orientar seus treinos.',
+          );
         },
         error: () => {
           this.trainingProfileErrorMessage.set(
@@ -366,7 +372,9 @@ export class ActivityDashboardComponent implements OnInit {
         next: (profile) => {
           this.coachingProfile.set(profile);
           this.fillCoachingProfileForm(profile);
-          this.coachingProfileSuccessMessage.set('Dados de coaching salvos.');
+          this.coachingProfileSuccessMessage.set(
+            'Meta e prontidão salvas. Seu plano será atualizado com essas informações.',
+          );
           this.conservativeRunningPlan.set(null);
 
           const runningHistory = this.runningHistory();
@@ -395,7 +403,7 @@ export class ActivityDashboardComponent implements OnInit {
       return 'Alta';
     }
 
-    return 'Nao informada';
+    return 'Não informada';
   }
 
   protected plannedSessionTypeLabel(session: PlannedSession): string {
@@ -407,12 +415,35 @@ export class ActivityDashboardComponent implements OnInit {
       return `${session.target.minimumHeartRate}-${session.target.maximumHeartRate} bpm`;
     }
 
-    return `Esforco percebido ${session.target.minimumPerceivedEffort}-${session.target.maximumPerceivedEffort}`;
+    return `Esforço percebido ${session.target.minimumPerceivedEffort}-${session.target.maximumPerceivedEffort}`;
+  }
+
+  protected activityTypeLabel(activityType: string): string {
+    const labels: Record<string, string> = {
+      RUN: 'Corrida',
+      WALK: 'Caminhada',
+      RIDE: 'Pedalada',
+      WEIGHT_TRAINING: 'Musculação',
+    };
+
+    return labels[activityType] ?? 'Outra atividade';
+  }
+
+  protected performanceDataStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      IMPORTED: 'Disponíveis',
+      COMPLETED: 'Disponíveis',
+      PENDING: 'Sendo preparados',
+      RUNNING: 'Sendo preparados',
+      FAILED: 'Indisponíveis no momento',
+    };
+
+    return labels[status] ?? 'Ainda não disponíveis';
   }
 
   protected stravaActionLabel(status: StravaLinkStatus): string {
     if (status.permissionState === 'PERMISSION_UPGRADE_REQUIRED') {
-      return 'Atualizar permissoes';
+      return 'Atualizar permissões';
     }
 
     if (status.linked) {
@@ -424,14 +455,14 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected stravaStatusText(status: StravaLinkStatus): string {
     if (status.permissionState === 'PERMISSION_UPGRADE_REQUIRED') {
-      return 'Permissoes incompletas';
+      return 'Permissões incompletas';
     }
 
     if (status.linked) {
       return `Conectado ao atleta ${status.athleteId}`;
     }
 
-    return 'Nao conectado';
+    return 'Não conectado';
   }
 
   protected profileZoneStatusText(
@@ -439,7 +470,7 @@ export class ActivityDashboardComponent implements OnInit {
     status: StravaLinkStatus | null,
   ): string {
     if (profile.heartRateZoneSource === 'STRAVA') {
-      return 'Zonas de frequencia cardiaca importadas do Strava.';
+      return 'Zonas de frequência cardíaca importadas do Strava.';
     }
 
     if (profile.heartRateZoneSource === 'AGE_BASED') {
@@ -447,22 +478,22 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     if (status?.profilePermissionState === 'OPTIONAL_UPGRADE_AVAILABLE') {
-      return 'Zonas do Strava sao opcionais; atualize a conexao para tentar importar.';
+      return 'As zonas do Strava são opcionais. Atualize a conexão para tentar importá-las.';
     }
 
-    return 'Zonas do Strava sao opcionais e nao bloqueiam o coaching.';
+    return 'As zonas do Strava são opcionais e não impedem a orientação de treino.';
   }
 
   protected syncStatusLabel(status: StravaActivitySyncStatus): string {
     if (status === 'COMPLETED') {
-      return 'Sincronizacao solicitada';
+      return 'Sincronização iniciada';
     }
 
     if (status === 'UNLINKED') {
-      return 'Strava nao conectado';
+      return 'Strava não conectado';
     }
 
-    return 'Sincronizacao nao solicitada';
+    return 'Sincronização não iniciada';
   }
 
   protected syncFailureReasonLabel(failureReason: StravaActivitySyncFailureReason): string {
@@ -471,14 +502,14 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     if (failureReason === 'SYNC_ALREADY_RUNNING') {
-      return 'Ja existe uma sincronizacao em andamento.';
+      return 'Já existe uma sincronização em andamento. Aguarde alguns instantes e atualize novamente.';
     }
 
     if (failureReason === 'STRAVA_RATE_LIMITED') {
-      return 'O Strava limitou novas sincronizacoes no momento.';
+      return 'O Strava limitou novas sincronizações no momento. Tente novamente mais tarde.';
     }
 
-    return 'O Strava esta indisponivel no momento.';
+    return 'O Strava está indisponível no momento. Tente novamente mais tarde.';
   }
 
   private matchesSelectedPeriod(startDate: string): boolean {

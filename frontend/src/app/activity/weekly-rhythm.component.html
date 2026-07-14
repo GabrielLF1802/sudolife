@@ -11,7 +11,7 @@
     </p>
   </div>
 
-  <ol class="week-track" aria-label="Atividades da semana na página carregada">
+  <ol class="week-track" aria-label="Atividades desta semana entre as atividades exibidas">
     @for (day of weekDays(); track day.date.getTime()) {
       <li [class.today]="day.isToday" [class.has-activity]="day.activities.length > 0">
         <div class="day-heading">
@@ -71,8 +71,8 @@
     </ol>
   } @else {
     <div class="weekly-plan-empty">
-      <strong>Nenhum plano conservador ativo</strong>
-      <p>A faixa mostra somente atividades importadas nesta página.</p>
+      <strong>Seu plano da semana ainda não está disponível</strong>
+      <p>Informe sua meta e prontidão abaixo para receber uma orientação de treino.</p>
     </div>
   }
 </section>
