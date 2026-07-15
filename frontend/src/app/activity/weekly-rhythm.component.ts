@@ -69,6 +69,10 @@ export class WeeklyRhythmComponent {
   }
 
   protected plannedSessionTypeLabel(session: PlannedSession): string {
+    if (session.type === 'RECOVERY') {
+      return 'Sessão de recuperação';
+    }
+
     return session.type === 'EASY_RUN' ? 'Corrida leve' : 'Corrida longa';
   }
 
@@ -94,9 +98,13 @@ export class WeeklyRhythmComponent {
 
   protected planReasonLabel(plan: ConservativeRunningPlan): string {
     return plan.reasons
-      .map((reason) =>
-        reason === 'LOW_READINESS' ? 'prontidão baixa' : 'histórico recente insuficiente',
-      )
+      .map((reason) => {
+        if (reason === 'INJURY_CONCERN') {
+          return 'a preocupação de lesão informada';
+        }
+
+        return reason === 'LOW_READINESS' ? 'prontidão baixa' : 'histórico recente insuficiente';
+      })
       .join(' e ');
   }
 

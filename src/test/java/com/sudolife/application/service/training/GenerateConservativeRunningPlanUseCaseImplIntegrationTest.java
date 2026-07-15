@@ -71,13 +71,32 @@ class GenerateConservativeRunningPlanUseCaseImplIntegrationTest {
     }
 
     @Test
+    void execute_with_injury_concern_returns_only_recovery_sessions_with_rpe_fallback() {
+        saveCoachingProfileUseCase.execute(USER_EMAIL, coachingCommand("HIGH", true));
+        saveRunsInThreeWeeks();
+
+        ConservativeRunningPlanResult result = generateUseCase.execute(USER_EMAIL);
+
+        assertThat(result.classification()).isEqualTo(ConservativeRunningPlanClassification.RECOVERY_ONLY);
+        assertThat(result.reasons()).containsExactly(ConservativeRunningPlanReason.INJURY_CONCERN);
+        assertThat(result.plannedSessions()).allSatisfy(session -> {
+            assertThat(session.type()).isEqualTo(PlannedSessionType.RECOVERY);
+            assertThat(session.target()).isEqualTo(PlannedSessionTargetResult.perceivedEffort(1, 3));
+        });
+    }
+
+    @Test
     void execute_without_a_coaching_profile_rejects_the_request() {
         assertThatThrownBy(() -> generateUseCase.execute(USER_EMAIL))
                 .hasMessage("A configured coaching profile is required");
     }
 
     private SaveCoachingProfileCommand coachingCommand(String readiness) {
-        return new SaveCoachingProfileCommand(21.1, 330, null, readiness, false);
+        return coachingCommand(readiness, false);
+    }
+
+    private SaveCoachingProfileCommand coachingCommand(String readiness, boolean injuryConcern) {
+        return new SaveCoachingProfileCommand(21.1, 330, null, readiness, injuryConcern);
     }
 
     private void saveRunsInThreeWeeks() {

@@ -10,11 +10,13 @@ import com.sudolife.application.service.training.ports.provided.GenerateConserva
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
 import com.sudolife.application.service.training.ports.required.TrainingProfileRepository;
+import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.ZoneOffset;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,7 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
     private final CoachingProfileRepository coachingProfileRepository;
     private final TrainingProfileRepository trainingProfileRepository;
     private final GetRunningHistorySnapshotUseCase runningHistoryUseCase;
+    private final TimeProvider timeProvider;
 
     @Override
     public ConservativeRunningPlanResult execute(String userEmail) {
@@ -35,7 +38,7 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
         RunningHistorySnapshotResult history = runningHistoryUseCase.execute(userEmail);
 
         if (coachingProfile.isInjuryConcern()) {
-            throw new ConservativeRunningPlanNotRequiredException();
+            return recoveryPlan(coachingProfile, recoveryTarget(userEmail));
         }
 
         List<ConservativeRunningPlanReason> reasons = reasons(coachingProfile, history);
@@ -95,18 +98,68 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
     }
 
     private PlannedSessionTargetResult target(String userEmail, boolean lowReadiness) {
-        TrainingProfile trainingProfile = trainingProfileRepository.findByUserEmail(userEmail).orElse(null);
+        List<TrainingHeartRateZone> zones = coachingHeartRateZones(userEmail);
 
-        if (trainingProfile == null || !trainingProfile.hasImportedHeartRateZones()) {
+        if (zones.isEmpty()) {
             return PlannedSessionTargetResult.perceivedEffort(lowReadiness ? 3 : 4);
         }
 
-        List<TrainingHeartRateZone> zones = trainingProfile.getImportedHeartRateZones();
         TrainingHeartRateZone firstZone = zones.getFirst();
         TrainingHeartRateZone upperEasyZone = zones.get(Math.min(1, zones.size() - 1));
 
         return PlannedSessionTargetResult.heartRate(
                 firstZone.minimumHeartRate(), upperEasyZone.maximumHeartRate());
+    }
+
+    private PlannedSessionTargetResult recoveryTarget(String userEmail) {
+        List<TrainingHeartRateZone> zones = coachingHeartRateZones(userEmail);
+
+        if (zones.isEmpty()) {
+            return PlannedSessionTargetResult.perceivedEffort(1, 3);
+        }
+
+        TrainingHeartRateZone firstZone = zones.getFirst();
+        TrainingHeartRateZone upperEasyZone = zones.get(Math.min(1, zones.size() - 1));
+
+        return PlannedSessionTargetResult.heartRate(
+                firstZone.minimumHeartRate(), upperEasyZone.maximumHeartRate());
+    }
+
+    private List<TrainingHeartRateZone> coachingHeartRateZones(String userEmail) {
+        int currentYear = timeProvider.now().atZone(ZoneOffset.UTC).getYear();
+
+        return trainingProfileRepository.findByUserEmail(userEmail)
+                .map(profile -> TrainingProfileResult.existing(
+                        profile.getBirthYear(), profile.getImportedHeartRateZones(), currentYear).heartRateZones())
+                .orElseGet(List::of);
+    }
+
+    private ConservativeRunningPlanResult recoveryPlan(
+            CoachingProfile coachingProfile,
+            PlannedSessionTargetResult target
+    ) {
+        return new ConservativeRunningPlanResult(
+                ConservativeRunningPlanClassification.RECOVERY_ONLY,
+                List.of(ConservativeRunningPlanReason.INJURY_CONCERN),
+                coachingProfile.getTargetDistanceKilometers(),
+                DURATION_WEEKS,
+                SESSIONS_PER_WEEK,
+                0,
+                recoverySessions(target)
+        );
+    }
+
+    private List<PlannedSessionResult> recoverySessions(PlannedSessionTargetResult target) {
+        List<PlannedSessionResult> sessions = new ArrayList<>();
+
+        for (int weekNumber = 1; weekNumber <= DURATION_WEEKS; weekNumber++) {
+            for (int sessionNumber = 1; sessionNumber <= SESSIONS_PER_WEEK; sessionNumber++) {
+                sessions.add(new PlannedSessionResult(
+                        weekNumber, sessionNumber, PlannedSessionType.RECOVERY, 0, target));
+            }
+        }
+
+        return List.copyOf(sessions);
     }
 
     private List<PlannedSessionResult> sessions(

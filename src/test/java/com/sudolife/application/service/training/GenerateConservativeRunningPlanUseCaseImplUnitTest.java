@@ -8,10 +8,12 @@ import com.sudolife.application.model.training.UserReportedReadiness;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
 import com.sudolife.application.service.training.ports.required.TrainingProfileRepository;
+import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -24,16 +26,21 @@ class GenerateConservativeRunningPlanUseCaseImplUnitTest {
     private final CoachingProfileRepository coachingProfileRepository = mock(CoachingProfileRepository.class);
     private final TrainingProfileRepository trainingProfileRepository = mock(TrainingProfileRepository.class);
     private final GetRunningHistorySnapshotUseCase runningHistoryUseCase = mock(GetRunningHistorySnapshotUseCase.class);
+    private final TimeProvider timeProvider = mock(TimeProvider.class);
     private final GenerateConservativeRunningPlanUseCaseImpl useCase =
             new GenerateConservativeRunningPlanUseCaseImpl(
-                    coachingProfileRepository, trainingProfileRepository, runningHistoryUseCase);
+                    coachingProfileRepository, trainingProfileRepository, runningHistoryUseCase, timeProvider);
+
+    private GenerateConservativeRunningPlanUseCaseImplUnitTest() {
+        when(timeProvider.now()).thenReturn(Instant.parse("2026-07-14T12:00:00Z"));
+    }
 
     @Test
     void execute_with_incomplete_history_returns_structured_conservative_plan_with_bounded_progression() {
         stubCoachingProfile(UserReportedReadiness.MODERATE);
         stubRunningHistory(false, 8.0, 2);
         when(trainingProfileRepository.findByUserEmail(USER_EMAIL))
-                .thenReturn(Optional.of(new TrainingProfile(1L, USER_EMAIL, 1990)));
+                .thenReturn(Optional.of(new TrainingProfile(1L, USER_EMAIL, null)));
 
         ConservativeRunningPlanResult result = useCase.execute(USER_EMAIL);
 
@@ -55,7 +62,7 @@ class GenerateConservativeRunningPlanUseCaseImplUnitTest {
         stubCoachingProfile(UserReportedReadiness.LOW);
         stubRunningHistory(true, 24.0, 4);
         when(trainingProfileRepository.findByUserEmail(USER_EMAIL))
-                .thenReturn(Optional.of(new TrainingProfile(1L, USER_EMAIL, 1990)));
+                .thenReturn(Optional.of(new TrainingProfile(1L, USER_EMAIL, null)));
 
         ConservativeRunningPlanResult result = useCase.execute(USER_EMAIL);
 
@@ -83,10 +90,52 @@ class GenerateConservativeRunningPlanUseCaseImplUnitTest {
         });
     }
 
+    @Test
+    void execute_with_injury_concern_and_heart_rate_zones_returns_only_heart_rate_recovery_sessions() {
+        stubInjuryConcernCoachingProfile();
+        stubRunningHistory(true, 24.0, 4);
+        TrainingProfile profile = new TrainingProfile(1L, USER_EMAIL, 1990,
+                List.of(new TrainingHeartRateZone(100, 120), new TrainingHeartRateZone(121, 140)));
+        when(trainingProfileRepository.findByUserEmail(USER_EMAIL)).thenReturn(Optional.of(profile));
+
+        ConservativeRunningPlanResult result = useCase.execute(USER_EMAIL);
+
+        assertThat(result.classification()).isEqualTo(ConservativeRunningPlanClassification.RECOVERY_ONLY);
+        assertThat(result.reasons()).containsExactly(ConservativeRunningPlanReason.INJURY_CONCERN);
+        assertThat(result.weeklyProgressionPercent()).isZero();
+        assertThat(result.plannedSessions()).allSatisfy(session -> {
+            assertThat(session.type()).isEqualTo(PlannedSessionType.RECOVERY);
+            assertThat(session.target()).isEqualTo(PlannedSessionTargetResult.heartRate(100, 140));
+        });
+    }
+
+    @Test
+    void execute_with_injury_concern_without_heart_rate_zones_returns_only_rpe_one_to_three_recovery_sessions() {
+        stubInjuryConcernCoachingProfile();
+        stubRunningHistory(true, 24.0, 4);
+        when(trainingProfileRepository.findByUserEmail(USER_EMAIL))
+                .thenReturn(Optional.of(new TrainingProfile(1L, USER_EMAIL, null)));
+
+        ConservativeRunningPlanResult result = useCase.execute(USER_EMAIL);
+
+        assertThat(result.plannedSessions()).allSatisfy(session -> {
+            assertThat(session.type()).isEqualTo(PlannedSessionType.RECOVERY);
+            assertThat(session.distanceKilometers()).isZero();
+            assertThat(session.target()).isEqualTo(PlannedSessionTargetResult.perceivedEffort(1, 3));
+        });
+    }
+
     private void stubCoachingProfile(UserReportedReadiness readiness) {
         RunningGoal runningGoal = new RunningGoal(21.1, 330, null);
         when(coachingProfileRepository.findByUserEmail(USER_EMAIL))
                 .thenReturn(Optional.of(new CoachingProfile(1L, USER_EMAIL, runningGoal, readiness, false)));
+    }
+
+    private void stubInjuryConcernCoachingProfile() {
+        RunningGoal runningGoal = new RunningGoal(42.2, 240, null);
+        when(coachingProfileRepository.findByUserEmail(USER_EMAIL))
+                .thenReturn(Optional.of(new CoachingProfile(
+                        1L, USER_EMAIL, runningGoal, UserReportedReadiness.HIGH, true)));
     }
 
     private void stubRunningHistory(boolean sufficient, double totalDistanceKilometers, int activityCount) {

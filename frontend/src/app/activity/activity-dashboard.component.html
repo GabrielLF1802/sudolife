@@ -297,10 +297,10 @@
 
             @if (injuryConcern()) {
               <section class="injury-guidance" role="status">
-                <strong>O plano não será gerado enquanto houver preocupação de lesão.</strong>
+                <strong>Seu plano terá apenas sessões de recuperação.</strong>
                 <p>
-                  Reduza ou interrompa o treino se houver dor. O Sudolife não substitui avaliação
-                  médica; procure um profissional de saúde antes de retomar a carga.
+                  Não haverá progressão de carga ou treino intenso enquanto essa preocupação estiver
+                  informada.
                 </p>
               </section>
             }
@@ -350,11 +350,17 @@
           <section class="conservative-plan-panel" aria-label="Plano de corrida conservador">
             <div class="conservative-plan-heading">
               <span>Próximas semanas</span>
-              <strong>Progressão controlada até a semana {{ plan.durationWeeks }}</strong>
-              <p>
-                Meta de longo prazo: {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km.
-                Este bloco reduz o estresse enquanto o histórico e a prontidão evoluem.
-              </p>
+              @if (plan.classification === 'RECOVERY_ONLY') {
+                <strong>Recuperação sem progressão de carga</strong>
+                <p>As sessões mantêm esforço baixo enquanto a preocupação estiver informada.</p>
+              } @else {
+                <strong>Progressão controlada até a semana {{ plan.durationWeeks }}</strong>
+                <p>
+                  Meta de longo prazo:
+                  {{ plan.longTermGoalDistanceKilometers | number: '1.0-1' }} km. Este bloco reduz o
+                  estresse enquanto o histórico e a prontidão evoluem.
+                </p>
+              }
             </div>
 
             <ol class="planned-session-list">
@@ -366,7 +372,9 @@
                   <span>Semana {{ session.weekNumber }} · Sessão {{ session.sessionNumber }}</span>
                   <strong>{{ plannedSessionTypeLabel(session) }}</strong>
                   <p>
-                    {{ session.distanceKilometers | number: '1.0-1' }} km ·
+                    @if (session.type !== 'RECOVERY') {
+                      {{ session.distanceKilometers | number: '1.0-1' }} km ·
+                    }
                     {{ plannedSessionTargetLabel(session) }}
                   </p>
                 </li>

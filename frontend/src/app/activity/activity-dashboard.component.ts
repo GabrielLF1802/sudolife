@@ -412,6 +412,10 @@ export class ActivityDashboardComponent implements OnInit {
   }
 
   protected plannedSessionTypeLabel(session: PlannedSession): string {
+    if (session.type === 'RECOVERY') {
+      return 'Sessão de recuperação';
+    }
+
     return session.type === 'EASY_RUN' ? 'Corrida leve' : 'Corrida longa';
   }
 
@@ -535,8 +539,9 @@ export class ActivityDashboardComponent implements OnInit {
   ): void {
     const requiresConservativePlan =
       coachingProfile.configured &&
-      !coachingProfile.injuryConcern &&
-      (!runningHistory.sufficientRunningHistory || coachingProfile.readiness === 'LOW');
+      (coachingProfile.injuryConcern ||
+        !runningHistory.sufficientRunningHistory ||
+        coachingProfile.readiness === 'LOW');
 
     if (!requiresConservativePlan) {
       this.planErrorMessage.set('');

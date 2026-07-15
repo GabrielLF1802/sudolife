@@ -312,13 +312,16 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Sua meta foi preservada');
   });
 
-  it('should_explain_plan_impact_and_medical_limit_when_injury_is_selected', () => {
+  it('should_display_recovery_sessions_without_medical_diagnosis_language_for_injury_concern', () => {
+    coachingProfileService.get.and.returnValue(of(coachingProfile(true)));
+    coachingProfileService.generateConservativeRunningPlan.and.returnValue(of(recoveryRunningPlan()));
     fixture.detectChanges();
 
-    toggleInjuryConcern(true);
-
-    expect(pageText()).toContain('O plano não será gerado');
-    expect(pageText()).toContain('não substitui avaliação médica');
+    expect(coachingProfileService.generateConservativeRunningPlan).toHaveBeenCalled();
+    expect(pageText()).toContain('Sessão de recuperação');
+    expect(pageText()).toContain('Esforço percebido 1-3');
+    expect(pageText()).not.toContain('avaliação médica');
+    expect(pageText()).not.toContain('diagnóstico');
   });
 
   it('should_render_conservative_classification_and_planned_sessions_for_incomplete_history', () => {
@@ -721,6 +724,32 @@ describe('ActivityDashboardComponent', () => {
             maximumHeartRate: null,
             minimumPerceivedEffort: 2,
             maximumPerceivedEffort: 4,
+          },
+        },
+      ],
+    };
+  }
+
+  function recoveryRunningPlan() {
+    return {
+      classification: 'RECOVERY_ONLY' as const,
+      reasons: ['INJURY_CONCERN' as const],
+      longTermGoalDistanceKilometers: 42.2,
+      durationWeeks: 4,
+      sessionsPerWeek: 2,
+      weeklyProgressionPercent: 0,
+      plannedSessions: [
+        {
+          weekNumber: 1,
+          sessionNumber: 1,
+          type: 'RECOVERY' as const,
+          distanceKilometers: 0,
+          target: {
+            type: 'PERCEIVED_EFFORT' as const,
+            minimumHeartRate: null,
+            maximumHeartRate: null,
+            minimumPerceivedEffort: 1,
+            maximumPerceivedEffort: 3,
           },
         },
       ],

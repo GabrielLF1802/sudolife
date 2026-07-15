@@ -14,7 +14,19 @@ public record PlannedSessionTargetResult(
     }
 
     public static PlannedSessionTargetResult perceivedEffort(int maximumPerceivedEffort) {
+        return perceivedEffort(2, maximumPerceivedEffort);
+    }
+
+    public static PlannedSessionTargetResult perceivedEffort(
+            int minimumPerceivedEffort,
+            int maximumPerceivedEffort
+    ) {
         return new PlannedSessionTargetResult(
-                PlannedSessionTargetType.PERCEIVED_EFFORT, null, null, 2, maximumPerceivedEffort);
+                PlannedSessionTargetType.PERCEIVED_EFFORT,
+                null,
+                null,
+                minimumPerceivedEffort,
+                maximumPerceivedEffort
+        );
     }
 }

@@ -83,7 +83,9 @@
           <div class="session-summary">
             <strong>{{ plannedSessionTypeLabel(session) }}</strong>
             <span>
-              {{ session.distanceKilometers | number: '1.0-1' }} km ·
+              @if (session.type !== 'RECOVERY') {
+                {{ session.distanceKilometers | number: '1.0-1' }} km ·
+              }
               {{ plannedSessionTargetLabel(session) }}
             </span>
           </div>

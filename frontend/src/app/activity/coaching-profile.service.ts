@@ -48,8 +48,11 @@ export interface RunningGoalAssessment {
   safeMilestone: RunningGoalSummary;
 }
 
-export type ConservativeRunningPlanReason = 'INSUFFICIENT_HISTORY' | 'LOW_READINESS';
-export type PlannedSessionType = 'EASY_RUN' | 'LONG_RUN';
+export type ConservativeRunningPlanReason =
+  | 'INSUFFICIENT_HISTORY'
+  | 'LOW_READINESS'
+  | 'INJURY_CONCERN';
+export type PlannedSessionType = 'EASY_RUN' | 'LONG_RUN' | 'RECOVERY';
 export type PlannedSessionTargetType = 'HEART_RATE' | 'PERCEIVED_EFFORT';
 
 export interface PlannedSessionTarget {
@@ -69,7 +72,7 @@ export interface PlannedSession {
 }
 
 export interface ConservativeRunningPlan {
-  classification: 'CONSERVATIVE';
+  classification: 'CONSERVATIVE' | 'RECOVERY_ONLY';
   reasons: ConservativeRunningPlanReason[];
   longTermGoalDistanceKilometers: number;
   durationWeeks: number;
