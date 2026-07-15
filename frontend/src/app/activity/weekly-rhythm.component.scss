@@ -183,6 +183,12 @@
   text-transform: uppercase;
 }
 
+.planned-origin {
+  color: var(--color-primary-deep);
+  font-size: var(--font-size-label);
+  font-weight: 800;
+}
+
 .day-without-activity {
   color: var(--color-disabled);
   font-weight: 800;

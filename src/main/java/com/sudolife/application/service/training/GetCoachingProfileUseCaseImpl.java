@@ -26,6 +26,9 @@ public class GetCoachingProfileUseCaseImpl implements GetCoachingProfileUseCase 
                 profile.getTargetDate(),
                 profile.getReadiness().name(),
                 profile.isInjuryConcern(),
+                profile.getRunningAvailability().getPreferredRunningDays().stream()
+                        .map(java.time.DayOfWeek::name)
+                        .toList(),
                 true
         );
     }

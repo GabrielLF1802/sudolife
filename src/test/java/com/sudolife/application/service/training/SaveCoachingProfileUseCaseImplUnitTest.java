@@ -9,6 +9,7 @@ import com.sudolife.application.service.training.ports.required.CoachingProfileR
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static com.sudolife.helper.StravaTestHelper.NOW;
@@ -27,7 +28,8 @@ class SaveCoachingProfileUseCaseImplUnitTest {
     @Test
     void execute_saves_current_coaching_profiles() {
         when(repository.save(any())).thenReturn(savedCoachingProfile(null, UserReportedReadiness.LOW, true));
-        SaveCoachingProfileCommand command = command("LOW", true);
+        SaveCoachingProfileCommand command = new SaveCoachingProfileCommand(10.0, 330,
+                LocalDate.parse("2026-05-12"), "LOW", true, List.of("TUESDAY", "SATURDAY"));
 
         CoachingProfileResult result = useCase.execute("user@sudolife.com", command);
 
@@ -36,6 +38,7 @@ class SaveCoachingProfileUseCaseImplUnitTest {
         assertThat(result.targetDate()).isEqualTo(LocalDate.parse("2026-05-12"));
         assertThat(result.readiness()).isEqualTo("LOW");
         assertThat(result.injuryConcern()).isTrue();
+        assertThat(result.preferredRunningDays()).containsExactly("TUESDAY", "SATURDAY");
         assertThat(result.configured()).isTrue();
     }
 
@@ -96,6 +99,16 @@ class SaveCoachingProfileUseCaseImplUnitTest {
                 .hasMessage("Readiness is unsupported");
     }
 
+    @Test
+    void execute_rejects_invalid_preferred_running_days() {
+        SaveCoachingProfileCommand command = new SaveCoachingProfileCommand(10.0, 330, null,
+                "LOW", false, List.of("FUNDAY"));
+
+        assertThatThrownBy(() -> useCase.execute("user@sudolife.com", command))
+                .isInstanceOf(InvalidCoachingProfileException.class)
+                .hasMessage("Preferred running days are invalid");
+    }
+
     private SaveCoachingProfileCommand command(String readiness, boolean injuryConcern) {
         return new SaveCoachingProfileCommand(10.0, 330, LocalDate.parse("2026-05-12"), readiness, injuryConcern);
     }
@@ -106,7 +119,9 @@ class SaveCoachingProfileUseCaseImplUnitTest {
                 "user@sudolife.com",
                 new RunningGoal(10.0, 330, LocalDate.parse("2026-05-12")),
                 readiness,
-                injuryConcern
+                injuryConcern,
+                new com.sudolife.application.model.training.RunningAvailability(
+                        List.of(java.time.DayOfWeek.TUESDAY, java.time.DayOfWeek.SATURDAY))
         );
     }
 }

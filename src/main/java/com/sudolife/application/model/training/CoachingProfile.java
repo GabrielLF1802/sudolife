@@ -14,13 +14,15 @@ public class CoachingProfile {
     private RunningGoal runningGoal;
     private UserReportedReadiness readiness;
     private boolean injuryConcern;
+    private RunningAvailability runningAvailability;
 
     public CoachingProfile(
             Long id,
             String userEmail,
             RunningGoal runningGoal,
             UserReportedReadiness readiness,
-            boolean injuryConcern
+            boolean injuryConcern,
+            RunningAvailability runningAvailability
     ) {
         if (userEmail == null || userEmail.trim().isEmpty()) {
             throw new IllegalArgumentException("User email is invalid, null or empty");
@@ -39,6 +41,19 @@ public class CoachingProfile {
         this.runningGoal = runningGoal;
         this.readiness = readiness;
         this.injuryConcern = injuryConcern;
+        this.runningAvailability = runningAvailability == null
+                ? new RunningAvailability(null)
+                : runningAvailability;
+    }
+
+    public CoachingProfile(
+            Long id,
+            String userEmail,
+            RunningGoal runningGoal,
+            UserReportedReadiness readiness,
+            boolean injuryConcern
+    ) {
+        this(id, userEmail, runningGoal, readiness, injuryConcern, new RunningAvailability(null));
     }
 
     public double getTargetDistanceKilometers() {

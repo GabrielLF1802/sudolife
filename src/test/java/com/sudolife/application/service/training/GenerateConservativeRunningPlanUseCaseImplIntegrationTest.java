@@ -14,6 +14,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.util.List;
+
 import static com.sudolife.helper.StravaTestHelper.ACCESS_TOKEN;
 import static com.sudolife.helper.StravaTestHelper.ATHLETE_ID;
 import static com.sudolife.helper.StravaTestHelper.EXPIRES_AT;
@@ -55,6 +58,31 @@ class GenerateConservativeRunningPlanUseCaseImplIntegrationTest {
         assertThat(result.reasons()).containsExactly(ConservativeRunningPlanReason.INSUFFICIENT_HISTORY);
         assertThat(result.longTermGoalDistanceKilometers()).isEqualTo(21.1);
         assertThat(result.plannedSessions()).hasSize(8);
+        assertThat(result.plannedSessions()).extracting(session -> session.scheduledDate().getDayOfWeek())
+                .containsOnly(DayOfWeek.TUESDAY, DayOfWeek.SATURDAY);
+    }
+
+    @Test
+    void execute_with_persisted_running_availability_uses_preferred_days() {
+        saveCoachingProfileUseCase.execute(USER_EMAIL,
+                coachingCommand("MODERATE", false, List.of("WEDNESDAY", "SUNDAY")));
+
+        ConservativeRunningPlanResult result = generateUseCase.execute(USER_EMAIL);
+
+        assertThat(result.sessionsPerWeek()).isEqualTo(2);
+        assertThat(result.plannedSessions()).extracting(session -> session.scheduledDate().getDayOfWeek())
+                .containsOnly(DayOfWeek.WEDNESDAY, DayOfWeek.SUNDAY);
+    }
+
+    @Test
+    void execute_with_unsafe_persisted_availability_reduces_weekly_sessions() {
+        saveCoachingProfileUseCase.execute(USER_EMAIL,
+                coachingCommand("MODERATE", false, List.of("MONDAY", "TUESDAY")));
+
+        ConservativeRunningPlanResult result = generateUseCase.execute(USER_EMAIL);
+
+        assertThat(result.sessionsPerWeek()).isEqualTo(1);
+        assertThat(result.plannedSessions()).hasSize(4);
     }
 
     @Test
@@ -96,7 +124,15 @@ class GenerateConservativeRunningPlanUseCaseImplIntegrationTest {
     }
 
     private SaveCoachingProfileCommand coachingCommand(String readiness, boolean injuryConcern) {
-        return new SaveCoachingProfileCommand(21.1, 330, null, readiness, injuryConcern);
+        return coachingCommand(readiness, injuryConcern, List.of());
+    }
+
+    private SaveCoachingProfileCommand coachingCommand(
+            String readiness,
+            boolean injuryConcern,
+            List<String> preferredRunningDays
+    ) {
+        return new SaveCoachingProfileCommand(21.1, 330, null, readiness, injuryConcern, preferredRunningDays);
     }
 
     private void saveRunsInThreeWeeks() {

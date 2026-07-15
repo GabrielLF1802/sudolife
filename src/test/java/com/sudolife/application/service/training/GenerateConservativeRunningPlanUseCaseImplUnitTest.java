@@ -2,6 +2,7 @@ package com.sudolife.application.service.training;
 
 import com.sudolife.application.model.training.CoachingProfile;
 import com.sudolife.application.model.training.RunningGoal;
+import com.sudolife.application.model.training.RunningAvailability;
 import com.sudolife.application.model.training.TrainingHeartRateZone;
 import com.sudolife.application.model.training.TrainingProfile;
 import com.sudolife.application.model.training.UserReportedReadiness;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Optional;
 import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -48,6 +51,8 @@ class GenerateConservativeRunningPlanUseCaseImplUnitTest {
         assertThat(result.reasons()).containsExactly(ConservativeRunningPlanReason.INSUFFICIENT_HISTORY);
         assertThat(result.longTermGoalDistanceKilometers()).isEqualTo(21.1);
         assertThat(result.plannedSessions()).hasSize(8);
+        assertThat(result.plannedSessions()).extracting(PlannedSessionResult::scheduledDate)
+                .startsWith(LocalDate.parse("2026-07-18"), LocalDate.parse("2026-07-21"));
         assertThat(result.plannedSessions()).allSatisfy(session -> {
             assertThat(session.type()).isIn(PlannedSessionType.EASY_RUN, PlannedSessionType.LONG_RUN);
             assertThat(session.target().type()).isEqualTo(PlannedSessionTargetType.PERCEIVED_EFFORT);
@@ -55,6 +60,35 @@ class GenerateConservativeRunningPlanUseCaseImplUnitTest {
         });
         assertThat(maximumDistance(result, 4)).isLessThanOrEqualTo(maximumDistance(result, 1) * 1.16);
         assertThat(maximumDistance(result, 4)).isLessThan(result.longTermGoalDistanceKilometers());
+    }
+
+    @Test
+    void execute_with_running_availability_schedules_sessions_on_preferred_days() {
+        stubCoachingProfile(UserReportedReadiness.MODERATE, List.of(DayOfWeek.MONDAY, DayOfWeek.THURSDAY));
+        stubRunningHistory(false, 8.0, 2);
+        when(trainingProfileRepository.findByUserEmail(USER_EMAIL)).thenReturn(Optional.empty());
+
+        ConservativeRunningPlanResult result = useCase.execute(USER_EMAIL);
+
+        assertThat(result.sessionsPerWeek()).isEqualTo(2);
+        assertThat(result.plannedSessions()).extracting(session -> session.scheduledDate().getDayOfWeek())
+                .containsOnly(DayOfWeek.MONDAY, DayOfWeek.THURSDAY);
+    }
+
+    @Test
+    void execute_with_adjacent_availability_reduces_unsafe_schedule_to_one_session() {
+        stubCoachingProfile(UserReportedReadiness.MODERATE, List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY));
+        stubRunningHistory(false, 8.0, 2);
+        when(trainingProfileRepository.findByUserEmail(USER_EMAIL)).thenReturn(Optional.empty());
+
+        ConservativeRunningPlanResult result = useCase.execute(USER_EMAIL);
+
+        assertThat(result.sessionsPerWeek()).isEqualTo(1);
+        assertThat(result.plannedSessions()).hasSize(4);
+        assertThat(result.plannedSessions()).allSatisfy(session -> {
+            assertThat(session.type()).isEqualTo(PlannedSessionType.EASY_RUN);
+            assertThat(session.scheduledDate().getDayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+        });
     }
 
     @Test
@@ -126,9 +160,14 @@ class GenerateConservativeRunningPlanUseCaseImplUnitTest {
     }
 
     private void stubCoachingProfile(UserReportedReadiness readiness) {
+        stubCoachingProfile(readiness, List.of());
+    }
+
+    private void stubCoachingProfile(UserReportedReadiness readiness, List<DayOfWeek> preferredRunningDays) {
         RunningGoal runningGoal = new RunningGoal(21.1, 330, null);
         when(coachingProfileRepository.findByUserEmail(USER_EMAIL))
-                .thenReturn(Optional.of(new CoachingProfile(1L, USER_EMAIL, runningGoal, readiness, false)));
+                .thenReturn(Optional.of(new CoachingProfile(1L, USER_EMAIL, runningGoal, readiness, false,
+                        new RunningAvailability(preferredRunningDays))));
     }
 
     private void stubInjuryConcernCoachingProfile() {

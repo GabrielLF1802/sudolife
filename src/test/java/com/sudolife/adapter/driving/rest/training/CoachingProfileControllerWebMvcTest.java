@@ -97,7 +97,8 @@ class CoachingProfileControllerWebMvcTest {
     @Test
     void post_running_plan_returns_structured_conservative_plan_for_authenticated_user() throws Exception {
         PlannedSessionResult session = new PlannedSessionResult(
-                1, 1, PlannedSessionType.EASY_RUN, 3.0, PlannedSessionTargetResult.perceivedEffort(4));
+                1, 1, PlannedSessionType.EASY_RUN, 3.0, PlannedSessionTargetResult.perceivedEffort(4),
+                LocalDate.parse("2026-07-18"));
         ConservativeRunningPlanResult result = new ConservativeRunningPlanResult(
                 ConservativeRunningPlanClassification.CONSERVATIVE,
                 List.of(ConservativeRunningPlanReason.INSUFFICIENT_HISTORY), 21.1, 4, 2, 5, List.of(session));
@@ -109,6 +110,7 @@ class CoachingProfileControllerWebMvcTest {
                 .andExpect(jsonPath("$.classification").value("CONSERVATIVE"))
                 .andExpect(jsonPath("$.reasons[0]").value("INSUFFICIENT_HISTORY"))
                 .andExpect(jsonPath("$.plannedSessions[0].type").value("EASY_RUN"))
+                .andExpect(jsonPath("$.plannedSessions[0].scheduledDate").value("2026-07-18"))
                 .andExpect(jsonPath("$.plannedSessions[0].target.type").value("PERCEIVED_EFFORT"));
 
         verify(generateConservativeRunningPlanUseCase).execute("user@sudolife.com");
@@ -191,6 +193,7 @@ class CoachingProfileControllerWebMvcTest {
     }
 
     private CoachingProfileResult result(String readiness, boolean injuryConcern) {
-        return new CoachingProfileResult(10.0, 330, LocalDate.parse("2026-05-12"), readiness, injuryConcern, true);
+        return new CoachingProfileResult(10.0, 330, LocalDate.parse("2026-05-12"), readiness, injuryConcern,
+                List.of("TUESDAY", "SATURDAY"), true);
     }
 }

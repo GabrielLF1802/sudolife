@@ -40,6 +40,7 @@ describe('CoachingProfileService', () => {
       targetDate: '2026-05-12',
       readiness: 'LOW' as const,
       injuryConcern: true,
+      preferredRunningDays: ['TUESDAY' as const, 'SATURDAY' as const],
     };
 
     service.save(command).subscribe((profile) => {
@@ -108,6 +109,7 @@ describe('CoachingProfileService', () => {
       targetDate: '2026-05-12',
       readiness: 'LOW',
       injuryConcern: true,
+      preferredRunningDays: ['TUESDAY', 'SATURDAY'],
       configured: true,
     };
   }
@@ -126,6 +128,7 @@ describe('CoachingProfileService', () => {
           sessionNumber: 1,
           type: 'EASY_RUN',
           distanceKilometers: 3,
+          scheduledDate: '2026-07-18',
           target: {
             type: 'PERCEIVED_EFFORT',
             minimumHeartRate: null,

@@ -285,7 +285,7 @@ describe('ActivityDashboardComponent', () => {
 
     expect(pageText()).toContain('Meta e prontidão');
     expect(pageText()).toContain('Informe sua meta de corrida');
-    expect(pageText()).toContain('Salvar meta e prontidão');
+    expect(pageText()).toContain('Salvar contexto de treino');
   });
 
   it('should_render_current_coaching_profiles_when_saved', () => {
@@ -374,7 +374,7 @@ describe('ActivityDashboardComponent', () => {
     expect(weekDays[6].textContent).toContain('dom');
     expect(pageText()).toContain('Ritmo da semana');
     expect(pageText()).toContain('Corrida de hoje');
-    expect(pageText()).toContain('Sem dia definido');
+    expect(pageText()).toContain('16/07/2026');
     expect(pageText()).toContain('Ver detalhes');
   });
 
@@ -386,6 +386,8 @@ describe('ActivityDashboardComponent', () => {
     typeCoachingInput('input[aria-label="Data alvo"]', '2026-05-12');
     selectCoachingReadiness('LOW');
     toggleInjuryConcern(true);
+    togglePreferredRunningDay('Ter', true);
+    togglePreferredRunningDay('Sáb', true);
     coachingProfileButton().click();
     fixture.detectChanges();
 
@@ -395,6 +397,7 @@ describe('ActivityDashboardComponent', () => {
       targetDate: '2026-05-12',
       readiness: 'LOW',
       injuryConcern: true,
+      preferredRunningDays: ['TUESDAY', 'SATURDAY'],
     });
     expect(pageText()).toContain('Meta e prontidão salvas.');
   });
@@ -554,6 +557,14 @@ describe('ActivityDashboardComponent', () => {
     return fixture.nativeElement.querySelector('.coaching-profile-panel button');
   }
 
+  function togglePreferredRunningDay(label: string, checked: boolean): void {
+    const input = fixture.nativeElement.querySelector(
+      `input[aria-label="${label}"]`,
+    ) as HTMLInputElement;
+    input.checked = checked;
+    input.dispatchEvent(new Event('change'));
+  }
+
   function coachingInput(selector: string): HTMLInputElement {
     return fixture.nativeElement.querySelector(selector);
   }
@@ -689,6 +700,7 @@ describe('ActivityDashboardComponent', () => {
       targetDate: configured ? '2026-05-12' : null,
       readiness: configured ? ('LOW' as const) : null,
       injuryConcern: configured,
+      preferredRunningDays: configured ? ['TUESDAY' as const, 'SATURDAY' as const] : [],
       configured,
     };
   }
@@ -718,6 +730,7 @@ describe('ActivityDashboardComponent', () => {
           sessionNumber: 1,
           type: 'EASY_RUN' as const,
           distanceKilometers: 3,
+          scheduledDate: '2026-07-16',
           target: {
             type: 'PERCEIVED_EFFORT' as const,
             minimumHeartRate: null,
@@ -744,6 +757,7 @@ describe('ActivityDashboardComponent', () => {
           sessionNumber: 1,
           type: 'RECOVERY' as const,
           distanceKilometers: 0,
+          scheduledDate: '2026-07-16',
           target: {
             type: 'PERCEIVED_EFFORT' as const,
             minimumHeartRate: null,

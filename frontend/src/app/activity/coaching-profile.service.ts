@@ -3,6 +3,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 export type UserReportedReadiness = 'LOW' | 'MODERATE' | 'HIGH';
+export type RunningDay =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
 
 export interface CoachingProfile {
   targetDistanceKilometers: number | null;
@@ -10,6 +18,7 @@ export interface CoachingProfile {
   targetDate: string | null;
   readiness: UserReportedReadiness | null;
   injuryConcern: boolean;
+  preferredRunningDays: RunningDay[];
   configured: boolean;
 }
 
@@ -19,6 +28,7 @@ export interface SaveCoachingProfileCommand {
   targetDate: string | null;
   readiness: UserReportedReadiness | '';
   injuryConcern: boolean;
+  preferredRunningDays: RunningDay[];
 }
 
 export interface RunningHistorySnapshot {
@@ -69,6 +79,7 @@ export interface PlannedSession {
   type: PlannedSessionType;
   distanceKilometers: number;
   target: PlannedSessionTarget;
+  scheduledDate: string;
 }
 
 export interface ConservativeRunningPlan {

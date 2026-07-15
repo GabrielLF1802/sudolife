@@ -2,6 +2,7 @@ package com.sudolife.application.service.training;
 
 import com.sudolife.application.model.training.CoachingProfile;
 import com.sudolife.application.model.training.RunningGoal;
+import com.sudolife.application.model.training.RunningAvailability;
 import com.sudolife.application.model.training.UserReportedReadiness;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.util.List;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
@@ -33,7 +36,8 @@ public class SaveCoachingProfileUseCaseImpl implements SaveCoachingProfileUseCas
                 userEmail,
                 runningGoal,
                 readiness,
-                command.injuryConcern()
+                command.injuryConcern(),
+                runningAvailability(command.preferredRunningDays())
         ));
 
         return result(savedProfile);
@@ -66,6 +70,20 @@ public class SaveCoachingProfileUseCaseImpl implements SaveCoachingProfileUseCas
         }
     }
 
+    private RunningAvailability runningAvailability(List<String> preferredRunningDays) {
+        if (preferredRunningDays == null) {
+            return new RunningAvailability(null);
+        }
+
+        try {
+            return new RunningAvailability(preferredRunningDays.stream()
+                    .map(DayOfWeek::valueOf)
+                    .toList());
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidCoachingProfileException("Preferred running days are invalid");
+        }
+    }
+
     private CoachingProfileResult result(CoachingProfile profile) {
         return new CoachingProfileResult(
                 profile.getTargetDistanceKilometers(),
@@ -73,6 +91,9 @@ public class SaveCoachingProfileUseCaseImpl implements SaveCoachingProfileUseCas
                 profile.getTargetDate(),
                 profile.getReadiness().name(),
                 profile.isInjuryConcern(),
+                profile.getRunningAvailability().getPreferredRunningDays().stream()
+                        .map(DayOfWeek::name)
+                        .toList(),
                 true
         );
     }

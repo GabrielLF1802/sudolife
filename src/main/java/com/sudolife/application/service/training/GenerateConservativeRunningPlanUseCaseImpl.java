@@ -15,15 +15,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.TemporalAdjusters;
 
 @Service
 @RequiredArgsConstructor
 public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConservativeRunningPlanUseCase {
 
     private static final int DURATION_WEEKS = 4;
-    private static final int SESSIONS_PER_WEEK = 2;
+    private static final int MAXIMUM_SESSIONS_PER_WEEK = 2;
     private static final int STANDARD_PROGRESSION_PERCENT = 5;
 
     private final CoachingProfileRepository coachingProfileRepository;
@@ -36,9 +40,10 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
         CoachingProfile coachingProfile = coachingProfileRepository.findByUserEmail(userEmail)
                 .orElseThrow(CoachingProfileRequiredException::new);
         RunningHistorySnapshotResult history = runningHistoryUseCase.execute(userEmail);
+        LocalDate scheduleStart = timeProvider.now().atZone(ZoneOffset.UTC).toLocalDate().plusDays(1);
 
         if (coachingProfile.isInjuryConcern()) {
-            return recoveryPlan(coachingProfile, recoveryTarget(userEmail));
+            return recoveryPlan(coachingProfile, recoveryTarget(userEmail), scheduleStart);
         }
 
         List<ConservativeRunningPlanReason> reasons = reasons(coachingProfile, history);
@@ -52,15 +57,16 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
         double baseDistance = baseDistance(
                 history, lowReadiness, coachingProfile.getTargetDistanceKilometers(), progressionPercent);
         PlannedSessionTargetResult target = target(userEmail, lowReadiness);
+        List<DayOfWeek> runningDays = safeRunningDays(coachingProfile);
 
         return new ConservativeRunningPlanResult(
                 ConservativeRunningPlanClassification.CONSERVATIVE,
                 reasons,
                 coachingProfile.getTargetDistanceKilometers(),
                 DURATION_WEEKS,
-                SESSIONS_PER_WEEK,
+                runningDays.size(),
                 progressionPercent,
-                sessions(baseDistance, progressionPercent, target)
+                sessions(baseDistance, progressionPercent, target, runningDays, scheduleStart)
         );
     }
 
@@ -136,26 +142,36 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
 
     private ConservativeRunningPlanResult recoveryPlan(
             CoachingProfile coachingProfile,
-            PlannedSessionTargetResult target
+            PlannedSessionTargetResult target,
+            LocalDate scheduleStart
     ) {
+        List<DayOfWeek> runningDays = safeRunningDays(coachingProfile);
+
         return new ConservativeRunningPlanResult(
                 ConservativeRunningPlanClassification.RECOVERY_ONLY,
                 List.of(ConservativeRunningPlanReason.INJURY_CONCERN),
                 coachingProfile.getTargetDistanceKilometers(),
                 DURATION_WEEKS,
-                SESSIONS_PER_WEEK,
+                runningDays.size(),
                 0,
-                recoverySessions(target)
+                recoverySessions(target, runningDays, scheduleStart)
         );
     }
 
-    private List<PlannedSessionResult> recoverySessions(PlannedSessionTargetResult target) {
+    private List<PlannedSessionResult> recoverySessions(
+            PlannedSessionTargetResult target,
+            List<DayOfWeek> runningDays,
+            LocalDate scheduleStart
+    ) {
         List<PlannedSessionResult> sessions = new ArrayList<>();
 
         for (int weekNumber = 1; weekNumber <= DURATION_WEEKS; weekNumber++) {
-            for (int sessionNumber = 1; sessionNumber <= SESSIONS_PER_WEEK; sessionNumber++) {
+            List<LocalDate> scheduledDates = scheduledDates(runningDays, weekNumber, scheduleStart);
+
+            for (int sessionNumber = 1; sessionNumber <= scheduledDates.size(); sessionNumber++) {
                 sessions.add(new PlannedSessionResult(
-                        weekNumber, sessionNumber, PlannedSessionType.RECOVERY, 0, target));
+                        weekNumber, sessionNumber, PlannedSessionType.RECOVERY, 0, target,
+                        scheduledDates.get(sessionNumber - 1)));
             }
         }
 
@@ -165,14 +181,22 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
     private List<PlannedSessionResult> sessions(
             double baseDistance,
             int progressionPercent,
-            PlannedSessionTargetResult target
+            PlannedSessionTargetResult target,
+            List<DayOfWeek> runningDays,
+            LocalDate scheduleStart
     ) {
         List<PlannedSessionResult> sessions = new ArrayList<>();
 
         for (int weekNumber = 1; weekNumber <= DURATION_WEEKS; weekNumber++) {
             double progression = Math.pow(1 + progressionPercent / 100.0, weekNumber - 1);
-            sessions.add(session(weekNumber, 1, PlannedSessionType.EASY_RUN, baseDistance * progression, target));
-            sessions.add(session(weekNumber, 2, PlannedSessionType.LONG_RUN, baseDistance * 1.25 * progression, target));
+            List<LocalDate> scheduledDates = scheduledDates(runningDays, weekNumber, scheduleStart);
+            sessions.add(session(weekNumber, 1, PlannedSessionType.EASY_RUN,
+                    baseDistance * progression, target, scheduledDates.getFirst()));
+
+            if (scheduledDates.size() == MAXIMUM_SESSIONS_PER_WEEK) {
+                sessions.add(session(weekNumber, 2, PlannedSessionType.LONG_RUN,
+                        baseDistance * 1.25 * progression, target, scheduledDates.getLast()));
+            }
         }
 
         return List.copyOf(sessions);
@@ -183,10 +207,51 @@ public class GenerateConservativeRunningPlanUseCaseImpl implements GenerateConse
             int sessionNumber,
             PlannedSessionType type,
             double distanceKilometers,
-            PlannedSessionTargetResult target
+            PlannedSessionTargetResult target,
+            LocalDate scheduledDate
     ) {
         double roundedDistance = Math.round(distanceKilometers * 10.0) / 10.0;
 
-        return new PlannedSessionResult(weekNumber, sessionNumber, type, roundedDistance, target);
+        return new PlannedSessionResult(weekNumber, sessionNumber, type, roundedDistance, target, scheduledDate);
+    }
+
+    private List<DayOfWeek> safeRunningDays(CoachingProfile profile) {
+        List<DayOfWeek> preferredDays = profile.getRunningAvailability().getPreferredRunningDays();
+
+        if (preferredDays.isEmpty()) {
+            return List.of(DayOfWeek.TUESDAY, DayOfWeek.SATURDAY);
+        }
+
+        for (int first = 0; first < preferredDays.size(); first++) {
+            for (int second = first + 1; second < preferredDays.size(); second++) {
+                DayOfWeek firstDay = preferredDays.get(first);
+                DayOfWeek secondDay = preferredDays.get(second);
+
+                if (hasSafeRecoverySpacing(firstDay, secondDay)) {
+                    return List.of(firstDay, secondDay);
+                }
+            }
+        }
+
+        return List.of(preferredDays.getFirst());
+    }
+
+    private boolean hasSafeRecoverySpacing(DayOfWeek firstDay, DayOfWeek secondDay) {
+        int distance = Math.abs(firstDay.getValue() - secondDay.getValue());
+
+        return Math.min(distance, 7 - distance) >= 2;
+    }
+
+    private List<LocalDate> scheduledDates(
+            List<DayOfWeek> runningDays,
+            int weekNumber,
+            LocalDate scheduleStart
+    ) {
+        LocalDate weekStart = scheduleStart.plusWeeks(weekNumber - 1L);
+
+        return runningDays.stream()
+                .map(day -> weekStart.with(TemporalAdjusters.nextOrSame(day)))
+                .sorted(Comparator.naturalOrder())
+                .toList();
     }
 }

@@ -12,6 +12,7 @@ import {
   PlannedSession,
   RunningGoalAssessment,
   RunningHistorySnapshot,
+  RunningDay,
   UserReportedReadiness,
 } from './coaching-profile.service';
 import {
@@ -72,6 +73,16 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly targetDate = signal('');
   protected readonly readiness = signal<UserReportedReadiness | ''>('');
   protected readonly injuryConcern = signal(false);
+  protected readonly preferredRunningDays = signal<RunningDay[]>([]);
+  protected readonly runningDayOptions: ReadonlyArray<{ value: RunningDay; label: string }> = [
+    { value: 'MONDAY', label: 'Seg' },
+    { value: 'TUESDAY', label: 'Ter' },
+    { value: 'WEDNESDAY', label: 'Qua' },
+    { value: 'THURSDAY', label: 'Qui' },
+    { value: 'FRIDAY', label: 'Sex' },
+    { value: 'SATURDAY', label: 'Sáb' },
+    { value: 'SUNDAY', label: 'Dom' },
+  ];
   protected readonly activeView = signal<DashboardView>('TODAY');
   protected readonly selectedActivityType = signal('ALL');
   protected readonly selectedPeriod = signal<ActivityPeriodFilter>('ALL');
@@ -212,6 +223,15 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected updateInjuryConcern(event: Event): void {
     this.injuryConcern.set((event.target as HTMLInputElement).checked);
+  }
+
+  protected updatePreferredRunningDay(day: RunningDay, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    const selectedDays = this.preferredRunningDays();
+
+    this.preferredRunningDays.set(
+      checked ? [...selectedDays, day] : selectedDays.filter((selectedDay) => selectedDay !== day),
+    );
   }
 
   protected selectView(view: DashboardView): void {
@@ -369,6 +389,7 @@ export class ActivityDashboardComponent implements OnInit {
         targetDate: this.targetDate().trim() || null,
         readiness: this.readiness(),
         injuryConcern: this.injuryConcern(),
+        preferredRunningDays: this.preferredRunningDays(),
       })
       .pipe(finalize(() => this.savingCoachingProfile.set(false)))
       .subscribe({
@@ -425,6 +446,12 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     return `Esforço percebido ${session.target.minimumPerceivedEffort}-${session.target.maximumPerceivedEffort}`;
+  }
+
+  protected plannedSessionDateLabel(session: PlannedSession): string {
+    const [year, month, day] = session.scheduledDate.split('-');
+
+    return `${day}/${month}/${year}`;
   }
 
   protected activityTypeLabel(activityType: string): string {
@@ -622,6 +649,7 @@ export class ActivityDashboardComponent implements OnInit {
     this.targetDate.set(profile.targetDate ?? '');
     this.readiness.set(profile.readiness ?? '');
     this.injuryConcern.set(profile.injuryConcern);
+    this.preferredRunningDays.set(profile.preferredRunningDays ?? []);
   }
 
   private parsedTargetDistance(): number | null {

@@ -28,7 +28,12 @@
             <span class="strava-origin">Strava</span>
             <strong>{{ activity.distanceMeters / 1000 | number: '1.0-1' }} km</strong>
             <span>{{ activity.name }}</span>
-          } @empty {
+          }
+          @for (session of day.plannedSessions; track session.sessionNumber) {
+            <span class="planned-origin">Plano</span>
+            <strong>{{ plannedSessionTypeLabel(session) }}</strong>
+          }
+          @if (day.activities.length === 0 && day.plannedSessions.length === 0) {
             <span class="day-without-activity" aria-label="Sem atividade importada">—</span>
           }
         </div>
@@ -69,7 +74,7 @@
     <div class="weekly-plan-heading">
       <div>
         <h3>Plano da semana</h3>
-        <p>As sessões ainda não possuem um dia definido.</p>
+        <p>As datas consideram sua disponibilidade e os intervalos de recuperação.</p>
       </div>
       <p class="plan-reason">
         <strong>Por que este plano?</strong> {{ planReasonLabel(currentPlan) }}.
@@ -89,7 +94,7 @@
               {{ plannedSessionTargetLabel(session) }}
             </span>
           </div>
-          <span class="unscheduled-session">Sem dia definido</span>
+          <span class="unscheduled-session">{{ plannedSessionDateLabel(session) }}</span>
           <details>
             <summary>Ver detalhes</summary>
             <p>

@@ -36,4 +36,6 @@ public class CoachingProfileEntity {
     private String readiness;
     @Column(name = "injury_concern", nullable = false)
     private boolean injuryConcern;
+    @Column(name = "preferred_running_days")
+    private String preferredRunningDays;
 }

@@ -15,6 +15,7 @@ interface WeekDay {
   date: Date;
   isToday: boolean;
   activities: ActivityListItem[];
+  plannedSessions: PlannedSession[];
 }
 
 @Component({
@@ -45,6 +46,10 @@ export class WeeklyRhythmComponent {
         activities: this.activityList().activities.filter(
           (activity) => this.startOfDay(new Date(activity.startDate)).getTime() === date.getTime(),
         ),
+        plannedSessions:
+          this.plan()?.plannedSessions.filter(
+            (session) => session.scheduledDate === this.dateValue(date),
+          ) ?? [],
       };
     });
   });
@@ -139,10 +144,24 @@ export class WeeklyRhythmComponent {
     return `${day}/${month}/${year}`;
   }
 
+  protected plannedSessionDateLabel(session: PlannedSession): string {
+    const [year, month, day] = session.scheduledDate.split('-');
+
+    return `${day}/${month}/${year}`;
+  }
+
   private startOfDay(date: Date): Date {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
     return startOfDay;
+  }
+
+  private dateValue(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }

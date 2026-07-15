@@ -285,6 +285,24 @@
               conservador; prontidão alta não aumenta a carga automaticamente.
             </p>
 
+            <fieldset class="running-availability">
+              <legend>Dias preferidos para correr</legend>
+              <p>Opcional. O plano preserva intervalos seguros mesmo quando você escolhe poucos dias.</p>
+              <div>
+                @for (day of runningDayOptions; track day.value) {
+                  <label>
+                    <input
+                      type="checkbox"
+                      [checked]="preferredRunningDays().includes(day.value)"
+                      (change)="updatePreferredRunningDay(day.value, $event)"
+                      [attr.aria-label]="day.label"
+                    />
+                    <span>{{ day.label }}</span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+
             <label class="injury-concern-control">
               <input
                 type="checkbox"
@@ -313,7 +331,7 @@
               @if (savingCoachingProfile()) {
                 Salvando...
               } @else {
-                Salvar meta e prontidão
+                Salvar contexto de treino
               }
             </button>
           </form>
@@ -369,7 +387,10 @@
                 track session.weekNumber + '-' + session.sessionNumber
               ) {
                 <li>
-                  <span>Semana {{ session.weekNumber }} · Sessão {{ session.sessionNumber }}</span>
+                  <span>
+                    {{ plannedSessionDateLabel(session) }} · Semana {{ session.weekNumber }} · Sessão
+                    {{ session.sessionNumber }}
+                  </span>
                   <strong>{{ plannedSessionTypeLabel(session) }}</strong>
                   <p>
                     @if (session.type !== 'RECOVERY') {

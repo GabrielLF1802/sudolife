@@ -17,6 +17,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static com.sudolife.helper.UserTestHelper.EMAIL;
 import static com.sudolife.helper.UserTestHelper.NAME;
@@ -53,7 +54,7 @@ class CoachingProfileFlowIntegrationTest {
         registerUser();
         String token = login();
         SaveCoachingProfileCommand command = new SaveCoachingProfileCommand(10.0, 330, LocalDate.parse("2026-05-12"),
-                "LOW", true);
+                "LOW", true, List.of("TUESDAY", "SATURDAY"));
 
         mockMvc.perform(put("/api/coaching-profiles")
                         .header("Authorization", "Bearer " + token)
@@ -64,13 +65,17 @@ class CoachingProfileFlowIntegrationTest {
                 .andExpect(jsonPath("$.targetPaceSecondsPerKilometer").value(330))
                 .andExpect(jsonPath("$.targetDate").value("2026-05-12"))
                 .andExpect(jsonPath("$.readiness").value("LOW"))
-                .andExpect(jsonPath("$.injuryConcern").value(true));
+                .andExpect(jsonPath("$.injuryConcern").value(true))
+                .andExpect(jsonPath("$.preferredRunningDays[0]").value("TUESDAY"))
+                .andExpect(jsonPath("$.preferredRunningDays[1]").value("SATURDAY"));
 
         mockMvc.perform(get("/api/coaching-profiles").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.targetDistanceKilometers").value(10.0))
                 .andExpect(jsonPath("$.readiness").value("LOW"))
-                .andExpect(jsonPath("$.injuryConcern").value(true));
+                .andExpect(jsonPath("$.injuryConcern").value(true))
+                .andExpect(jsonPath("$.preferredRunningDays[0]").value("TUESDAY"))
+                .andExpect(jsonPath("$.preferredRunningDays[1]").value("SATURDAY"));
     }
 
     @Test

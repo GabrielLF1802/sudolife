@@ -248,6 +248,45 @@ dd {
   padding: 0;
 }
 
+.running-availability {
+  flex-basis: 100%;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.running-availability legend {
+  font-weight: 700;
+}
+
+.running-availability > p {
+  margin: var(--space-xs) 0 var(--space-sm);
+  color: var(--color-muted);
+}
+
+.running-availability > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.running-availability label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  padding: 0 var(--space-sm);
+}
+
+.running-availability input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--color-primary);
+  padding: 0;
+}
+
 .conservative-plan-panel {
   display: grid;
   gap: var(--space-lg);
