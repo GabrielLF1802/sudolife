@@ -1,9 +1,11 @@
 package com.sudolife.adapter.driving.rest.training;
 
 import com.sudolife.application.service.training.CoachingProfileResult;
+import com.sudolife.application.service.training.AdaptiveRunningPlanResult;
 import com.sudolife.application.service.training.ConservativeRunningPlanResult;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
 import com.sudolife.application.service.training.ports.provided.GenerateConservativeRunningPlanUseCase;
+import com.sudolife.application.service.training.ports.provided.GenerateAdaptiveRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.RunningHistorySnapshotResult;
@@ -29,6 +31,7 @@ public class CoachingProfileController {
     private final SaveCoachingProfileUseCase saveCoachingProfileUseCase;
     private final GetRunningHistorySnapshotUseCase getRunningHistorySnapshotUseCase;
     private final GenerateConservativeRunningPlanUseCase generateConservativeRunningPlanUseCase;
+    private final GenerateAdaptiveRunningPlanUseCase generateAdaptiveRunningPlanUseCase;
     private final EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
 
     @GetMapping("/running-goal-assessment")
@@ -39,6 +42,11 @@ public class CoachingProfileController {
     @PostMapping("/running-plan")
     public ResponseEntity<ConservativeRunningPlanResult> generateRunningPlan(Authentication authentication) {
         return ResponseEntity.ok(generateConservativeRunningPlanUseCase.execute(authentication.getName()));
+    }
+
+    @PostMapping("/adaptive-running-plan")
+    public ResponseEntity<AdaptiveRunningPlanResult> generateAdaptiveRunningPlan(Authentication authentication) {
+        return ResponseEntity.ok(generateAdaptiveRunningPlanUseCase.execute(authentication.getName()));
     }
 
     @GetMapping("/running-history")

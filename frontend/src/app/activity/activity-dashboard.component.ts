@@ -8,6 +8,7 @@ import { ActivityList, ActivityService } from './activity.service';
 import {
   CoachingProfile,
   CoachingProfileService,
+  AdaptiveRunningPlan,
   ConservativeRunningPlan,
   PlannedSession,
   RunningGoalAssessment,
@@ -49,6 +50,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly coachingProfile = signal<CoachingProfile | null>(null);
   protected readonly runningHistory = signal<RunningHistorySnapshot | null>(null);
   protected readonly conservativeRunningPlan = signal<ConservativeRunningPlan | null>(null);
+  protected readonly adaptiveRunningPlan = signal<AdaptiveRunningPlan | null>(null);
   protected readonly runningGoalAssessment = signal<RunningGoalAssessment | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
@@ -174,6 +176,7 @@ export class ActivityDashboardComponent implements OnInit {
         this.fillCoachingProfileForm(coachingProfile);
         this.loading.set(false);
         this.loadConservativeRunningPlan(coachingProfile, runningHistory);
+        this.loadAdaptiveRunningPlan(coachingProfile, runningHistory);
         this.loadRunningGoalAssessment(coachingProfile);
       },
       error: () => {
@@ -400,11 +403,13 @@ export class ActivityDashboardComponent implements OnInit {
             'Meta e prontidão salvas. Seu plano será atualizado com essas informações.',
           );
           this.conservativeRunningPlan.set(null);
+          this.adaptiveRunningPlan.set(null);
           this.runningGoalAssessment.set(null);
 
           const runningHistory = this.runningHistory();
           if (runningHistory !== null) {
             this.loadConservativeRunningPlan(profile, runningHistory);
+            this.loadAdaptiveRunningPlan(profile, runningHistory);
           }
           this.loadRunningGoalAssessment(profile);
         },
@@ -589,6 +594,33 @@ export class ActivityDashboardComponent implements OnInit {
       });
   }
 
+  private loadAdaptiveRunningPlan(
+    coachingProfile: CoachingProfile,
+    runningHistory: RunningHistorySnapshot,
+  ): void {
+    const requiresConservativePlan =
+      coachingProfile.injuryConcern ||
+      !runningHistory.sufficientRunningHistory ||
+      coachingProfile.readiness === 'LOW';
+
+    if (!coachingProfile.configured || requiresConservativePlan) {
+      return;
+    }
+
+    this.planLoading.set(true);
+    this.planErrorMessage.set('');
+    this.coachingProfileService
+      .generateAdaptiveRunningPlan()
+      .pipe(finalize(() => this.planLoading.set(false)))
+      .subscribe({
+        next: (plan) => this.adaptiveRunningPlan.set(plan),
+        error: () =>
+          this.planErrorMessage.set(
+            'Seu perfil foi preservado, mas não foi possível atualizar o plano.',
+          ),
+      });
+  }
+
   private loadRunningGoalAssessment(coachingProfile: CoachingProfile): void {
     if (!coachingProfile.configured) {
       return;
@@ -606,6 +638,7 @@ export class ActivityDashboardComponent implements OnInit {
 
     if (profile !== null && history !== null) {
       this.loadConservativeRunningPlan(profile, history);
+      this.loadAdaptiveRunningPlan(profile, history);
     }
   }
 

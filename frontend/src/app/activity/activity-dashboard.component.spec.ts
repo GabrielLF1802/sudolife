@@ -47,7 +47,14 @@ describe('ActivityDashboardComponent', () => {
 
     coachingProfileService = jasmine.createSpyObj<CoachingProfileService>(
       'CoachingProfileService',
-      ['get', 'getRunningHistory', 'evaluateRunningGoal', 'generateConservativeRunningPlan', 'save'],
+      [
+        'get',
+        'getRunningHistory',
+        'evaluateRunningGoal',
+        'generateConservativeRunningPlan',
+        'generateAdaptiveRunningPlan',
+        'save',
+      ],
     );
     coachingProfileService.get.and.returnValue(of(coachingProfile(false)));
     coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(false)));
@@ -55,6 +62,7 @@ describe('ActivityDashboardComponent', () => {
     coachingProfileService.generateConservativeRunningPlan.and.returnValue(
       of(conservativeRunningPlan()),
     );
+    coachingProfileService.generateAdaptiveRunningPlan.and.returnValue(of(adaptiveRunningPlan()));
     coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
 
     await TestBed.configureTestingModule({
@@ -314,7 +322,9 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_display_recovery_sessions_without_medical_diagnosis_language_for_injury_concern', () => {
     coachingProfileService.get.and.returnValue(of(coachingProfile(true)));
-    coachingProfileService.generateConservativeRunningPlan.and.returnValue(of(recoveryRunningPlan()));
+    coachingProfileService.generateConservativeRunningPlan.and.returnValue(
+      of(recoveryRunningPlan()),
+    );
     fixture.detectChanges();
 
     expect(coachingProfileService.generateConservativeRunningPlan).toHaveBeenCalled();
@@ -340,6 +350,21 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Corrida leve');
     expect(pageText()).toContain('3 km');
     expect(pageText()).toContain('Esforço percebido 2-4');
+  });
+
+  it('should_render_accepted_adaptive_plan_and_explanation_for_sufficient_history', () => {
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.generateAdaptiveRunningPlan).toHaveBeenCalled();
+    expect(pageText()).toContain('Plano adaptativo aceito');
+    expect(pageText()).toContain('O plano foi validado pelo Sudolife');
   });
 
   it('should_retry_plan_generation_without_losing_profile', () => {
@@ -740,6 +765,19 @@ describe('ActivityDashboardComponent', () => {
           },
         },
       ],
+    };
+  }
+
+  function adaptiveRunningPlan() {
+    return {
+      safeMilestone: {
+        targetDistanceKilometers: 7.3,
+        targetPaceSecondsPerKilometer: 332,
+        targetDate: '2026-08-11',
+      },
+      plannedSessions: conservativeRunningPlan().plannedSessions,
+      explanation: 'O plano foi validado pelo Sudolife antes de ser exibido.',
+      adjustedBySafetyValidation: true,
     };
   }
 

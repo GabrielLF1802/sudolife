@@ -1,6 +1,7 @@
 package com.sudolife.adapter.driving.rest.training;
 
 import com.sudolife.application.service.training.CoachingProfileResult;
+import com.sudolife.application.service.training.AdaptiveRunningPlanResult;
 import com.sudolife.application.service.training.ConservativeRunningPlanClassification;
 import com.sudolife.application.service.training.ConservativeRunningPlanReason;
 import com.sudolife.application.service.training.ConservativeRunningPlanResult;
@@ -17,6 +18,7 @@ import com.sudolife.application.service.training.WeeklyRunningVolumeResult;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.GenerateConservativeRunningPlanUseCase;
+import com.sudolife.application.service.training.ports.provided.GenerateAdaptiveRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
@@ -71,6 +73,9 @@ class CoachingProfileControllerWebMvcTest {
     private GenerateConservativeRunningPlanUseCase generateConservativeRunningPlanUseCase;
 
     @MockitoBean
+    private GenerateAdaptiveRunningPlanUseCase generateAdaptiveRunningPlanUseCase;
+
+    @MockitoBean
     private EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
 
     @Test
@@ -114,6 +119,26 @@ class CoachingProfileControllerWebMvcTest {
                 .andExpect(jsonPath("$.plannedSessions[0].target.type").value("PERCEIVED_EFFORT"));
 
         verify(generateConservativeRunningPlanUseCase).execute("user@sudolife.com");
+    }
+
+    @Test
+    void post_adaptive_running_plan_returns_accepted_plan_for_authenticated_user() throws Exception {
+        PlannedSessionResult session = new PlannedSessionResult(
+                1, 1, PlannedSessionType.EASY_RUN, 5.0, PlannedSessionTargetResult.perceivedEffort(2, 4),
+                LocalDate.parse("2026-07-21"));
+        AdaptiveRunningPlanResult result = new AdaptiveRunningPlanResult(
+                new RunningGoalResult(7.3, null, LocalDate.parse("2026-08-11")),
+                List.of(session), "Plano validado pelo backend.", true);
+        when(generateAdaptiveRunningPlanUseCase.execute("user@sudolife.com")).thenReturn(result);
+
+        mockMvc.perform(post("/api/coaching-profiles/adaptive-running-plan")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.safeMilestone.targetDistanceKilometers").value(7.3))
+                .andExpect(jsonPath("$.plannedSessions[0].type").value("EASY_RUN"))
+                .andExpect(jsonPath("$.adjustedBySafetyValidation").value(true));
+
+        verify(generateAdaptiveRunningPlanUseCase).execute("user@sudolife.com");
     }
 
     @Test

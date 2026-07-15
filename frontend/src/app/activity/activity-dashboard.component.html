@@ -287,7 +287,9 @@
 
             <fieldset class="running-availability">
               <legend>Dias preferidos para correr</legend>
-              <p>Opcional. O plano preserva intervalos seguros mesmo quando você escolhe poucos dias.</p>
+              <p>
+                Opcional. O plano preserva intervalos seguros mesmo quando você escolhe poucos dias.
+              </p>
               <div>
                 @for (day of runningDayOptions; track day.value) {
                   <label>
@@ -388,7 +390,8 @@
               ) {
                 <li>
                   <span>
-                    {{ plannedSessionDateLabel(session) }} · Semana {{ session.weekNumber }} · Sessão
+                    {{ plannedSessionDateLabel(session) }} · Semana {{ session.weekNumber }} ·
+                    Sessão
                     {{ session.sessionNumber }}
                   </span>
                   <strong>{{ plannedSessionTypeLabel(session) }}</strong>
@@ -403,6 +406,38 @@
             </ol>
           </section>
         }
+      } @else if (adaptiveRunningPlan(); as plan) {
+        <section class="conservative-plan-panel" aria-label="Plano de corrida adaptativo aceito">
+          <div class="conservative-plan-heading">
+            <span>Plano adaptativo aceito</span>
+            <strong
+              >Próximo marco:
+              {{ plan.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km</strong
+            >
+            <p>{{ plan.explanation }}</p>
+            @if (plan.adjustedBySafetyValidation) {
+              <p>Alguns detalhes foram ajustados para manter os limites seguros de treino.</p>
+            }
+          </div>
+
+          <ol class="planned-session-list">
+            @for (
+              session of plan.plannedSessions;
+              track session.weekNumber + '-' + session.sessionNumber
+            ) {
+              <li>
+                <span
+                  >Semana {{ session.weekNumber }} · {{ plannedSessionDateLabel(session) }}</span
+                >
+                <strong>{{ plannedSessionTypeLabel(session) }}</strong>
+                <p>
+                  {{ session.distanceKilometers | number: '1.0-1' }} km ·
+                  {{ plannedSessionTargetLabel(session) }}
+                </p>
+              </li>
+            }
+          </ol>
+        </section>
       } @else {
         <section class="empty-panel" aria-label="Plano indisponível">
           <strong>Nenhum plano ativo</strong>

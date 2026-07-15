@@ -4,13 +4,7 @@ import { Observable } from 'rxjs';
 
 export type UserReportedReadiness = 'LOW' | 'MODERATE' | 'HIGH';
 export type RunningDay =
-  | 'MONDAY'
-  | 'TUESDAY'
-  | 'WEDNESDAY'
-  | 'THURSDAY'
-  | 'FRIDAY'
-  | 'SATURDAY'
-  | 'SUNDAY';
+  'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 
 export interface CoachingProfile {
   targetDistanceKilometers: number | null;
@@ -41,9 +35,7 @@ export interface RunningHistorySnapshot {
 }
 
 export type RunningGoalAssessmentReason =
-  | 'UNREALISTIC_DISTANCE'
-  | 'UNREALISTIC_PACE'
-  | 'UNREALISTIC_TARGET_DATE';
+  'UNREALISTIC_DISTANCE' | 'UNREALISTIC_PACE' | 'UNREALISTIC_TARGET_DATE';
 
 export interface RunningGoalSummary {
   targetDistanceKilometers: number;
@@ -59,9 +51,7 @@ export interface RunningGoalAssessment {
 }
 
 export type ConservativeRunningPlanReason =
-  | 'INSUFFICIENT_HISTORY'
-  | 'LOW_READINESS'
-  | 'INJURY_CONCERN';
+  'INSUFFICIENT_HISTORY' | 'LOW_READINESS' | 'INJURY_CONCERN';
 export type PlannedSessionType = 'EASY_RUN' | 'LONG_RUN' | 'RECOVERY';
 export type PlannedSessionTargetType = 'HEART_RATE' | 'PERCEIVED_EFFORT';
 
@@ -92,6 +82,13 @@ export interface ConservativeRunningPlan {
   plannedSessions: PlannedSession[];
 }
 
+export interface AdaptiveRunningPlan {
+  safeMilestone: RunningGoalSummary;
+  plannedSessions: PlannedSession[];
+  explanation: string;
+  adjustedBySafetyValidation: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CoachingProfileService {
   private readonly http = inject(HttpClient);
@@ -105,13 +102,18 @@ export class CoachingProfileService {
   }
 
   evaluateRunningGoal(): Observable<RunningGoalAssessment> {
-    return this.http.get<RunningGoalAssessment>(
-      '/api/coaching-profiles/running-goal-assessment',
-    );
+    return this.http.get<RunningGoalAssessment>('/api/coaching-profiles/running-goal-assessment');
   }
 
   generateConservativeRunningPlan(): Observable<ConservativeRunningPlan> {
     return this.http.post<ConservativeRunningPlan>('/api/coaching-profiles/running-plan', null);
+  }
+
+  generateAdaptiveRunningPlan(): Observable<AdaptiveRunningPlan> {
+    return this.http.post<AdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan',
+      null,
+    );
   }
 
   save(command: SaveCoachingProfileCommand): Observable<CoachingProfile> {
