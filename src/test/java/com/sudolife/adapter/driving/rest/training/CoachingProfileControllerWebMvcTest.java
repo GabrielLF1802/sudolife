@@ -9,9 +9,11 @@ import com.sudolife.application.service.training.PlannedSessionTargetResult;
 import com.sudolife.application.service.training.PlannedSessionType;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
 import com.sudolife.application.service.training.RunningHistorySnapshotResult;
+import com.sudolife.application.service.training.RunningVolumeTrend;
 import com.sudolife.application.service.training.RunningGoalAssessmentReason;
 import com.sudolife.application.service.training.RunningGoalAssessmentResult;
 import com.sudolife.application.service.training.RunningGoalResult;
+import com.sudolife.application.service.training.WeeklyRunningVolumeResult;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.GenerateConservativeRunningPlanUseCase;
@@ -116,14 +118,21 @@ class CoachingProfileControllerWebMvcTest {
     void get_running_history_returns_snapshot_for_authenticated_user() throws Exception {
         when(getRunningHistoryUseCase.execute("user@sudolife.com"))
                 .thenReturn(new RunningHistorySnapshotResult(true, 3, 4, 24.5, 7200,
-                        Instant.parse("2026-07-08T12:00:00Z")));
+                        Instant.parse("2026-07-08T12:00:00Z"),
+                        List.of(new WeeklyRunningVolumeResult(0, 2, 12.5, 3600)),
+                        0.33, 8.0, 293.88, RunningVolumeTrend.INCREASING));
 
         mockMvc.perform(get("/api/coaching-profiles/running-history")
                         .principal(authenticated("user@sudolife.com", null, java.util.List.of())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sufficientRunningHistory").value(true))
                 .andExpect(jsonPath("$.activeWeeks").value(3))
-                .andExpect(jsonPath("$.runningActivityCount").value(4));
+                .andExpect(jsonPath("$.runningActivityCount").value(4))
+                .andExpect(jsonPath("$.weeklyRunningVolumes[0].distanceKilometers").value(12.5))
+                .andExpect(jsonPath("$.averageRunsPerWeek").value(0.33))
+                .andExpect(jsonPath("$.longestRunKilometers").value(8.0))
+                .andExpect(jsonPath("$.representativePaceSecondsPerKilometer").value(293.88))
+                .andExpect(jsonPath("$.volumeTrend").value("INCREASING"));
 
         verify(getRunningHistoryUseCase).execute("user@sudolife.com");
     }

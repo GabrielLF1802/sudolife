@@ -122,11 +122,11 @@ public class EvaluateRunningGoalUseCaseImpl implements EvaluateRunningGoalUseCas
             RunningHistorySnapshotResult history,
             int weeks
     ) {
-        if (history.totalDistanceKilometers() <= 0 || history.totalMovingTimeSeconds() <= 0) {
+        if (history.representativePaceSecondsPerKilometer() == null) {
             return null;
         }
 
-        double currentPace = history.totalMovingTimeSeconds() / history.totalDistanceKilometers();
+        double currentPace = history.representativePaceSecondsPerKilometer();
         double weeklyImprovement = profile.getReadiness() == UserReportedReadiness.LOW || profile.isInjuryConcern()
                 ? 1.0
                 : STANDARD_WEEKLY_PACE_IMPROVEMENT;

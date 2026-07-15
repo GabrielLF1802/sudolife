@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,6 +85,8 @@ class EvaluateRunningGoalUseCaseImplUnitTest {
 
     private void stubHistory(double distanceKilometers, long movingTimeSeconds) {
         when(runningHistoryUseCase.execute(USER_EMAIL)).thenReturn(
-                new RunningHistorySnapshotResult(true, 4, 4, distanceKilometers, movingTimeSeconds, NOW));
+                new RunningHistorySnapshotResult(true, 4, 4, distanceKilometers, movingTimeSeconds, NOW,
+                        List.of(), 0.33, distanceKilometers / 4,
+                        movingTimeSeconds / distanceKilometers, RunningVolumeTrend.STABLE));
     }
 }
