@@ -1,6 +1,9 @@
 package com.sudolife.application.service.training;
 
 import com.sudolife.application.model.training.CoachingProfile;
+import com.sudolife.application.model.training.AdaptiveRunningPlan;
+import com.sudolife.application.model.training.AdaptiveRunningPlanSession;
+import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.model.training.TrainingHeartRateZone;
 import com.sudolife.application.model.training.TrainingProfile;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
@@ -9,6 +12,7 @@ import com.sudolife.application.service.training.ports.provided.EvaluateRunningG
 import com.sudolife.application.service.training.ports.provided.GenerateAdaptiveRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.required.AiRunningPlanProvider;
+import com.sudolife.application.service.training.ports.required.AdaptiveRunningPlanRepository;
 import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
 import com.sudolife.application.service.training.ports.required.TrainingProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +35,7 @@ public class GenerateAdaptiveRunningPlanUseCaseImpl implements GenerateAdaptiveR
     private final EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
     private final AiRunningPlanProvider aiRunningPlanProvider;
     private final AiRunningPlanValidator aiRunningPlanValidator;
+    private final AdaptiveRunningPlanRepository adaptiveRunningPlanRepository;
     private final TimeProvider timeProvider;
 
     @Override
@@ -44,12 +49,26 @@ public class GenerateAdaptiveRunningPlanUseCaseImpl implements GenerateAdaptiveR
         TrainingSnapshot snapshot = new TrainingSnapshot(history, assessment.safeMilestone(), zones, safeSessions);
         AiRunningPlanProposal proposal = aiRunningPlanProvider.draft(snapshot);
         ValidatedAiRunningPlan validatedPlan = aiRunningPlanValidator.validate(snapshot, proposal);
+        adaptiveRunningPlanRepository.save(new AdaptiveRunningPlan(
+                null,
+                userEmail,
+                runningGoal(assessment.safeMilestone()),
+                proposal.explanation(),
+                timeProvider.now(),
+                validatedPlan.plannedSessions().stream().map(AdaptiveRunningPlanSession::planned).toList()));
 
         return new AdaptiveRunningPlanResult(
                 assessment.safeMilestone(),
                 validatedPlan.plannedSessions(),
                 proposal.explanation(),
                 validatedPlan.adjusted());
+    }
+
+    private RunningGoal runningGoal(RunningGoalResult result) {
+        return new RunningGoal(
+                result.targetDistanceKilometers(),
+                result.targetPaceSecondsPerKilometer(),
+                result.targetDate());
     }
 
     private List<TrainingHeartRateZone> heartRateZones(String userEmail) {

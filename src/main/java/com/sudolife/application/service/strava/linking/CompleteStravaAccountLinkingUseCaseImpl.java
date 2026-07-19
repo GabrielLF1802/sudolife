@@ -128,8 +128,7 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         return scope.trim();
     }
 
-    private void validateAthleteOwnership(String userEmail, Long athleteId) {
-        Optional<StravaAccountLink> activeAthleteLink = accountLinkRepository.findActiveByAthleteId(athleteId);
+    private void validateAthleteOwnership(String userEmail, Long athleteId) {Optional<StravaAccountLink> activeAthleteLink = accountLinkRepository.findActiveByAthleteId(athleteId);
 
         if (activeAthleteLink.isPresent() && !activeAthleteLink.get().getUserEmail().equals(userEmail)) {
             log.warn("Strava duplicate athlete rejected for athleteId={}", athleteId);
@@ -137,8 +136,7 @@ public class CompleteStravaAccountLinkingUseCaseImpl implements CompleteStravaAc
         }
     }
 
-    private StravaAccountLink saveActiveLink(String userEmail, StravaTokenAuthorization tokenAuthorization, String grantedScopes,
-                                             Instant linkedAt) {
+    private StravaAccountLink saveActiveLink(String userEmail, StravaTokenAuthorization tokenAuthorization, String grantedScopes, Instant linkedAt) {
         Optional<StravaAccountLink> activeUserLink = accountLinkRepository.findActiveByUserEmail(userEmail);
         Long linkId = activeUserLink.map(StravaAccountLink::getId).orElse(null);
         StravaAccountLink link = StravaAccountLink.active(linkId, userEmail, tokenAuthorization.athleteId(),

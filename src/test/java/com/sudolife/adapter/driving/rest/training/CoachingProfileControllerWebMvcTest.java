@@ -17,6 +17,7 @@ import com.sudolife.application.service.training.RunningGoalResult;
 import com.sudolife.application.service.training.WeeklyRunningVolumeResult;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
 import com.sudolife.application.service.training.ports.provided.GetCoachingProfileUseCase;
+import com.sudolife.application.service.training.ports.provided.GetCurrentAdaptiveRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.GenerateConservativeRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.GenerateAdaptiveRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
@@ -74,6 +75,9 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private GenerateAdaptiveRunningPlanUseCase generateAdaptiveRunningPlanUseCase;
+
+    @MockitoBean
+    private GetCurrentAdaptiveRunningPlanUseCase getCurrentAdaptiveRunningPlanUseCase;
 
     @MockitoBean
     private EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;

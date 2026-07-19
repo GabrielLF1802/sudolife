@@ -10,8 +10,10 @@ import com.sudolife.application.service.training.ports.provided.GetCoachingProfi
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.RunningHistorySnapshotResult;
 import com.sudolife.application.service.training.RunningGoalAssessmentResult;
+import com.sudolife.application.service.training.CurrentAdaptiveRunningPlanResult;
 import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
+import com.sudolife.application.service.training.ports.provided.GetCurrentAdaptiveRunningPlanUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -32,6 +34,7 @@ public class CoachingProfileController {
     private final GetRunningHistorySnapshotUseCase getRunningHistorySnapshotUseCase;
     private final GenerateConservativeRunningPlanUseCase generateConservativeRunningPlanUseCase;
     private final GenerateAdaptiveRunningPlanUseCase generateAdaptiveRunningPlanUseCase;
+    private final GetCurrentAdaptiveRunningPlanUseCase getCurrentAdaptiveRunningPlanUseCase;
     private final EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
 
     @GetMapping("/running-goal-assessment")
@@ -47,6 +50,11 @@ public class CoachingProfileController {
     @PostMapping("/adaptive-running-plan")
     public ResponseEntity<AdaptiveRunningPlanResult> generateAdaptiveRunningPlan(Authentication authentication) {
         return ResponseEntity.ok(generateAdaptiveRunningPlanUseCase.execute(authentication.getName()));
+    }
+
+    @GetMapping("/adaptive-running-plan")
+    public ResponseEntity<CurrentAdaptiveRunningPlanResult> getCurrentAdaptiveRunningPlan(Authentication authentication) {
+        return ResponseEntity.ok(getCurrentAdaptiveRunningPlanUseCase.execute(authentication.getName()));
     }
 
     @GetMapping("/running-history")
