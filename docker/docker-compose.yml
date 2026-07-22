@@ -38,12 +38,41 @@ services:
       API_SECURITY_TOKEN_SECRET: ${API_SECURITY_TOKEN_SECRET}
       API_SECURITY_TOKEN_ISSUER: ${API_SECURITY_TOKEN_ISSUER}
       API_SECURITY_TOKEN_EXPIRATION_MINUTES: ${API_SECURITY_TOKEN_EXPIRATION_MINUTES}
+      AI_RUNNING_PLAN_PROVIDER_URL: http://ollama-sudolife:11434
+      AI_RUNNING_PLAN_PROVIDER_MODEL: ${AI_RUNNING_PLAN_PROVIDER_MODEL:-llama3:8b}
     depends_on:
       db-sudolife:
         condition: service_healthy
+      ollama-model-pull:
+        condition: service_completed_successfully
     networks:
       - sudolife-network
     restart: always
+
+  ollama-sudolife:
+    image: ollama/ollama:latest
+    container_name: sudolife-ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - sudolife-ollama-data:/root/.ollama
+    networks:
+      - sudolife-network
+    restart: unless-stopped
+
+  ollama-model-pull:
+    image: ollama/ollama:latest
+    container_name: sudolife-ollama-model-pull
+    environment:
+      OLLAMA_HOST: http://ollama-sudolife:11434
+      OLLAMA_MODEL: ${AI_RUNNING_PLAN_PROVIDER_MODEL:-llama3:8b}
+    command: ["sh", "-c", "until ollama list >/dev/null 2>&1; do sleep 1; done; ollama pull \"$${OLLAMA_MODEL}\""]
+    depends_on:
+      ollama-sudolife:
+        condition: service_started
+    networks:
+      - sudolife-network
+    restart: "no"
 
 networks:
   sudolife-network:
@@ -51,3 +80,4 @@ networks:
 
 volumes:
   sudolife-db-data:
+  sudolife-ollama-data:
