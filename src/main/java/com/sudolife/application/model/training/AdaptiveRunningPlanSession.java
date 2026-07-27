@@ -36,6 +36,26 @@ public class AdaptiveRunningPlanSession {
         return new AdaptiveRunningPlanSession(null, null, plannedSession, PlannedSessionStatus.PLANNED);
     }
 
+    public static AdaptiveRunningPlanSession replacementOf(
+            AdaptiveRunningPlanSession original,
+            PlannedSessionResult replacement
+    ) {
+        if (original == null || original.getId() == null) {
+            throw new IllegalArgumentException("A persisted original planned session is required");
+        }
+
+        if (original.getStatus() != PlannedSessionStatus.REPLACED) {
+            throw new IllegalArgumentException("Original planned session must be replaced");
+        }
+
+        return new AdaptiveRunningPlanSession(
+                null,
+                original.getId(),
+                replacement,
+                PlannedSessionStatus.PLANNED
+        );
+    }
+
     public void markReplaced() {
         changeStatus(PlannedSessionStatus.REPLACED);
     }

@@ -5,7 +5,10 @@ import com.sudolife.application.service.training.AdaptiveRunningPlanResult;
 import com.sudolife.application.service.training.ConservativeRunningPlanClassification;
 import com.sudolife.application.service.training.ConservativeRunningPlanReason;
 import com.sudolife.application.service.training.ConservativeRunningPlanResult;
+import com.sudolife.application.service.training.CurrentAdaptiveRunningPlanResult;
+import com.sudolife.application.service.training.AdaptiveRunningPlanSessionResult;
 import com.sudolife.application.service.training.PlannedSessionResult;
+import com.sudolife.application.service.training.PlannedSessionStatus;
 import com.sudolife.application.service.training.PlannedSessionTargetResult;
 import com.sudolife.application.service.training.PlannedSessionType;
 import com.sudolife.application.service.training.SaveCoachingProfileCommand;
@@ -143,6 +146,37 @@ class CoachingProfileControllerWebMvcTest {
                 .andExpect(jsonPath("$.adjustedBySafetyValidation").value(true));
 
         verify(generateAdaptiveRunningPlanUseCase).execute("user@sudolife.com");
+    }
+
+    @Test
+    void get_adaptive_running_plan_returns_current_and_replaced_sessions() throws Exception {
+        PlannedSessionResult original = new PlannedSessionResult(
+                1, 1, PlannedSessionType.EASY_RUN, 5.0, PlannedSessionTargetResult.perceivedEffort(2, 4),
+                LocalDate.parse("2026-07-21"));
+        PlannedSessionResult replacement = new PlannedSessionResult(
+                1, 1, PlannedSessionType.RECOVERY, 3.0, PlannedSessionTargetResult.perceivedEffort(1, 3),
+                LocalDate.parse("2026-07-21"));
+        CurrentAdaptiveRunningPlanResult result = new CurrentAdaptiveRunningPlanResult(
+                1L,
+                new RunningGoalResult(7.3, null, LocalDate.parse("2026-08-11")),
+                "Accepted explanation",
+                Instant.parse("2026-07-20T12:00:00Z"),
+                List.of(
+                        new AdaptiveRunningPlanSessionResult(10L, null, original, PlannedSessionStatus.REPLACED),
+                        new AdaptiveRunningPlanSessionResult(11L, 10L, replacement, PlannedSessionStatus.PLANNED)
+                )
+        );
+        when(getCurrentAdaptiveRunningPlanUseCase.execute("user@sudolife.com")).thenReturn(result);
+
+        mockMvc.perform(get("/api/coaching-profiles/adaptive-running-plan")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.explanation").value("Accepted explanation"))
+                .andExpect(jsonPath("$.plannedSessions[0].status").value("REPLACED"))
+                .andExpect(jsonPath("$.plannedSessions[1].originalPlannedSessionId").value(10))
+                .andExpect(jsonPath("$.plannedSessions[1].status").value("PLANNED"));
+
+        verify(getCurrentAdaptiveRunningPlanUseCase).execute("user@sudolife.com");
     }
 
     @Test

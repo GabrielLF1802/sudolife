@@ -1,8 +1,11 @@
 package com.sudolife.application.model.training;
 
+import com.sudolife.application.service.training.PlannedSessionResult;
 import lombok.Getter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -44,6 +47,41 @@ public class AdaptiveRunningPlan {
         this.safeMilestone = safeMilestone;
         this.explanation = explanation;
         this.acceptedAt = acceptedAt;
-        this.plannedSessions = List.copyOf(plannedSessions);
+        if (plannedSessions == null || plannedSessions.isEmpty()) {
+            throw new IllegalArgumentException("Planned sessions are required");
+        }
+
+        this.plannedSessions = new ArrayList<>(plannedSessions);
+    }
+
+    public List<AdaptiveRunningPlanSession> getPlannedSessions() {
+        return Collections.unmodifiableList(plannedSessions);
+    }
+
+    public AdaptiveRunningPlanSession replacePlannedSession(
+            Long originalPlannedSessionId,
+            PlannedSessionResult replacement
+    ) {
+        if (replacement == null) {
+            throw new IllegalArgumentException("Replacement planned session is required");
+        }
+
+        AdaptiveRunningPlanSession original = findSession(originalPlannedSessionId);
+        original.markReplaced();
+        AdaptiveRunningPlanSession adaptedSession = AdaptiveRunningPlanSession.replacementOf(original, replacement);
+        plannedSessions.add(adaptedSession);
+
+        return adaptedSession;
+    }
+
+    private AdaptiveRunningPlanSession findSession(Long plannedSessionId) {
+        if (plannedSessionId == null) {
+            throw new IllegalArgumentException("Planned session id is required");
+        }
+
+        return plannedSessions.stream()
+                .filter(session -> plannedSessionId.equals(session.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Planned session does not belong to the plan"));
     }
 }
