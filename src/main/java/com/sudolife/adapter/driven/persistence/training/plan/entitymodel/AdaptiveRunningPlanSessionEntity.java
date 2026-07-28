@@ -55,4 +55,6 @@ public class AdaptiveRunningPlanSessionEntity {
     private String adaptationTrigger;
     @Column(name = "matched_activity_id")
     private Long matchedActivityId;
+    @Column(name = "post_session_perceived_effort")
+    private Integer postSessionPerceivedEffort;
 }

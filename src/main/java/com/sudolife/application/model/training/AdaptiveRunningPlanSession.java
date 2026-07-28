@@ -14,6 +14,7 @@ public class AdaptiveRunningPlanSession {
     private final AdaptationTrigger adaptationTrigger;
     private PlannedSessionStatus status;
     private Long matchedActivityId;
+    private Integer postSessionPerceivedEffort;
 
     public AdaptiveRunningPlanSession(
             Long id,
@@ -21,7 +22,8 @@ public class AdaptiveRunningPlanSession {
             PlannedSessionResult plannedSession,
             PlannedSessionStatus status,
             AdaptationTrigger adaptationTrigger,
-            Long matchedActivityId
+            Long matchedActivityId,
+            Integer postSessionPerceivedEffort
     ) {
         if (plannedSession == null) {
             throw new IllegalArgumentException("Planned session is required");
@@ -31,12 +33,15 @@ public class AdaptiveRunningPlanSession {
             throw new IllegalArgumentException("Planned session status is required");
         }
 
+        validatePostSessionPerceivedEffort(status, postSessionPerceivedEffort);
+
         this.id = id;
         this.originalPlannedSessionId = originalPlannedSessionId;
         this.plannedSession = plannedSession;
         this.status = status;
         this.adaptationTrigger = adaptationTrigger;
         this.matchedActivityId = matchedActivityId;
+        this.postSessionPerceivedEffort = postSessionPerceivedEffort;
     }
 
     public AdaptiveRunningPlanSession(
@@ -45,7 +50,7 @@ public class AdaptiveRunningPlanSession {
             PlannedSessionResult plannedSession,
             PlannedSessionStatus status
     ) {
-        this(id, originalPlannedSessionId, plannedSession, status, null, null);
+        this(id, originalPlannedSessionId, plannedSession, status, null, null, null);
     }
 
     public AdaptiveRunningPlanSession(
@@ -55,11 +60,23 @@ public class AdaptiveRunningPlanSession {
             PlannedSessionStatus status,
             AdaptationTrigger adaptationTrigger
     ) {
-        this(id, originalPlannedSessionId, plannedSession, status, adaptationTrigger, null);
+        this(id, originalPlannedSessionId, plannedSession, status, adaptationTrigger, null, null);
+    }
+
+    public AdaptiveRunningPlanSession(
+            Long id,
+            Long originalPlannedSessionId,
+            PlannedSessionResult plannedSession,
+            PlannedSessionStatus status,
+            AdaptationTrigger adaptationTrigger,
+            Long matchedActivityId
+    ) {
+        this(id, originalPlannedSessionId, plannedSession, status, adaptationTrigger, matchedActivityId, null);
     }
 
     public static AdaptiveRunningPlanSession planned(PlannedSessionResult plannedSession) {
-        return new AdaptiveRunningPlanSession(null, null, plannedSession, PlannedSessionStatus.PLANNED, null, null);
+        return new AdaptiveRunningPlanSession(null, null, plannedSession, PlannedSessionStatus.PLANNED, null, null,
+                null);
     }
 
     public static AdaptiveRunningPlanSession replacementOf(
@@ -88,6 +105,7 @@ public class AdaptiveRunningPlanSession {
                 replacement,
                 PlannedSessionStatus.PLANNED,
                 adaptationTrigger,
+                null,
                 null
         );
     }
@@ -126,11 +144,40 @@ public class AdaptiveRunningPlanSession {
         changeStatus(PlannedSessionStatus.MISSED);
     }
 
+    public void reportPostSessionPerceivedEffort(int perceivedEffort) {
+        if (status != PlannedSessionStatus.COMPLETED) {
+            throw new IllegalStateException("Perceived effort requires a completed planned session");
+        }
+
+        if (perceivedEffort < 1 || perceivedEffort > 10) {
+            throw new IllegalArgumentException("Perceived effort must be between 1 and 10");
+        }
+
+        postSessionPerceivedEffort = perceivedEffort;
+    }
+
     private void changeStatus(PlannedSessionStatus newStatus) {
         if (status != PlannedSessionStatus.PLANNED) {
             throw new IllegalStateException("Only planned sessions can change status");
         }
 
         status = newStatus;
+    }
+
+    private void validatePostSessionPerceivedEffort(
+            PlannedSessionStatus plannedSessionStatus,
+            Integer perceivedEffort
+    ) {
+        if (perceivedEffort == null) {
+            return;
+        }
+
+        if (plannedSessionStatus != PlannedSessionStatus.COMPLETED) {
+            throw new IllegalArgumentException("Perceived effort requires a completed planned session");
+        }
+
+        if (perceivedEffort < 1 || perceivedEffort > 10) {
+            throw new IllegalArgumentException("Perceived effort must be between 1 and 10");
+        }
     }
 }

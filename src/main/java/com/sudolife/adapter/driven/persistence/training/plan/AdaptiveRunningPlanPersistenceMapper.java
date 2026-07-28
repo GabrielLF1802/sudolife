@@ -68,6 +68,7 @@ public class AdaptiveRunningPlanPersistenceMapper {
         entity.setAdaptationTrigger(session.getAdaptationTrigger() == null
                 ? null : session.getAdaptationTrigger().name());
         entity.setMatchedActivityId(session.getMatchedActivityId());
+        entity.setPostSessionPerceivedEffort(session.getPostSessionPerceivedEffort());
 
         return entity;
     }
@@ -94,6 +95,7 @@ public class AdaptiveRunningPlanPersistenceMapper {
                 PlannedSessionStatus.valueOf(entity.getStatus()),
                 entity.getAdaptationTrigger() == null
                         ? null : AdaptationTrigger.valueOf(entity.getAdaptationTrigger()),
-                entity.getMatchedActivityId());
+                entity.getMatchedActivityId(),
+                entity.getPostSessionPerceivedEffort());
     }
 }

@@ -5,6 +5,9 @@ import com.sudolife.application.model.training.AdaptiveRunningPlanSession;
 import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.model.training.CoachingProfile;
 import com.sudolife.application.model.training.UserReportedReadiness;
+import com.sudolife.application.model.strava.StravaActivitySummary;
+import com.sudolife.application.model.strava.StravaActivityType;
+import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import com.sudolife.application.service.training.ports.required.AdaptiveRunningPlanRepository;
 import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
@@ -58,6 +61,53 @@ class AdaptNextPlannedSessionUseCaseImplUnitTest {
                 .isEqualTo(PlannedSessionTargetResult.perceivedEffort(1, 3));
     }
 
+    @Test
+    void execute_with_reported_high_effort_prefers_report_over_inferred_low_effort() {
+        AdaptiveRunningPlan plan = planWithCompletedSession(9);
+        AdaptiveRunningPlanRepository repository = repositoryWith(plan);
+        StravaActivitySummaryRepository activityRepository = activityRepositoryWith(fastActivity());
+        AdaptNextPlannedSessionUseCaseImpl useCase = useCase(repository,
+                mock(CoachingProfileRepository.class), activityRepository);
+
+        CurrentAdaptiveRunningPlanResult result = useCase.execute(
+                "runner@sudolife.com", completedSessionCommand());
+
+        assertThat(result.plannedSessions().getLast().adaptationTrigger())
+                .isEqualTo(AdaptationTrigger.UNEXPECTEDLY_HIGH_EFFORT);
+        assertThat(result.plannedSessions().getLast().plannedSession().distanceKilometers()).isEqualTo(3.5);
+    }
+
+    @Test
+    void execute_without_reported_effort_uses_conservative_inferred_low_effort() {
+        AdaptiveRunningPlan plan = planWithCompletedSession(null);
+        AdaptiveRunningPlanRepository repository = repositoryWith(plan);
+        AdaptNextPlannedSessionUseCaseImpl useCase = useCase(repository,
+                mock(CoachingProfileRepository.class), activityRepositoryWith(fastActivity()));
+
+        CurrentAdaptiveRunningPlanResult result = useCase.execute(
+                "runner@sudolife.com", completedSessionCommand());
+
+        assertThat(result.plannedSessions().getLast().adaptationTrigger())
+                .isEqualTo(AdaptationTrigger.UNEXPECTEDLY_LOW_EFFORT);
+        assertThat(result.plannedSessions().getLast().plannedSession().distanceKilometers()).isEqualTo(5.3);
+    }
+
+    @Test
+    void execute_with_injury_concern_overrides_reported_low_effort() {
+        AdaptiveRunningPlan plan = planWithCompletedSession(1);
+        AdaptiveRunningPlanRepository repository = repositoryWith(plan);
+        CoachingProfileRepository profileRepository = mock(CoachingProfileRepository.class);
+        when(profileRepository.findByUserEmail("runner@sudolife.com")).thenReturn(Optional.of(injuryProfile()));
+        AdaptNextPlannedSessionUseCaseImpl useCase = useCase(repository, profileRepository,
+                activityRepositoryWith(fastActivity()));
+
+        CurrentAdaptiveRunningPlanResult result = useCase.execute(
+                "runner@sudolife.com", completedSessionCommand());
+
+        assertThat(result.plannedSessions().getLast().adaptationTrigger())
+                .isEqualTo(AdaptationTrigger.INJURY_CONCERN);
+    }
+
     private AdaptNextPlannedSessionUseCaseImpl useCase(AdaptiveRunningPlanRepository repository) {
         return useCase(repository, mock(CoachingProfileRepository.class));
     }
@@ -66,10 +116,19 @@ class AdaptNextPlannedSessionUseCaseImplUnitTest {
             AdaptiveRunningPlanRepository repository,
             CoachingProfileRepository profileRepository
     ) {
+        return useCase(repository, profileRepository, mock(StravaActivitySummaryRepository.class));
+    }
+
+    private AdaptNextPlannedSessionUseCaseImpl useCase(
+            AdaptiveRunningPlanRepository repository,
+            CoachingProfileRepository profileRepository,
+            StravaActivitySummaryRepository activityRepository
+    ) {
         TimeProvider timeProvider = () -> Instant.parse("2026-07-27T12:00:00Z");
 
         return new AdaptNextPlannedSessionUseCaseImpl(
-                repository, profileRepository, new AdaptedPlannedSessionValidator(), timeProvider);
+                repository, profileRepository, activityRepository, new PostSessionEffortAssessment(),
+                new AdaptedPlannedSessionValidator(), timeProvider);
     }
 
     private AdaptiveRunningPlanRepository repositoryWith(AdaptiveRunningPlan plan) {
@@ -90,6 +149,43 @@ class AdaptNextPlannedSessionUseCaseImplUnitTest {
                 List.of(
                         new AdaptiveRunningPlanSession(10L, null, nextSession(), PlannedSessionStatus.PLANNED),
                         new AdaptiveRunningPlanSession(11L, null, laterSession(), PlannedSessionStatus.PLANNED)));
+    }
+
+    private AdaptiveRunningPlan planWithCompletedSession(Integer reportedEffort) {
+        PlannedSessionResult completedResult = new PlannedSessionResult(
+                1, 0, PlannedSessionType.EASY_RUN, 5.0, PlannedSessionTargetResult.perceivedEffort(2, 4),
+                LocalDate.parse("2026-07-26"), 1800);
+        AdaptiveRunningPlanSession completed = new AdaptiveRunningPlanSession(
+                9L, null, completedResult, PlannedSessionStatus.COMPLETED,
+                null, 30L, reportedEffort);
+
+        return new AdaptiveRunningPlan(
+                1L,
+                "runner@sudolife.com",
+                new RunningGoal(10.0, 330, LocalDate.parse("2026-10-01")),
+                "Accepted explanation",
+                Instant.parse("2026-07-20T12:00:00Z"),
+                List.of(completed,
+                        new AdaptiveRunningPlanSession(10L, null, nextSession(), PlannedSessionStatus.PLANNED),
+                        new AdaptiveRunningPlanSession(11L, null, laterSession(), PlannedSessionStatus.PLANNED)));
+    }
+
+    private AdaptNextPlannedSessionCommand completedSessionCommand() {
+        return new AdaptNextPlannedSessionCommand(AdaptationTrigger.COMPLETED_PLANNED_SESSION);
+    }
+
+    private StravaActivitySummaryRepository activityRepositoryWith(StravaActivitySummary activity) {
+        StravaActivitySummaryRepository repository = mock(StravaActivitySummaryRepository.class);
+        when(repository.findByIdAndUserEmail(30L, "runner@sudolife.com")).thenReturn(Optional.of(activity));
+
+        return repository;
+    }
+
+    private StravaActivitySummary fastActivity() {
+        return new StravaActivitySummary(30L, "runner@sudolife.com", 20L, 100L, StravaActivityType.RUN,
+                "Run", "Fast run", Instant.parse("2026-07-26T09:00:00Z"), 5000.0, 1400,
+                3.5, 280.0, 10.0, 4.0, 140.0, 160.0, 80.0, 200.0, 300.0,
+                Instant.parse("2026-07-26T10:00:00Z"));
     }
 
     private CoachingProfile injuryProfile() {

@@ -89,6 +89,22 @@ class AdaptiveRunningPlanPersistenceAdapterIntegrationTest {
         });
     }
 
+    @Test
+    void save_persists_post_session_perceived_effort() {
+        AdaptiveRunningPlan persistedPlan = repository.save(plan(
+                "Accepted explanation", Instant.parse("2026-07-27T12:00:00Z")));
+        AdaptiveRunningPlanSession session = persistedPlan.getPlannedSessions().getFirst();
+        session.match(99L);
+        session.reportPostSessionPerceivedEffort(8);
+
+        repository.save(persistedPlan);
+        AdaptiveRunningPlan result = repository.findLatestByUserEmail("runner@sudolife.com").orElseThrow();
+
+        assertThat(result.getPlannedSessions()).singleElement()
+                .extracting(AdaptiveRunningPlanSession::getPostSessionPerceivedEffort)
+                .isEqualTo(8);
+    }
+
     private AdaptiveRunningPlan plan(String explanation, Instant acceptedAt) {
         return new AdaptiveRunningPlan(
                 null,

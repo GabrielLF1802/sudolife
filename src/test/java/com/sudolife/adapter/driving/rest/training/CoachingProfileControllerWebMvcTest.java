@@ -33,6 +33,8 @@ import com.sudolife.application.service.training.AdaptNextPlannedSessionCommand;
 import com.sudolife.application.service.training.AdaptationTrigger;
 import com.sudolife.application.service.training.ClearInjuryConcernCommand;
 import com.sudolife.application.service.training.ports.provided.ClearInjuryConcernUseCase;
+import com.sudolife.application.service.training.SubmitPostSessionPerceivedEffortCommand;
+import com.sudolife.application.service.training.ports.provided.SubmitPostSessionPerceivedEffortUseCase;
 import com.sudolife.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,6 +106,9 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private ClearInjuryConcernUseCase clearInjuryConcernUseCase;
+
+    @MockitoBean
+    private SubmitPostSessionPerceivedEffortUseCase submitPostSessionPerceivedEffortUseCase;
 
     @Test
     void get_running_goal_assessment_returns_long_term_goal_and_safe_milestone() throws Exception {
@@ -221,6 +226,22 @@ class CoachingProfileControllerWebMvcTest {
                 .andExpect(jsonPath("$.id").value(1));
 
         verify(adaptNextPlannedSessionUseCase).execute("user@sudolife.com", command);
+    }
+
+    @Test
+    void put_post_session_perceived_effort_records_effort_for_authenticated_user() throws Exception {
+        SubmitPostSessionPerceivedEffortCommand command = new SubmitPostSessionPerceivedEffortCommand(10L, 8);
+        CurrentAdaptiveRunningPlanResult result = currentPlanWithPostSessionPerceivedEffort(8);
+        when(submitPostSessionPerceivedEffortUseCase.execute("user@sudolife.com", command)).thenReturn(result);
+
+        mockMvc.perform(put("/api/coaching-profiles/adaptive-running-plan/sessions/10/perceived-effort")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"perceivedEffort\":8}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plannedSessions[0].postSessionPerceivedEffort").value(8));
+
+        verify(submitPostSessionPerceivedEffortUseCase).execute("user@sudolife.com", command);
     }
 
     @Test
@@ -369,5 +390,19 @@ class CoachingProfileControllerWebMvcTest {
                 List.of(new AdaptiveRunningPlanSessionResult(10L, null, session,
                         activityId == null ? PlannedSessionStatus.PLANNED : PlannedSessionStatus.COMPLETED,
                         null, activityId)));
+    }
+
+    private CurrentAdaptiveRunningPlanResult currentPlanWithPostSessionPerceivedEffort(int perceivedEffort) {
+        PlannedSessionResult session = new PlannedSessionResult(
+                1, 1, PlannedSessionType.EASY_RUN, 5.0, PlannedSessionTargetResult.perceivedEffort(2, 4),
+                LocalDate.parse("2026-08-03"), 1800);
+
+        return new CurrentAdaptiveRunningPlanResult(
+                1L,
+                new RunningGoalResult(10.0, 360, LocalDate.parse("2026-10-01")),
+                "Explanation",
+                Instant.parse("2026-07-27T12:00:00Z"),
+                List.of(new AdaptiveRunningPlanSessionResult(10L, null, session,
+                        PlannedSessionStatus.COMPLETED, null, 20L, perceivedEffort)));
     }
 }

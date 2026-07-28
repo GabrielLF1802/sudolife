@@ -21,6 +21,8 @@ import com.sudolife.application.service.training.ports.provided.CorrectPlannedSe
 import com.sudolife.application.service.training.ports.provided.UnlinkPlannedSessionMatchUseCase;
 import com.sudolife.application.service.training.ClearInjuryConcernCommand;
 import com.sudolife.application.service.training.ports.provided.ClearInjuryConcernUseCase;
+import com.sudolife.application.service.training.SubmitPostSessionPerceivedEffortCommand;
+import com.sudolife.application.service.training.ports.provided.SubmitPostSessionPerceivedEffortUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -49,6 +51,7 @@ public class CoachingProfileController {
     private final CorrectPlannedSessionMatchUseCase correctPlannedSessionMatchUseCase;
     private final UnlinkPlannedSessionMatchUseCase unlinkPlannedSessionMatchUseCase;
     private final ClearInjuryConcernUseCase clearInjuryConcernUseCase;
+    private final SubmitPostSessionPerceivedEffortUseCase submitPostSessionPerceivedEffortUseCase;
 
     @GetMapping("/running-goal-assessment")
     public ResponseEntity<RunningGoalAssessmentResult> evaluateRunningGoal(Authentication authentication) {
@@ -100,6 +103,18 @@ public class CoachingProfileController {
             @PathVariable Long plannedSessionId
     ) {
         return ResponseEntity.ok(unlinkPlannedSessionMatchUseCase.execute(authentication.getName(), plannedSessionId));
+    }
+
+    @PutMapping("/adaptive-running-plan/sessions/{plannedSessionId}/perceived-effort")
+    public ResponseEntity<CurrentAdaptiveRunningPlanResult> submitPostSessionPerceivedEffort(
+            Authentication authentication,
+            @PathVariable Long plannedSessionId,
+            @RequestBody PostSessionPerceivedEffortRequest request
+    ) {
+        SubmitPostSessionPerceivedEffortCommand command =
+                new SubmitPostSessionPerceivedEffortCommand(plannedSessionId, request.perceivedEffort());
+
+        return ResponseEntity.ok(submitPostSessionPerceivedEffortUseCase.execute(authentication.getName(), command));
     }
 
     @GetMapping("/running-history")

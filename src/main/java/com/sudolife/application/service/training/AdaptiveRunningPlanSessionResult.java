@@ -8,7 +8,8 @@ public record AdaptiveRunningPlanSessionResult(
         PlannedSessionResult plannedSession,
         PlannedSessionStatus status,
         AdaptationTrigger adaptationTrigger,
-        Long matchedActivityId
+        Long matchedActivityId,
+        Integer postSessionPerceivedEffort
 ) {
 
     public AdaptiveRunningPlanSessionResult(
@@ -18,7 +19,18 @@ public record AdaptiveRunningPlanSessionResult(
             PlannedSessionStatus status,
             AdaptationTrigger adaptationTrigger
     ) {
-        this(id, originalPlannedSessionId, plannedSession, status, adaptationTrigger, null);
+        this(id, originalPlannedSessionId, plannedSession, status, adaptationTrigger, null, null);
+    }
+
+    public AdaptiveRunningPlanSessionResult(
+            Long id,
+            Long originalPlannedSessionId,
+            PlannedSessionResult plannedSession,
+            PlannedSessionStatus status,
+            AdaptationTrigger adaptationTrigger,
+            Long matchedActivityId
+    ) {
+        this(id, originalPlannedSessionId, plannedSession, status, adaptationTrigger, matchedActivityId, null);
     }
 
     public static AdaptiveRunningPlanSessionResult from(AdaptiveRunningPlanSession session) {
@@ -28,6 +40,7 @@ public record AdaptiveRunningPlanSessionResult(
                 session.getPlannedSession(),
                 session.getStatus(),
                 session.getAdaptationTrigger(),
-                session.getMatchedActivityId());
+                session.getMatchedActivityId(),
+                session.getPostSessionPerceivedEffort());
     }
 }

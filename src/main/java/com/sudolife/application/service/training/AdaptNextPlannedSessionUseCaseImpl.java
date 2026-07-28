@@ -2,7 +2,9 @@ package com.sudolife.application.service.training;
 
 import com.sudolife.application.model.training.AdaptiveRunningPlan;
 import com.sudolife.application.model.training.AdaptiveRunningPlanSession;
+import com.sudolife.application.model.strava.StravaActivitySummary;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
+import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.training.exception.AdaptiveRunningPlanNotFoundException;
 import com.sudolife.application.service.training.exception.NextPlannedSessionNotFoundException;
 import com.sudolife.application.service.training.ports.provided.AdaptNextPlannedSessionUseCase;
@@ -21,6 +23,8 @@ public class AdaptNextPlannedSessionUseCaseImpl implements AdaptNextPlannedSessi
 
     private final AdaptiveRunningPlanRepository adaptiveRunningPlanRepository;
     private final CoachingProfileRepository coachingProfileRepository;
+    private final StravaActivitySummaryRepository activityRepository;
+    private final PostSessionEffortAssessment effortAssessment;
     private final AdaptedPlannedSessionValidator validator;
     private final TimeProvider timeProvider;
 
@@ -29,12 +33,38 @@ public class AdaptNextPlannedSessionUseCaseImpl implements AdaptNextPlannedSessi
         AdaptiveRunningPlan plan = adaptiveRunningPlanRepository.findLatestByUserEmail(userEmail)
                 .orElseThrow(AdaptiveRunningPlanNotFoundException::new);
         AdaptiveRunningPlanSession nextSession = nextSession(plan);
-        AdaptationTrigger trigger = effectiveTrigger(userEmail, command.trigger());
+        AdaptationTrigger effortTrigger = effortTrigger(plan, userEmail, command.trigger());
+        AdaptationTrigger trigger = effectiveTrigger(userEmail, effortTrigger);
         PlannedSessionResult replacement = replacement(nextSession.getPlannedSession(), trigger);
         validator.validate(nextSession.getPlannedSession(), replacement);
         plan.replacePlannedSession(nextSession.getId(), replacement, trigger);
 
         return CurrentAdaptiveRunningPlanResult.from(adaptiveRunningPlanRepository.save(plan));
+    }
+
+    private AdaptationTrigger effortTrigger(
+            AdaptiveRunningPlan plan,
+            String userEmail,
+            AdaptationTrigger requestedTrigger
+    ) {
+        if (requestedTrigger != AdaptationTrigger.COMPLETED_PLANNED_SESSION) {
+            return requestedTrigger;
+        }
+
+        AdaptiveRunningPlanSession completedSession = plan.getPlannedSessions().stream()
+                .filter(session -> session.getStatus() == PlannedSessionStatus.COMPLETED)
+                .max(Comparator.comparing(session -> session.getPlannedSession().scheduledDate()))
+                .orElse(null);
+        if (completedSession == null) {
+            return requestedTrigger;
+        }
+
+        StravaActivitySummary activity = completedSession.getMatchedActivityId() == null
+                ? null
+                : activityRepository.findByIdAndUserEmail(completedSession.getMatchedActivityId(), userEmail)
+                        .orElse(null);
+
+        return effortAssessment.assess(completedSession, activity);
     }
 
     private AdaptationTrigger effectiveTrigger(String userEmail, AdaptationTrigger requestedTrigger) {
