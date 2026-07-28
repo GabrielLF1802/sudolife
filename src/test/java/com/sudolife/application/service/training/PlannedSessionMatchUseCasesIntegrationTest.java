@@ -8,11 +8,14 @@ import com.sudolife.application.model.training.RunningGoal;
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.training.ports.provided.CorrectPlannedSessionMatchUseCase;
 import com.sudolife.application.service.training.ports.provided.MatchImportedRunsUseCase;
+import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.provided.UnlinkPlannedSessionMatchUseCase;
 import com.sudolife.application.service.training.ports.required.AdaptiveRunningPlanRepository;
+import com.sudolife.helper.FixedTimeProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +32,9 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(properties = {
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.task.scheduling.enabled=false"
+        "adaptive-coaching.missed-session-scheduling-enabled=false"
 })
+@Import(FixedTimeProvider.class)
 @Transactional
 class PlannedSessionMatchUseCasesIntegrationTest {
 
@@ -42,6 +46,9 @@ class PlannedSessionMatchUseCasesIntegrationTest {
 
     @Autowired
     private UnlinkPlannedSessionMatchUseCase unlinkPlannedSessionMatchUseCase;
+
+    @Autowired
+    private GetRunningHistorySnapshotUseCase getRunningHistorySnapshotUseCase;
 
     @Autowired
     private AdaptiveRunningPlanRepository planRepository;
@@ -72,6 +79,22 @@ class PlannedSessionMatchUseCasesIntegrationTest {
 
         assertThat(currentSession().getStatus()).isEqualTo(PlannedSessionStatus.PLANNED);
         assertThat(currentSession().getMatchedActivityId()).isNull();
+    }
+
+    @Test
+    void unmatched_imported_run_counts_toward_load_without_completing_planned_session() {
+        planRepository.save(plan());
+        StravaActivitySummary extraRun = activity(12L, "2026-05-10T09:00:00Z", 9000.0, 3200);
+        when(activityRepository.findByUserEmailAndActivityTypeAndStartDateBetween(
+                eq("runner@sudolife.com"), eq(StravaActivityType.RUN), any(), any()))
+                .thenReturn(List.of(extraRun));
+
+        matchImportedRunsUseCase.execute("runner@sudolife.com");
+        RunningHistorySnapshotResult history = getRunningHistorySnapshotUseCase.execute("runner@sudolife.com");
+
+        assertThat(currentSession().getStatus()).isEqualTo(PlannedSessionStatus.PLANNED);
+        assertThat(history.runningActivityCount()).isEqualTo(1);
+        assertThat(history.totalDistanceKilometers()).isEqualTo(9.0);
     }
 
     private AdaptiveRunningPlanSession currentSession() {

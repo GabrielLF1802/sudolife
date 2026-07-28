@@ -7,6 +7,7 @@ import com.sudolife.application.service.training.ports.required.AdaptiveRunningP
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -24,5 +25,10 @@ public class AdaptiveRunningPlanRepositoryJpaAdapter implements AdaptiveRunningP
     @Override
     public Optional<AdaptiveRunningPlan> findLatestByUserEmail(String userEmail) {
         return jpaRepository.findFirstByUserEmailOrderByAcceptedAtDescIdDesc(userEmail).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<AdaptiveRunningPlan> findLatestPlans() {
+        return jpaRepository.findLatestPlans().stream().map(mapper::toDomain).toList();
     }
 }
