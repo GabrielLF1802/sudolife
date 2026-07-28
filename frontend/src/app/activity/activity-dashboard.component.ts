@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { forkJoin, finalize } from 'rxjs';
+import { catchError, forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
 import { ActivityList, ActivityService } from './activity.service';
@@ -96,6 +96,11 @@ export class ActivityDashboardComponent implements OnInit {
       this.conservativeRunningPlan()?.plannedSessions.filter((session) => session.weekNumber > 1) ??
       [],
   );
+  protected readonly nextAdaptivePlanSession = computed(() => {
+    const sessions = this.adaptiveRunningPlan()?.plannedSessions ?? [];
+
+    return [...sessions].sort((left, right) => left.scheduledDate.localeCompare(right.scheduledDate))[0] ?? null;
+  });
   protected readonly activityTypes = computed(() => {
     const activityList = this.activityList();
 
@@ -610,7 +615,8 @@ export class ActivityDashboardComponent implements OnInit {
     this.planLoading.set(true);
     this.planErrorMessage.set('');
     this.coachingProfileService
-      .generateAdaptiveRunningPlan()
+      .getCurrentAdaptiveRunningPlan()
+      .pipe(catchError(() => this.coachingProfileService.generateAdaptiveRunningPlan()))
       .pipe(finalize(() => this.planLoading.set(false)))
       .subscribe({
         next: (plan) => this.adaptiveRunningPlan.set(plan),
@@ -619,6 +625,18 @@ export class ActivityDashboardComponent implements OnInit {
             'Seu perfil foi preservado, mas não foi possível atualizar o plano.',
           ),
       });
+  }
+
+  protected adaptationTriggerLabel(trigger: import('./coaching-profile.service').AdaptationTrigger | null | undefined): string {
+    switch (trigger) {
+      case 'MISSED_PLANNED_SESSION': return 'sessão anterior perdida';
+      case 'COMPLETED_PLANNED_SESSION': return 'sessão anterior concluída';
+      case 'INJURY_CONCERN': return 'preocupação de lesão';
+      case 'LOW_READINESS': return 'baixa prontidão';
+      case 'UNEXPECTEDLY_HIGH_EFFORT': return 'esforço acima do esperado';
+      case 'UNEXPECTEDLY_LOW_EFFORT': return 'esforço abaixo do esperado';
+      default: return 'contexto recente de treino';
+    }
   }
 
   private loadRunningGoalAssessment(coachingProfile: CoachingProfile): void {

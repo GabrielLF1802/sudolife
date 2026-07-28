@@ -102,6 +102,35 @@ describe('CoachingProfileService', () => {
     });
   });
 
+  it('should_load_only_current_plan_sessions_and_mark_an_adapted_replacement', () => {
+    service.getCurrentAdaptiveRunningPlan().subscribe((plan) => {
+      expect(plan.plannedSessions.length).toBe(1);
+      expect(plan.plannedSessions[0].adapted).toBeTrue();
+      expect(plan.plannedSessions[0].adaptationTrigger).toBe('LOW_READINESS');
+    });
+
+    const request = httpTestingController.expectOne('/api/coaching-profiles/adaptive-running-plan');
+
+    request.flush({
+      safeMilestone: { targetDistanceKilometers: 10 },
+      explanation: 'Plano adaptado.',
+      plannedSessions: [
+        {
+          originalPlannedSessionId: null,
+          plannedSession: { weekNumber: 1 },
+          status: 'REPLACED',
+          adaptationTrigger: null,
+        },
+        {
+          originalPlannedSessionId: 10,
+          plannedSession: { weekNumber: 1 },
+          status: 'PLANNED',
+          adaptationTrigger: 'LOW_READINESS',
+        },
+      ],
+    });
+  });
+
   function coachingProfile() {
     return {
       targetDistanceKilometers: 10,

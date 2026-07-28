@@ -14,6 +14,8 @@ import com.sudolife.application.service.training.CurrentAdaptiveRunningPlanResul
 import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.provided.GetCurrentAdaptiveRunningPlanUseCase;
+import com.sudolife.application.service.training.AdaptNextPlannedSessionCommand;
+import com.sudolife.application.service.training.ports.provided.AdaptNextPlannedSessionUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -36,6 +38,7 @@ public class CoachingProfileController {
     private final GenerateAdaptiveRunningPlanUseCase generateAdaptiveRunningPlanUseCase;
     private final GetCurrentAdaptiveRunningPlanUseCase getCurrentAdaptiveRunningPlanUseCase;
     private final EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
+    private final AdaptNextPlannedSessionUseCase adaptNextPlannedSessionUseCase;
 
     @GetMapping("/running-goal-assessment")
     public ResponseEntity<RunningGoalAssessmentResult> evaluateRunningGoal(Authentication authentication) {
@@ -55,6 +58,14 @@ public class CoachingProfileController {
     @GetMapping("/adaptive-running-plan")
     public ResponseEntity<CurrentAdaptiveRunningPlanResult> getCurrentAdaptiveRunningPlan(Authentication authentication) {
         return ResponseEntity.ok(getCurrentAdaptiveRunningPlanUseCase.execute(authentication.getName()));
+    }
+
+    @PostMapping("/adaptive-running-plan/adapt")
+    public ResponseEntity<CurrentAdaptiveRunningPlanResult> adaptNextPlannedSession(
+            Authentication authentication,
+            @RequestBody AdaptNextPlannedSessionCommand command
+    ) {
+        return ResponseEntity.ok(adaptNextPlannedSessionUseCase.execute(authentication.getName(), command));
     }
 
     @GetMapping("/running-history")

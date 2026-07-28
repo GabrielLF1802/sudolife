@@ -10,6 +10,7 @@ import com.sudolife.application.service.training.PlannedSessionStatus;
 import com.sudolife.application.service.training.PlannedSessionTargetResult;
 import com.sudolife.application.service.training.PlannedSessionTargetType;
 import com.sudolife.application.service.training.PlannedSessionType;
+import com.sudolife.application.service.training.AdaptationTrigger;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -63,6 +64,8 @@ public class AdaptiveRunningPlanPersistenceMapper {
         entity.setMaximumPerceivedEffort(target.maximumPerceivedEffort());
         entity.setScheduledDate(plannedSession.scheduledDate());
         entity.setStatus(session.getStatus().name());
+        entity.setAdaptationTrigger(session.getAdaptationTrigger() == null
+                ? null : session.getAdaptationTrigger().name());
 
         return entity;
     }
@@ -85,6 +88,8 @@ public class AdaptiveRunningPlanPersistenceMapper {
                 entity.getId(),
                 entity.getOriginalPlannedSessionId(),
                 plannedSession,
-                PlannedSessionStatus.valueOf(entity.getStatus()));
+                PlannedSessionStatus.valueOf(entity.getStatus()),
+                entity.getAdaptationTrigger() == null
+                        ? null : AdaptationTrigger.valueOf(entity.getAdaptationTrigger()));
     }
 }

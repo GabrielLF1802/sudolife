@@ -2,6 +2,7 @@ package com.sudolife.application.model.training;
 
 import com.sudolife.application.service.training.PlannedSessionResult;
 import com.sudolife.application.service.training.PlannedSessionStatus;
+import com.sudolife.application.service.training.AdaptationTrigger;
 import lombok.Getter;
 
 @Getter
@@ -10,13 +11,15 @@ public class AdaptiveRunningPlanSession {
     private final Long id;
     private final Long originalPlannedSessionId;
     private final PlannedSessionResult plannedSession;
+    private final AdaptationTrigger adaptationTrigger;
     private PlannedSessionStatus status;
 
     public AdaptiveRunningPlanSession(
             Long id,
             Long originalPlannedSessionId,
             PlannedSessionResult plannedSession,
-            PlannedSessionStatus status
+            PlannedSessionStatus status,
+            AdaptationTrigger adaptationTrigger
     ) {
         if (plannedSession == null) {
             throw new IllegalArgumentException("Planned session is required");
@@ -30,15 +33,33 @@ public class AdaptiveRunningPlanSession {
         this.originalPlannedSessionId = originalPlannedSessionId;
         this.plannedSession = plannedSession;
         this.status = status;
+        this.adaptationTrigger = adaptationTrigger;
+    }
+
+    public AdaptiveRunningPlanSession(
+            Long id,
+            Long originalPlannedSessionId,
+            PlannedSessionResult plannedSession,
+            PlannedSessionStatus status
+    ) {
+        this(id, originalPlannedSessionId, plannedSession, status, null);
     }
 
     public static AdaptiveRunningPlanSession planned(PlannedSessionResult plannedSession) {
-        return new AdaptiveRunningPlanSession(null, null, plannedSession, PlannedSessionStatus.PLANNED);
+        return new AdaptiveRunningPlanSession(null, null, plannedSession, PlannedSessionStatus.PLANNED, null);
     }
 
     public static AdaptiveRunningPlanSession replacementOf(
             AdaptiveRunningPlanSession original,
             PlannedSessionResult replacement
+    ) {
+        return replacementOf(original, replacement, null);
+    }
+
+    public static AdaptiveRunningPlanSession replacementOf(
+            AdaptiveRunningPlanSession original,
+            PlannedSessionResult replacement,
+            AdaptationTrigger adaptationTrigger
     ) {
         if (original == null || original.getId() == null) {
             throw new IllegalArgumentException("A persisted original planned session is required");
@@ -52,7 +73,8 @@ public class AdaptiveRunningPlanSession {
                 null,
                 original.getId(),
                 replacement,
-                PlannedSessionStatus.PLANNED
+                PlannedSessionStatus.PLANNED,
+                adaptationTrigger
         );
     }
 

@@ -420,6 +420,21 @@
             }
           </div>
 
+          @if (nextAdaptivePlanSession(); as nextSession) {
+            <div class="conservative-plan-heading" aria-label="Próxima sessão atual">
+              <span>Próxima sessão atual</span>
+              <strong>{{ plannedSessionTypeLabel(nextSession) }}</strong>
+              <p>
+                {{ plannedSessionDateLabel(nextSession) }} ·
+                {{ nextSession.distanceKilometers | number: '1.0-1' }} km ·
+                {{ plannedSessionTargetLabel(nextSession) }}
+              </p>
+              @if (nextSession.adapted) {
+                <p>Adaptada por {{ adaptationTriggerLabel(nextSession.adaptationTrigger) }}.</p>
+              }
+            </div>
+          }
+
           <ol class="planned-session-list">
             @for (
               session of plan.plannedSessions;
@@ -430,6 +445,9 @@
                   >Semana {{ session.weekNumber }} · {{ plannedSessionDateLabel(session) }}</span
                 >
                 <strong>{{ plannedSessionTypeLabel(session) }}</strong>
+                @if (session.adapted) {
+                  <span>Adaptada · {{ adaptationTriggerLabel(session.adaptationTrigger) }}</span>
+                }
                 <p>
                   {{ session.distanceKilometers | number: '1.0-1' }} km ·
                   {{ plannedSessionTargetLabel(session) }}

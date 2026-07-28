@@ -53,6 +53,7 @@ describe('ActivityDashboardComponent', () => {
         'evaluateRunningGoal',
         'generateConservativeRunningPlan',
         'generateAdaptiveRunningPlan',
+        'getCurrentAdaptiveRunningPlan',
         'save',
       ],
     );
@@ -63,6 +64,9 @@ describe('ActivityDashboardComponent', () => {
       of(conservativeRunningPlan()),
     );
     coachingProfileService.generateAdaptiveRunningPlan.and.returnValue(of(adaptiveRunningPlan()));
+    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(
+      throwError(() => new Error('plan not found')),
+    );
     coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
 
     await TestBed.configureTestingModule({

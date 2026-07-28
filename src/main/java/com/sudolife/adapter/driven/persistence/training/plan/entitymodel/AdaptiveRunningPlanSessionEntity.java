@@ -49,4 +49,6 @@ public class AdaptiveRunningPlanSessionEntity {
     private LocalDate scheduledDate;
     @Column(nullable = false)
     private String status;
+    @Column(name = "adaptation_trigger")
+    private String adaptationTrigger;
 }

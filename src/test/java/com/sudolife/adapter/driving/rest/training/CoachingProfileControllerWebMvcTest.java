@@ -26,6 +26,9 @@ import com.sudolife.application.service.training.ports.provided.GenerateAdaptive
 import com.sudolife.application.service.training.ports.provided.SaveCoachingProfileUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
+import com.sudolife.application.service.training.ports.provided.AdaptNextPlannedSessionUseCase;
+import com.sudolife.application.service.training.AdaptNextPlannedSessionCommand;
+import com.sudolife.application.service.training.AdaptationTrigger;
 import com.sudolife.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +87,9 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
+
+    @MockitoBean
+    private AdaptNextPlannedSessionUseCase adaptNextPlannedSessionUseCase;
 
     @Test
     void get_running_goal_assessment_returns_long_term_goal_and_safe_milestone() throws Exception {
@@ -162,8 +168,11 @@ class CoachingProfileControllerWebMvcTest {
                 "Accepted explanation",
                 Instant.parse("2026-07-20T12:00:00Z"),
                 List.of(
-                        new AdaptiveRunningPlanSessionResult(10L, null, original, PlannedSessionStatus.REPLACED),
-                        new AdaptiveRunningPlanSessionResult(11L, 10L, replacement, PlannedSessionStatus.PLANNED)
+                        new AdaptiveRunningPlanSessionResult(
+                                10L, null, original, PlannedSessionStatus.REPLACED, null),
+                        new AdaptiveRunningPlanSessionResult(
+                                11L, 10L, replacement, PlannedSessionStatus.PLANNED,
+                                com.sudolife.application.service.training.AdaptationTrigger.LOW_READINESS)
                 )
         );
         when(getCurrentAdaptiveRunningPlanUseCase.execute("user@sudolife.com")).thenReturn(result);
@@ -177,6 +186,27 @@ class CoachingProfileControllerWebMvcTest {
                 .andExpect(jsonPath("$.plannedSessions[1].status").value("PLANNED"));
 
         verify(getCurrentAdaptiveRunningPlanUseCase).execute("user@sudolife.com");
+    }
+
+    @Test
+    void post_adapt_next_planned_session_passes_the_trigger_for_the_authenticated_user() throws Exception {
+        AdaptNextPlannedSessionCommand command = new AdaptNextPlannedSessionCommand(AdaptationTrigger.LOW_READINESS);
+        CurrentAdaptiveRunningPlanResult result = new CurrentAdaptiveRunningPlanResult(
+                1L,
+                new RunningGoalResult(7.3, null, LocalDate.parse("2026-08-11")),
+                "Accepted explanation",
+                Instant.parse("2026-07-20T12:00:00Z"),
+                List.of());
+        when(adaptNextPlannedSessionUseCase.execute("user@sudolife.com", command)).thenReturn(result);
+
+        mockMvc.perform(post("/api/coaching-profiles/adaptive-running-plan/adapt")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1));
+
+        verify(adaptNextPlannedSessionUseCase).execute("user@sudolife.com", command);
     }
 
     @Test

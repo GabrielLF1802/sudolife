@@ -6,7 +6,8 @@ public record AdaptiveRunningPlanSessionResult(
         Long id,
         Long originalPlannedSessionId,
         PlannedSessionResult plannedSession,
-        PlannedSessionStatus status
+        PlannedSessionStatus status,
+        AdaptationTrigger adaptationTrigger
 ) {
 
     public static AdaptiveRunningPlanSessionResult from(AdaptiveRunningPlanSession session) {
@@ -14,6 +15,7 @@ public record AdaptiveRunningPlanSessionResult(
                 session.getId(),
                 session.getOriginalPlannedSessionId(),
                 session.getPlannedSession(),
-                session.getStatus());
+                session.getStatus(),
+                session.getAdaptationTrigger());
     }
 }

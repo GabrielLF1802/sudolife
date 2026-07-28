@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 export type UserReportedReadiness = 'LOW' | 'MODERATE' | 'HIGH';
 export type RunningDay =
@@ -70,6 +70,29 @@ export interface PlannedSession {
   distanceKilometers: number;
   target: PlannedSessionTarget;
   scheduledDate: string;
+  adapted?: boolean;
+  adaptationTrigger?: AdaptationTrigger | null;
+}
+
+export type AdaptationTrigger =
+  | 'MISSED_PLANNED_SESSION'
+  | 'COMPLETED_PLANNED_SESSION'
+  | 'INJURY_CONCERN'
+  | 'LOW_READINESS'
+  | 'UNEXPECTEDLY_HIGH_EFFORT'
+  | 'UNEXPECTEDLY_LOW_EFFORT';
+
+interface CurrentAdaptiveRunningPlanSession {
+  originalPlannedSessionId: number | null;
+  plannedSession: PlannedSession;
+  status: 'PLANNED' | 'REPLACED' | 'COMPLETED' | 'MISSED';
+  adaptationTrigger: AdaptationTrigger | null;
+}
+
+interface CurrentAdaptiveRunningPlan {
+  safeMilestone: RunningGoalSummary;
+  explanation: string;
+  plannedSessions: CurrentAdaptiveRunningPlanSession[];
 }
 
 export interface ConservativeRunningPlan {
@@ -114,6 +137,25 @@ export class CoachingProfileService {
       '/api/coaching-profiles/adaptive-running-plan',
       null,
     );
+  }
+
+  getCurrentAdaptiveRunningPlan(): Observable<AdaptiveRunningPlan> {
+    return this.http
+      .get<CurrentAdaptiveRunningPlan>('/api/coaching-profiles/adaptive-running-plan')
+      .pipe(
+        map((plan) => ({
+          safeMilestone: plan.safeMilestone,
+          explanation: plan.explanation,
+          adjustedBySafetyValidation: false,
+          plannedSessions: plan.plannedSessions
+            .filter((session) => session.status === 'PLANNED')
+            .map((session) => ({
+              ...session.plannedSession,
+              adapted: session.originalPlannedSessionId !== null,
+              adaptationTrigger: session.adaptationTrigger,
+            })),
+        })),
+      );
   }
 
   save(command: SaveCoachingProfileCommand): Observable<CoachingProfile> {

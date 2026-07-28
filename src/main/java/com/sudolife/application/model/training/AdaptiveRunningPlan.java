@@ -1,6 +1,7 @@
 package com.sudolife.application.model.training;
 
 import com.sudolife.application.service.training.PlannedSessionResult;
+import com.sudolife.application.service.training.AdaptationTrigger;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -62,13 +63,22 @@ public class AdaptiveRunningPlan {
             Long originalPlannedSessionId,
             PlannedSessionResult replacement
     ) {
+        return replacePlannedSession(originalPlannedSessionId, replacement, null);
+    }
+
+    public AdaptiveRunningPlanSession replacePlannedSession(
+            Long originalPlannedSessionId,
+            PlannedSessionResult replacement,
+            AdaptationTrigger adaptationTrigger
+    ) {
         if (replacement == null) {
             throw new IllegalArgumentException("Replacement planned session is required");
         }
 
         AdaptiveRunningPlanSession original = findSession(originalPlannedSessionId);
         original.markReplaced();
-        AdaptiveRunningPlanSession adaptedSession = AdaptiveRunningPlanSession.replacementOf(original, replacement);
+        AdaptiveRunningPlanSession adaptedSession = AdaptiveRunningPlanSession.replacementOf(
+                original, replacement, adaptationTrigger);
         plannedSessions.add(adaptedSession);
 
         return adaptedSession;
