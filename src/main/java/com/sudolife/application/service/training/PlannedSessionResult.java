@@ -8,6 +8,18 @@ public record PlannedSessionResult(
         PlannedSessionType type,
         double distanceKilometers,
         PlannedSessionTargetResult target,
-        LocalDate scheduledDate
+        LocalDate scheduledDate,
+        Integer durationSeconds
 ) {
+
+    public PlannedSessionResult(
+            int weekNumber,
+            int sessionNumber,
+            PlannedSessionType type,
+            double distanceKilometers,
+            PlannedSessionTargetResult target,
+            LocalDate scheduledDate
+    ) {
+        this(weekNumber, sessionNumber, type, distanceKilometers, target, scheduledDate, null);
+    }
 }

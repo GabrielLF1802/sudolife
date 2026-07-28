@@ -11,6 +11,7 @@ import com.sudolife.application.service.training.exception.CoachingProfileRequir
 import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
 import com.sudolife.application.service.training.ports.provided.GenerateAdaptiveRunningPlanUseCase;
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
+import com.sudolife.application.service.training.ports.provided.MatchImportedRunsUseCase;
 import com.sudolife.application.service.training.ports.required.AiRunningPlanProvider;
 import com.sudolife.application.service.training.ports.required.AdaptiveRunningPlanRepository;
 import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
@@ -36,6 +37,7 @@ public class GenerateAdaptiveRunningPlanUseCaseImpl implements GenerateAdaptiveR
     private final AiRunningPlanProvider aiRunningPlanProvider;
     private final AiRunningPlanValidator aiRunningPlanValidator;
     private final AdaptiveRunningPlanRepository adaptiveRunningPlanRepository;
+    private final MatchImportedRunsUseCase matchImportedRunsUseCase;
     private final TimeProvider timeProvider;
 
     @Override
@@ -56,6 +58,7 @@ public class GenerateAdaptiveRunningPlanUseCaseImpl implements GenerateAdaptiveR
                 proposal.explanation(),
                 timeProvider.now(),
                 validatedPlan.plannedSessions().stream().map(AdaptiveRunningPlanSession::planned).toList()));
+        matchImportedRunsUseCase.execute(userEmail);
 
         return new AdaptiveRunningPlanResult(
                 assessment.safeMilestone(),
@@ -102,8 +105,14 @@ public class GenerateAdaptiveRunningPlanUseCaseImpl implements GenerateAdaptiveR
                 .boxed()
                 .flatMap(week -> scheduledDays(days, firstDay, week).stream()
                         .limit(2)
-                        .map(date -> session(week, date, baseDistance, target)))
+                        .map(date -> session(week, date, baseDistance, target,
+                                representativePace(history))))
                 .toList();
+    }
+
+    private double representativePace(RunningHistorySnapshotResult history) {
+        return history.representativePaceSecondsPerKilometer() == null
+                ? 360.0 : history.representativePaceSecondsPerKilometer();
     }
 
     private List<LocalDate> scheduledDays(List<DayOfWeek> days, LocalDate firstDay, int week) {
@@ -117,13 +126,16 @@ public class GenerateAdaptiveRunningPlanUseCaseImpl implements GenerateAdaptiveR
             int week,
             LocalDate date,
             double baseDistance,
-            PlannedSessionTargetResult target
+            PlannedSessionTargetResult target,
+            double paceSecondsPerKilometer
     ) {
         int sessionNumber = date.getDayOfWeek() == DayOfWeek.SATURDAY ? 2 : 1;
         double distance = baseDistance * Math.pow(1.10, week - 1);
         PlannedSessionType type = sessionNumber == 2 ? PlannedSessionType.LONG_RUN : PlannedSessionType.EASY_RUN;
 
-        return new PlannedSessionResult(week, sessionNumber, type,
-                Math.round(distance * (sessionNumber == 2 ? 12.5 : 10.0)) / 10.0, target, date);
+        double roundedDistance = Math.round(distance * (sessionNumber == 2 ? 12.5 : 10.0)) / 10.0;
+
+        return new PlannedSessionResult(week, sessionNumber, type, roundedDistance, target, date,
+                (int) Math.round(roundedDistance * paceSecondsPerKilometer));
     }
 }

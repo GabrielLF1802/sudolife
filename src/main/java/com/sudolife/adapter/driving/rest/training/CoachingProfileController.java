@@ -16,6 +16,9 @@ import com.sudolife.application.service.training.ports.provided.GetRunningHistor
 import com.sudolife.application.service.training.ports.provided.GetCurrentAdaptiveRunningPlanUseCase;
 import com.sudolife.application.service.training.AdaptNextPlannedSessionCommand;
 import com.sudolife.application.service.training.ports.provided.AdaptNextPlannedSessionUseCase;
+import com.sudolife.application.service.training.CorrectPlannedSessionMatchCommand;
+import com.sudolife.application.service.training.ports.provided.CorrectPlannedSessionMatchUseCase;
+import com.sudolife.application.service.training.ports.provided.UnlinkPlannedSessionMatchUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -25,6 +28,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,6 +44,8 @@ public class CoachingProfileController {
     private final GetCurrentAdaptiveRunningPlanUseCase getCurrentAdaptiveRunningPlanUseCase;
     private final EvaluateRunningGoalUseCase evaluateRunningGoalUseCase;
     private final AdaptNextPlannedSessionUseCase adaptNextPlannedSessionUseCase;
+    private final CorrectPlannedSessionMatchUseCase correctPlannedSessionMatchUseCase;
+    private final UnlinkPlannedSessionMatchUseCase unlinkPlannedSessionMatchUseCase;
 
     @GetMapping("/running-goal-assessment")
     public ResponseEntity<RunningGoalAssessmentResult> evaluateRunningGoal(Authentication authentication) {
@@ -66,6 +73,22 @@ public class CoachingProfileController {
             @RequestBody AdaptNextPlannedSessionCommand command
     ) {
         return ResponseEntity.ok(adaptNextPlannedSessionUseCase.execute(authentication.getName(), command));
+    }
+
+    @PutMapping("/adaptive-running-plan/session-match")
+    public ResponseEntity<CurrentAdaptiveRunningPlanResult> correctPlannedSessionMatch(
+            Authentication authentication,
+            @RequestBody CorrectPlannedSessionMatchCommand command
+    ) {
+        return ResponseEntity.ok(correctPlannedSessionMatchUseCase.execute(authentication.getName(), command));
+    }
+
+    @DeleteMapping("/adaptive-running-plan/sessions/{plannedSessionId}/match")
+    public ResponseEntity<CurrentAdaptiveRunningPlanResult> unlinkPlannedSessionMatch(
+            Authentication authentication,
+            @PathVariable Long plannedSessionId
+    ) {
+        return ResponseEntity.ok(unlinkPlannedSessionMatchUseCase.execute(authentication.getName(), plannedSessionId));
     }
 
     @GetMapping("/running-history")

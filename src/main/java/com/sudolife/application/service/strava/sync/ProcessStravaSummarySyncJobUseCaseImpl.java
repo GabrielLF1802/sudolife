@@ -18,6 +18,7 @@ import com.sudolife.application.service.strava.ports.required.StravaActivityStre
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
+import com.sudolife.application.service.training.ports.provided.MatchImportedRunsUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +46,7 @@ public class ProcessStravaSummarySyncJobUseCaseImpl implements ProcessStravaSumm
     private final TimeProvider timeProvider;
     private final TransactionTemplate transactionTemplate;
     private final StravaAccessTokenService accessTokenService;
+    private final MatchImportedRunsUseCase matchImportedRunsUseCase;
     private final StravaActivityStreamEligibility streamEligibility = new StravaActivityStreamEligibility();
     @Value("${strava.summary-sync.max-attempts:3}")
     private int maxAttempts;
@@ -82,6 +84,7 @@ public class ProcessStravaSummarySyncJobUseCaseImpl implements ProcessStravaSumm
             List<StravaActivitySummaryImport> summaries = accessTokenService.executeWithValidToken(accountLink,
                     link -> activityProvider.fetchActivitySummaries(link.getAccessToken(), after, now));
             int importedCount = saveNewSummaries(accountLink, summaries, now);
+            matchImportedRuns(accountLink, importedCount);
             summarySyncJobRepository.save(job.completed(importedCount, timeProvider.now()));
             log.info("Strava summary sync job completed jobId={} userEmail={} accountLinkId={} importedActivityCount={}",
                     job.getId(), accountLink.getUserEmail(), accountLink.getId(), importedCount);
@@ -100,6 +103,7 @@ public class ProcessStravaSummarySyncJobUseCaseImpl implements ProcessStravaSumm
                                  List<StravaActivitySummaryImport> partialSummaries,
                                  StravaActivitySyncFailureReason failureReason) {
         int importedCount = saveNewSummaries(accountLink, partialSummaries, timeProvider.now());
+        matchImportedRuns(accountLink, importedCount);
 
         if (job.getAttemptCount() >= maxAttempts) {
             summarySyncJobRepository.save(job.permanentFailure(failureReason.name(), importedCount,
@@ -142,6 +146,12 @@ public class ProcessStravaSummarySyncJobUseCaseImpl implements ProcessStravaSumm
         }
 
         return 1;
+    }
+
+    private void matchImportedRuns(StravaAccountLink accountLink, int importedCount) {
+        if (importedCount > 0) {
+            matchImportedRunsUseCase.execute(accountLink.getUserEmail());
+        }
     }
 
     private StravaActivitySummary toActivitySummary(StravaAccountLink accountLink, StravaActivitySummaryImport summary,

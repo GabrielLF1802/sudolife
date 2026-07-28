@@ -61,6 +61,8 @@ public class AdaptNextPlannedSessionUseCaseImpl implements AdaptNextPlannedSessi
                 type,
                 Math.round(original.distanceKilometers() * multiplier * 10.0) / 10.0,
                 target,
-                original.scheduledDate());
+                original.scheduledDate(),
+                original.durationSeconds() == null
+                        ? null : (int) Math.round(original.durationSeconds() * multiplier));
     }
 }

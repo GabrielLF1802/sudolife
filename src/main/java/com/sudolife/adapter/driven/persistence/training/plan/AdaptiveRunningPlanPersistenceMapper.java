@@ -63,9 +63,11 @@ public class AdaptiveRunningPlanPersistenceMapper {
         entity.setMinimumPerceivedEffort(target.minimumPerceivedEffort());
         entity.setMaximumPerceivedEffort(target.maximumPerceivedEffort());
         entity.setScheduledDate(plannedSession.scheduledDate());
+        entity.setDurationSeconds(plannedSession.durationSeconds());
         entity.setStatus(session.getStatus().name());
         entity.setAdaptationTrigger(session.getAdaptationTrigger() == null
                 ? null : session.getAdaptationTrigger().name());
+        entity.setMatchedActivityId(session.getMatchedActivityId());
 
         return entity;
     }
@@ -82,7 +84,8 @@ public class AdaptiveRunningPlanPersistenceMapper {
                 PlannedSessionType.valueOf(entity.getSessionType()),
                 entity.getDistanceKilometers(),
                 target,
-                entity.getScheduledDate());
+                entity.getScheduledDate(),
+                entity.getDurationSeconds());
 
         return new AdaptiveRunningPlanSession(
                 entity.getId(),
@@ -90,6 +93,7 @@ public class AdaptiveRunningPlanPersistenceMapper {
                 plannedSession,
                 PlannedSessionStatus.valueOf(entity.getStatus()),
                 entity.getAdaptationTrigger() == null
-                        ? null : AdaptationTrigger.valueOf(entity.getAdaptationTrigger()));
+                        ? null : AdaptationTrigger.valueOf(entity.getAdaptationTrigger()),
+                entity.getMatchedActivityId());
     }
 }

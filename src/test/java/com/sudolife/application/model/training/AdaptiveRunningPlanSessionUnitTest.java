@@ -49,6 +49,17 @@ class AdaptiveRunningPlanSessionUnitTest {
                 .hasMessage("Only planned sessions can change status");
     }
 
+    @Test
+    void match_completes_session_and_unlink_restores_planned_state() {
+        AdaptiveRunningPlanSession session = persistedSession(PlannedSessionStatus.PLANNED);
+        session.match(99L);
+
+        session.unlinkMatch();
+
+        assertThat(session.getStatus()).isEqualTo(PlannedSessionStatus.PLANNED);
+        assertThat(session.getMatchedActivityId()).isNull();
+    }
+
     private AdaptiveRunningPlanSession persistedSession(PlannedSessionStatus status) {
         return new AdaptiveRunningPlanSession(10L, null, plannedSession(), status);
     }

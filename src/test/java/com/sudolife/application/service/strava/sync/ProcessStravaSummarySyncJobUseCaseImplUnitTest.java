@@ -16,6 +16,7 @@ import com.sudolife.application.service.strava.ports.required.StravaActivityStre
 import com.sudolife.application.service.strava.ports.required.StravaActivitySummaryRepository;
 import com.sudolife.application.service.strava.ports.required.StravaSummarySyncJobRepository;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
+import com.sudolife.application.service.training.ports.provided.MatchImportedRunsUseCase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -74,6 +75,9 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
 
     @Mock
     private StravaAccessTokenService accessTokenService;
+
+    @Mock
+    private MatchImportedRunsUseCase matchImportedRunsUseCase;
 
     @InjectMocks
     private ProcessStravaSummarySyncJobUseCaseImpl useCase;

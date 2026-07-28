@@ -84,6 +84,10 @@ public class AdaptiveRunningPlan {
         return adaptedSession;
     }
 
+    public AdaptiveRunningPlanSession findPlannedSession(Long plannedSessionId) {
+        return findSession(plannedSessionId);
+    }
+
     private AdaptiveRunningPlanSession findSession(Long plannedSessionId) {
         if (plannedSessionId == null) {
             throw new IllegalArgumentException("Planned session id is required");

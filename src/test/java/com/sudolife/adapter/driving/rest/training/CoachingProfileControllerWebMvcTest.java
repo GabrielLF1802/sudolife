@@ -27,6 +27,8 @@ import com.sudolife.application.service.training.ports.provided.SaveCoachingProf
 import com.sudolife.application.service.training.ports.provided.GetRunningHistorySnapshotUseCase;
 import com.sudolife.application.service.training.ports.provided.EvaluateRunningGoalUseCase;
 import com.sudolife.application.service.training.ports.provided.AdaptNextPlannedSessionUseCase;
+import com.sudolife.application.service.training.ports.provided.CorrectPlannedSessionMatchUseCase;
+import com.sudolife.application.service.training.ports.provided.UnlinkPlannedSessionMatchUseCase;
 import com.sudolife.application.service.training.AdaptNextPlannedSessionCommand;
 import com.sudolife.application.service.training.AdaptationTrigger;
 import com.sudolife.config.security.JwtAuthenticationFilter;
@@ -49,6 +51,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -90,6 +93,12 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private AdaptNextPlannedSessionUseCase adaptNextPlannedSessionUseCase;
+
+    @MockitoBean
+    private CorrectPlannedSessionMatchUseCase correctPlannedSessionMatchUseCase;
+
+    @MockitoBean
+    private UnlinkPlannedSessionMatchUseCase unlinkPlannedSessionMatchUseCase;
 
     @Test
     void get_running_goal_assessment_returns_long_term_goal_and_safe_milestone() throws Exception {
@@ -210,6 +219,37 @@ class CoachingProfileControllerWebMvcTest {
     }
 
     @Test
+    void put_session_match_corrects_match_for_authenticated_user() throws Exception {
+        com.sudolife.application.service.training.CorrectPlannedSessionMatchCommand command =
+                new com.sudolife.application.service.training.CorrectPlannedSessionMatchCommand(10L, 20L);
+        CurrentAdaptiveRunningPlanResult result = currentPlanWithMatchedActivity(20L);
+        when(correctPlannedSessionMatchUseCase.execute("user@sudolife.com", command)).thenReturn(result);
+
+        mockMvc.perform(put("/api/coaching-profiles/adaptive-running-plan/session-match")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plannedSessions[0].matchedActivityId").value(20));
+
+        verify(correctPlannedSessionMatchUseCase).execute("user@sudolife.com", command);
+    }
+
+    @Test
+    void delete_session_match_unlinks_match_for_authenticated_user() throws Exception {
+        CurrentAdaptiveRunningPlanResult result = currentPlanWithMatchedActivity(null);
+        when(unlinkPlannedSessionMatchUseCase.execute("user@sudolife.com", 10L)).thenReturn(result);
+
+        mockMvc.perform(delete("/api/coaching-profiles/adaptive-running-plan/sessions/10/match")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plannedSessions[0].status").value("PLANNED"))
+                .andExpect(jsonPath("$.plannedSessions[0].matchedActivityId").doesNotExist());
+
+        verify(unlinkPlannedSessionMatchUseCase).execute("user@sudolife.com", 10L);
+    }
+
+    @Test
     void get_running_history_returns_snapshot_for_authenticated_user() throws Exception {
         when(getRunningHistoryUseCase.execute("user@sudolife.com"))
                 .thenReturn(new RunningHistorySnapshotResult(true, 3, 4, 24.5, 7200,
@@ -288,5 +328,20 @@ class CoachingProfileControllerWebMvcTest {
     private CoachingProfileResult result(String readiness, boolean injuryConcern) {
         return new CoachingProfileResult(10.0, 330, LocalDate.parse("2026-05-12"), readiness, injuryConcern,
                 List.of("TUESDAY", "SATURDAY"), true);
+    }
+
+    private CurrentAdaptiveRunningPlanResult currentPlanWithMatchedActivity(Long activityId) {
+        PlannedSessionResult session = new PlannedSessionResult(
+                1, 1, PlannedSessionType.EASY_RUN, 5.0, PlannedSessionTargetResult.perceivedEffort(2, 4),
+                LocalDate.parse("2026-08-03"), 1800);
+
+        return new CurrentAdaptiveRunningPlanResult(
+                1L,
+                new RunningGoalResult(10.0, 360, LocalDate.parse("2026-10-01")),
+                "Explanation",
+                Instant.parse("2026-07-27T12:00:00Z"),
+                List.of(new AdaptiveRunningPlanSessionResult(10L, null, session,
+                        activityId == null ? PlannedSessionStatus.PLANNED : PlannedSessionStatus.COMPLETED,
+                        null, activityId)));
     }
 }

@@ -13,13 +13,15 @@ public class AdaptiveRunningPlanSession {
     private final PlannedSessionResult plannedSession;
     private final AdaptationTrigger adaptationTrigger;
     private PlannedSessionStatus status;
+    private Long matchedActivityId;
 
     public AdaptiveRunningPlanSession(
             Long id,
             Long originalPlannedSessionId,
             PlannedSessionResult plannedSession,
             PlannedSessionStatus status,
-            AdaptationTrigger adaptationTrigger
+            AdaptationTrigger adaptationTrigger,
+            Long matchedActivityId
     ) {
         if (plannedSession == null) {
             throw new IllegalArgumentException("Planned session is required");
@@ -34,6 +36,7 @@ public class AdaptiveRunningPlanSession {
         this.plannedSession = plannedSession;
         this.status = status;
         this.adaptationTrigger = adaptationTrigger;
+        this.matchedActivityId = matchedActivityId;
     }
 
     public AdaptiveRunningPlanSession(
@@ -42,11 +45,21 @@ public class AdaptiveRunningPlanSession {
             PlannedSessionResult plannedSession,
             PlannedSessionStatus status
     ) {
-        this(id, originalPlannedSessionId, plannedSession, status, null);
+        this(id, originalPlannedSessionId, plannedSession, status, null, null);
+    }
+
+    public AdaptiveRunningPlanSession(
+            Long id,
+            Long originalPlannedSessionId,
+            PlannedSessionResult plannedSession,
+            PlannedSessionStatus status,
+            AdaptationTrigger adaptationTrigger
+    ) {
+        this(id, originalPlannedSessionId, plannedSession, status, adaptationTrigger, null);
     }
 
     public static AdaptiveRunningPlanSession planned(PlannedSessionResult plannedSession) {
-        return new AdaptiveRunningPlanSession(null, null, plannedSession, PlannedSessionStatus.PLANNED, null);
+        return new AdaptiveRunningPlanSession(null, null, plannedSession, PlannedSessionStatus.PLANNED, null, null);
     }
 
     public static AdaptiveRunningPlanSession replacementOf(
@@ -74,7 +87,8 @@ public class AdaptiveRunningPlanSession {
                 original.getId(),
                 replacement,
                 PlannedSessionStatus.PLANNED,
-                adaptationTrigger
+                adaptationTrigger,
+                null
         );
     }
 
@@ -84,6 +98,28 @@ public class AdaptiveRunningPlanSession {
 
     public void markCompleted() {
         changeStatus(PlannedSessionStatus.COMPLETED);
+    }
+
+    public void match(Long activityId) {
+        if (activityId == null) {
+            throw new IllegalArgumentException("Matched activity id is required");
+        }
+
+        if (status != PlannedSessionStatus.PLANNED) {
+            throw new IllegalStateException("Only planned sessions can be matched");
+        }
+
+        matchedActivityId = activityId;
+        status = PlannedSessionStatus.COMPLETED;
+    }
+
+    public void unlinkMatch() {
+        if (status != PlannedSessionStatus.COMPLETED || matchedActivityId == null) {
+            throw new IllegalStateException("Only matched sessions can be unlinked");
+        }
+
+        matchedActivityId = null;
+        status = PlannedSessionStatus.PLANNED;
     }
 
     public void markMissed() {

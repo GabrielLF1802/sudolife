@@ -47,8 +47,12 @@ public class AdaptiveRunningPlanSessionEntity {
     private Integer maximumPerceivedEffort;
     @Column(name = "scheduled_date", nullable = false)
     private LocalDate scheduledDate;
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
     @Column(nullable = false)
     private String status;
     @Column(name = "adaptation_trigger")
     private String adaptationTrigger;
+    @Column(name = "matched_activity_id")
+    private Long matchedActivityId;
 }

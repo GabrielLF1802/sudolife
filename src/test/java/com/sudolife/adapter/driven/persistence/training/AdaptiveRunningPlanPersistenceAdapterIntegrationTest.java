@@ -71,6 +71,24 @@ class AdaptiveRunningPlanPersistenceAdapterIntegrationTest {
         });
     }
 
+    @Test
+    void save_persists_planned_duration_and_matched_activity() {
+        AdaptiveRunningPlan persistedPlan = repository.save(plan(
+                "Accepted explanation",
+                Instant.parse("2026-07-27T12:00:00Z")));
+        AdaptiveRunningPlanSession session = persistedPlan.getPlannedSessions().getFirst();
+        session.match(99L);
+
+        repository.save(persistedPlan);
+        AdaptiveRunningPlan result = repository.findLatestByUserEmail("runner@sudolife.com").orElseThrow();
+
+        assertThat(result.getPlannedSessions()).singleElement().satisfies(savedSession -> {
+            assertThat(savedSession.getMatchedActivityId()).isEqualTo(99L);
+            assertThat(savedSession.getStatus()).isEqualTo(PlannedSessionStatus.COMPLETED);
+            assertThat(savedSession.getPlannedSession().durationSeconds()).isEqualTo(1800);
+        });
+    }
+
     private AdaptiveRunningPlan plan(String explanation, Instant acceptedAt) {
         return new AdaptiveRunningPlan(
                 null,
@@ -89,7 +107,8 @@ class AdaptiveRunningPlanPersistenceAdapterIntegrationTest {
                 PlannedSessionType.EASY_RUN,
                 5.0,
                 PlannedSessionTargetResult.perceivedEffort(2, 4),
-                LocalDate.parse("2026-08-03")
+                LocalDate.parse("2026-08-03"),
+                1800
         );
     }
 
