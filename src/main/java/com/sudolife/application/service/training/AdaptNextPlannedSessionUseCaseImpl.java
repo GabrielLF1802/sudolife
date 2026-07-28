@@ -7,6 +7,7 @@ import com.sudolife.application.service.training.exception.AdaptiveRunningPlanNo
 import com.sudolife.application.service.training.exception.NextPlannedSessionNotFoundException;
 import com.sudolife.application.service.training.ports.provided.AdaptNextPlannedSessionUseCase;
 import com.sudolife.application.service.training.ports.required.AdaptiveRunningPlanRepository;
+import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ import java.util.Comparator;
 public class AdaptNextPlannedSessionUseCaseImpl implements AdaptNextPlannedSessionUseCase {
 
     private final AdaptiveRunningPlanRepository adaptiveRunningPlanRepository;
+    private final CoachingProfileRepository coachingProfileRepository;
     private final AdaptedPlannedSessionValidator validator;
     private final TimeProvider timeProvider;
 
@@ -27,11 +29,19 @@ public class AdaptNextPlannedSessionUseCaseImpl implements AdaptNextPlannedSessi
         AdaptiveRunningPlan plan = adaptiveRunningPlanRepository.findLatestByUserEmail(userEmail)
                 .orElseThrow(AdaptiveRunningPlanNotFoundException::new);
         AdaptiveRunningPlanSession nextSession = nextSession(plan);
-        PlannedSessionResult replacement = replacement(nextSession.getPlannedSession(), command.trigger());
+        AdaptationTrigger trigger = effectiveTrigger(userEmail, command.trigger());
+        PlannedSessionResult replacement = replacement(nextSession.getPlannedSession(), trigger);
         validator.validate(nextSession.getPlannedSession(), replacement);
-        plan.replacePlannedSession(nextSession.getId(), replacement, command.trigger());
+        plan.replacePlannedSession(nextSession.getId(), replacement, trigger);
 
         return CurrentAdaptiveRunningPlanResult.from(adaptiveRunningPlanRepository.save(plan));
+    }
+
+    private AdaptationTrigger effectiveTrigger(String userEmail, AdaptationTrigger requestedTrigger) {
+        return coachingProfileRepository.findByUserEmail(userEmail)
+                .filter(profile -> profile.isInjuryConcern())
+                .map(profile -> AdaptationTrigger.INJURY_CONCERN)
+                .orElse(requestedTrigger);
     }
 
     private AdaptiveRunningPlanSession nextSession(AdaptiveRunningPlan plan) {
@@ -47,7 +57,8 @@ public class AdaptNextPlannedSessionUseCaseImpl implements AdaptNextPlannedSessi
     private PlannedSessionResult replacement(PlannedSessionResult original, AdaptationTrigger trigger) {
         double multiplier = switch (trigger) {
             case COMPLETED_PLANNED_SESSION, UNEXPECTEDLY_LOW_EFFORT -> 1.05;
-            case MISSED_PLANNED_SESSION, LOW_READINESS, UNEXPECTEDLY_HIGH_EFFORT -> 0.70;
+            case MISSED_PLANNED_SESSION, LOW_READINESS, UNEXPECTEDLY_HIGH_EFFORT,
+                    INJURY_CONCERN_CLEARED -> 0.70;
             case INJURY_CONCERN -> 0;
         };
         PlannedSessionType type = trigger == AdaptationTrigger.INJURY_CONCERN

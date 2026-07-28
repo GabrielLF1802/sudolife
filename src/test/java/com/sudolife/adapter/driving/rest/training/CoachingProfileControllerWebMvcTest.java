@@ -31,6 +31,8 @@ import com.sudolife.application.service.training.ports.provided.CorrectPlannedSe
 import com.sudolife.application.service.training.ports.provided.UnlinkPlannedSessionMatchUseCase;
 import com.sudolife.application.service.training.AdaptNextPlannedSessionCommand;
 import com.sudolife.application.service.training.AdaptationTrigger;
+import com.sudolife.application.service.training.ClearInjuryConcernCommand;
+import com.sudolife.application.service.training.ports.provided.ClearInjuryConcernUseCase;
 import com.sudolife.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +101,9 @@ class CoachingProfileControllerWebMvcTest {
 
     @MockitoBean
     private UnlinkPlannedSessionMatchUseCase unlinkPlannedSessionMatchUseCase;
+
+    @MockitoBean
+    private ClearInjuryConcernUseCase clearInjuryConcernUseCase;
 
     @Test
     void get_running_goal_assessment_returns_long_term_goal_and_safe_milestone() throws Exception {
@@ -216,6 +221,27 @@ class CoachingProfileControllerWebMvcTest {
                 .andExpect(jsonPath("$.id").value(1));
 
         verify(adaptNextPlannedSessionUseCase).execute("user@sudolife.com", command);
+    }
+
+    @Test
+    void post_clear_injury_concern_returns_the_conservatively_resumed_plan() throws Exception {
+        ClearInjuryConcernCommand command = new ClearInjuryConcernCommand("MODERATE");
+        CurrentAdaptiveRunningPlanResult result = new CurrentAdaptiveRunningPlanResult(
+                1L,
+                new RunningGoalResult(7.3, null, LocalDate.parse("2026-08-11")),
+                "Accepted explanation",
+                Instant.parse("2026-07-20T12:00:00Z"),
+                List.of());
+        when(clearInjuryConcernUseCase.execute("user@sudolife.com", command)).thenReturn(result);
+
+        mockMvc.perform(post("/api/coaching-profiles/injury-concern/clear")
+                        .principal(authenticated("user@sudolife.com", null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1));
+
+        verify(clearInjuryConcernUseCase).execute("user@sudolife.com", command);
     }
 
     @Test

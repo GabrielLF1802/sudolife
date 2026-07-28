@@ -12,6 +12,7 @@ import com.sudolife.application.service.training.exception.CoachingProfileRequir
 import com.sudolife.application.service.training.exception.ConservativeRunningPlanNotRequiredException;
 import com.sudolife.application.service.training.exception.UnsafeAiRunningPlanException;
 import com.sudolife.application.service.training.exception.AdaptiveRunningPlanNotFoundException;
+import com.sudolife.application.service.training.exception.InjuryConcernNotActiveException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -92,6 +93,12 @@ public class RestExceptionHandler {
     @ExceptionHandler(AdaptiveRunningPlanNotFoundException.class)
     public ResponseEntity<Void> handleAdaptiveRunningPlanNotFound() {
         return ResponseEntity.notFound().build();
+    }
+
+    @ExceptionHandler(InjuryConcernNotActiveException.class)
+    public ResponseEntity<ErrorResponse> handleInjuryConcernNotActive(InjuryConcernNotActiveException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("INJURY_CONCERN_NOT_ACTIVE", exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

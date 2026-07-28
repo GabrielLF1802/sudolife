@@ -19,6 +19,8 @@ import com.sudolife.application.service.training.ports.provided.AdaptNextPlanned
 import com.sudolife.application.service.training.CorrectPlannedSessionMatchCommand;
 import com.sudolife.application.service.training.ports.provided.CorrectPlannedSessionMatchUseCase;
 import com.sudolife.application.service.training.ports.provided.UnlinkPlannedSessionMatchUseCase;
+import com.sudolife.application.service.training.ClearInjuryConcernCommand;
+import com.sudolife.application.service.training.ports.provided.ClearInjuryConcernUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -46,6 +48,7 @@ public class CoachingProfileController {
     private final AdaptNextPlannedSessionUseCase adaptNextPlannedSessionUseCase;
     private final CorrectPlannedSessionMatchUseCase correctPlannedSessionMatchUseCase;
     private final UnlinkPlannedSessionMatchUseCase unlinkPlannedSessionMatchUseCase;
+    private final ClearInjuryConcernUseCase clearInjuryConcernUseCase;
 
     @GetMapping("/running-goal-assessment")
     public ResponseEntity<RunningGoalAssessmentResult> evaluateRunningGoal(Authentication authentication) {
@@ -73,6 +76,14 @@ public class CoachingProfileController {
             @RequestBody AdaptNextPlannedSessionCommand command
     ) {
         return ResponseEntity.ok(adaptNextPlannedSessionUseCase.execute(authentication.getName(), command));
+    }
+
+    @PostMapping("/injury-concern/clear")
+    public ResponseEntity<CurrentAdaptiveRunningPlanResult> clearInjuryConcern(
+            Authentication authentication,
+            @RequestBody ClearInjuryConcernCommand command
+    ) {
+        return ResponseEntity.ok(clearInjuryConcernUseCase.execute(authentication.getName(), command));
     }
 
     @PutMapping("/adaptive-running-plan/session-match")

@@ -3,8 +3,12 @@ package com.sudolife.application.service.training;
 import com.sudolife.application.model.training.AdaptiveRunningPlan;
 import com.sudolife.application.model.training.AdaptiveRunningPlanSession;
 import com.sudolife.application.model.training.RunningGoal;
+import com.sudolife.application.model.training.CoachingProfile;
+import com.sudolife.application.model.training.UserReportedReadiness;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import com.sudolife.application.service.training.ports.required.AdaptiveRunningPlanRepository;
+import com.sudolife.application.service.training.ports.required.CoachingProfileRepository;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -36,11 +40,36 @@ class AdaptNextPlannedSessionUseCaseImplUnitTest {
         assertThat(result.plannedSessions().get(2).adaptationTrigger()).isEqualTo(trigger);
     }
 
+    @Test
+    void execute_with_active_injury_overrides_progression_trigger_with_recovery_session() {
+        AdaptiveRunningPlanRepository repository = repositoryWith(plan());
+        CoachingProfileRepository profileRepository = mock(CoachingProfileRepository.class);
+        when(profileRepository.findByUserEmail("runner@sudolife.com"))
+                .thenReturn(Optional.of(injuryProfile()));
+        AdaptNextPlannedSessionUseCaseImpl useCase = useCase(repository, profileRepository);
+
+        CurrentAdaptiveRunningPlanResult result = useCase.execute(
+                "runner@sudolife.com", new AdaptNextPlannedSessionCommand(AdaptationTrigger.COMPLETED_PLANNED_SESSION));
+
+        assertThat(result.plannedSessions().get(2).adaptationTrigger()).isEqualTo(AdaptationTrigger.INJURY_CONCERN);
+        assertThat(result.plannedSessions().get(2).plannedSession().type()).isEqualTo(PlannedSessionType.RECOVERY);
+        assertThat(result.plannedSessions().get(2).plannedSession().distanceKilometers()).isZero();
+        assertThat(result.plannedSessions().get(2).plannedSession().target())
+                .isEqualTo(PlannedSessionTargetResult.perceivedEffort(1, 3));
+    }
+
     private AdaptNextPlannedSessionUseCaseImpl useCase(AdaptiveRunningPlanRepository repository) {
+        return useCase(repository, mock(CoachingProfileRepository.class));
+    }
+
+    private AdaptNextPlannedSessionUseCaseImpl useCase(
+            AdaptiveRunningPlanRepository repository,
+            CoachingProfileRepository profileRepository
+    ) {
         TimeProvider timeProvider = () -> Instant.parse("2026-07-27T12:00:00Z");
 
         return new AdaptNextPlannedSessionUseCaseImpl(
-                repository, new AdaptedPlannedSessionValidator(), timeProvider);
+                repository, profileRepository, new AdaptedPlannedSessionValidator(), timeProvider);
     }
 
     private AdaptiveRunningPlanRepository repositoryWith(AdaptiveRunningPlan plan) {
@@ -61,6 +90,15 @@ class AdaptNextPlannedSessionUseCaseImplUnitTest {
                 List.of(
                         new AdaptiveRunningPlanSession(10L, null, nextSession(), PlannedSessionStatus.PLANNED),
                         new AdaptiveRunningPlanSession(11L, null, laterSession(), PlannedSessionStatus.PLANNED)));
+    }
+
+    private CoachingProfile injuryProfile() {
+        return new CoachingProfile(
+                1L,
+                "runner@sudolife.com",
+                new RunningGoal(10.0, 330, LocalDate.parse("2026-10-01")),
+                UserReportedReadiness.HIGH,
+                true);
     }
 
     private PlannedSessionResult nextSession() {
