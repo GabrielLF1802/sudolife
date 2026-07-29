@@ -13,10 +13,13 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_ROOT_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
-      - ./create_database.sql:/docker-entrypoint-initdb.d/create_database.sql
+      - ./create_database.sh:/docker-entrypoint-initdb.d/create_database.sh
       - sudolife-db-data:/var/lib/postgresql/data
     networks:
       - sudolife-network
@@ -38,6 +41,7 @@ services:
       API_SECURITY_TOKEN_SECRET: ${API_SECURITY_TOKEN_SECRET}
       API_SECURITY_TOKEN_ISSUER: ${API_SECURITY_TOKEN_ISSUER}
       API_SECURITY_TOKEN_EXPIRATION_MINUTES: ${API_SECURITY_TOKEN_EXPIRATION_MINUTES}
+      STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET}
       AI_RUNNING_PLAN_PROVIDER_URL: http://ollama-sudolife:11434
       AI_RUNNING_PLAN_PROVIDER_MODEL: ${AI_RUNNING_PLAN_PROVIDER_MODEL:-llama3:8b}
     depends_on:

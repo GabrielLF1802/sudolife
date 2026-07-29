@@ -152,6 +152,10 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<configuration>
 						<argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+						<environmentVariables>
+							<API_SECURITY_TOKEN_SECRET>test-only-token-secret-with-at-least-thirty-two-characters</API_SECURITY_TOKEN_SECRET>
+							<STRAVA_CLIENT_SECRET>test-only-strava-client-secret</STRAVA_CLIENT_SECRET>
+						</environmentVariables>
 					</configuration>
 				</plugin>
 				<plugin>
