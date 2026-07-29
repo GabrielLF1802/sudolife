@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { catchError, forkJoin, finalize } from 'rxjs';
+import { catchError, forkJoin, finalize, map } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
 import { ActivityList, ActivityService } from './activity.service';
@@ -643,6 +643,20 @@ export class ActivityDashboardComponent implements OnInit {
     this.planErrorMessage.set('');
     this.coachingProfileService
       .getCurrentAdaptiveRunningPlan()
+      .pipe(
+        map((plan): AdaptiveRunningPlan => ({
+          safeMilestone: plan.safeMilestone,
+          explanation: plan.explanation,
+          adjustedBySafetyValidation: false,
+          plannedSessions: plan.plannedSessions
+            .filter((session) => session.status === 'PLANNED')
+            .map((session) => ({
+              ...session.plannedSession,
+              adapted: session.originalPlannedSessionId !== null,
+              adaptationTrigger: session.adaptationTrigger,
+            })),
+        })),
+      )
       .pipe(catchError(() => this.coachingProfileService.generateAdaptiveRunningPlan()))
       .pipe(finalize(() => this.planLoading.set(false)))
       .subscribe({

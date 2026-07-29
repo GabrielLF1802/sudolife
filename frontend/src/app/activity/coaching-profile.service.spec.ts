@@ -2,7 +2,12 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { CoachingProfileService } from './coaching-profile.service';
+import {
+  CoachingProfileService,
+  ConservativeRunningPlan,
+  CurrentAdaptiveRunningPlan,
+  PlannedSession,
+} from './coaching-profile.service';
 
 describe('CoachingProfileService', () => {
   let service: CoachingProfileService;
@@ -102,33 +107,93 @@ describe('CoachingProfileService', () => {
     });
   });
 
-  it('should_load_only_current_plan_sessions_and_mark_an_adapted_replacement', () => {
+  it('should_preserve_the_complete_current_adaptive_plan', () => {
+    const currentPlan = currentAdaptiveRunningPlan();
+
     service.getCurrentAdaptiveRunningPlan().subscribe((plan) => {
-      expect(plan.plannedSessions.length).toBe(1);
-      expect(plan.plannedSessions[0].adapted).toBeTrue();
-      expect(plan.plannedSessions[0].adaptationTrigger).toBe('LOW_READINESS');
+      expect(plan).toEqual(currentPlan);
+      expect(plan.plannedSessions.map((session) => session.status)).toEqual([
+        'REPLACED',
+        'PLANNED',
+        'COMPLETED',
+        'MISSED',
+      ]);
     });
 
     const request = httpTestingController.expectOne('/api/coaching-profiles/adaptive-running-plan');
+    expect(request.request.method).toBe('GET');
+    request.flush(currentPlan);
+  });
 
-    request.flush({
-      safeMilestone: { targetDistanceKilometers: 10 },
-      explanation: 'Plano adaptado.',
-      plannedSessions: [
-        {
-          originalPlannedSessionId: null,
-          plannedSession: { weekNumber: 1 },
-          status: 'REPLACED',
-          adaptationTrigger: null,
-        },
-        {
-          originalPlannedSessionId: 10,
-          plannedSession: { weekNumber: 1 },
-          status: 'PLANNED',
-          adaptationTrigger: 'LOW_READINESS',
-        },
-      ],
+  it('should_adapt_the_next_planned_session', () => {
+    const command = { trigger: 'LOW_READINESS' as const };
+
+    service.adaptNextPlannedSession(command).subscribe((plan) => {
+      expect(plan.id).toBe(31);
     });
+
+    const request = httpTestingController.expectOne(
+      '/api/coaching-profiles/adaptive-running-plan/adapt',
+    );
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(command);
+    request.flush(currentAdaptiveRunningPlan());
+  });
+
+  it('should_clear_the_injury_concern', () => {
+    const command = { readiness: 'MODERATE' as const };
+
+    service.clearInjuryConcern(command).subscribe((plan) => {
+      expect(plan.acceptedAt).toBe('2026-07-18T10:15:00Z');
+    });
+
+    const request = httpTestingController.expectOne('/api/coaching-profiles/injury-concern/clear');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(command);
+    request.flush(currentAdaptiveRunningPlan());
+  });
+
+  it('should_correct_a_planned_session_match', () => {
+    const command = { plannedSessionId: 12, activityId: 99 };
+
+    service.correctPlannedSessionMatch(command).subscribe((plan) => {
+      expect(plan.plannedSessions[2].matchedActivityId).toBe(99);
+    });
+
+    const request = httpTestingController.expectOne(
+      '/api/coaching-profiles/adaptive-running-plan/session-match',
+    );
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(command);
+    request.flush(currentAdaptiveRunningPlan());
+  });
+
+  it('should_unlink_a_planned_session_match', () => {
+    service.unlinkPlannedSessionMatch(12).subscribe((plan) => {
+      expect(plan.plannedSessions.length).toBe(4);
+    });
+
+    const request = httpTestingController.expectOne(
+      '/api/coaching-profiles/adaptive-running-plan/sessions/12/match',
+    );
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.body).toBeNull();
+    request.flush(currentAdaptiveRunningPlan());
+  });
+
+  it('should_submit_post_session_perceived_effort', () => {
+    const command = { perceivedEffort: 7 };
+
+    service.submitPostSessionPerceivedEffort(12, command).subscribe((plan) => {
+      expect(plan.plannedSessions[2].postSessionPerceivedEffort).toBe(7);
+    });
+
+    const request = httpTestingController.expectOne(
+      '/api/coaching-profiles/adaptive-running-plan/sessions/12/perceived-effort',
+    );
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(command);
+    request.flush(currentAdaptiveRunningPlan());
   });
 
   function coachingProfile() {
@@ -143,7 +208,7 @@ describe('CoachingProfileService', () => {
     };
   }
 
-  function conservativeRunningPlan() {
+  function conservativeRunningPlan(): ConservativeRunningPlan {
     return {
       classification: 'CONSERVATIVE',
       reasons: ['INSUFFICIENT_HISTORY'],
@@ -167,6 +232,47 @@ describe('CoachingProfileService', () => {
           },
         },
       ],
+    };
+  }
+
+  function currentAdaptiveRunningPlan(): CurrentAdaptiveRunningPlan {
+    const sessions = conservativeRunningPlan().plannedSessions;
+
+    return {
+      id: 31,
+      safeMilestone: {
+        targetDistanceKilometers: 10,
+        targetPaceSecondsPerKilometer: 330,
+        targetDate: '2026-09-20',
+      },
+      explanation: 'Plano adaptado ao histórico recente.',
+      acceptedAt: '2026-07-18T10:15:00Z',
+      plannedSessions: [
+        adaptiveSession(10, null, sessions[0], 'REPLACED', null, null, null),
+        adaptiveSession(11, 10, sessions[0], 'PLANNED', 'LOW_READINESS', null, null),
+        adaptiveSession(12, null, sessions[0], 'COMPLETED', null, 99, 7),
+        adaptiveSession(13, null, sessions[0], 'MISSED', 'MISSED_PLANNED_SESSION', null, null),
+      ],
+    };
+  }
+
+  function adaptiveSession(
+    id: number,
+    originalPlannedSessionId: number | null,
+    plannedSession: PlannedSession,
+    status: 'PLANNED' | 'REPLACED' | 'COMPLETED' | 'MISSED',
+    adaptationTrigger: 'MISSED_PLANNED_SESSION' | 'LOW_READINESS' | null,
+    matchedActivityId: number | null,
+    postSessionPerceivedEffort: number | null,
+  ): CurrentAdaptiveRunningPlan['plannedSessions'][number] {
+    return {
+      id,
+      originalPlannedSessionId,
+      plannedSession,
+      status,
+      adaptationTrigger,
+      matchedActivityId,
+      postSessionPerceivedEffort,
     };
   }
 });

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 
 export type UserReportedReadiness = 'LOW' | 'MODERATE' | 'HIGH';
 export type RunningDay =
@@ -70,6 +70,7 @@ export interface PlannedSession {
   distanceKilometers: number;
   target: PlannedSessionTarget;
   scheduledDate: string;
+  durationSeconds?: number | null;
   adapted?: boolean;
   adaptationTrigger?: AdaptationTrigger | null;
 }
@@ -82,17 +83,41 @@ export type AdaptationTrigger =
   | 'UNEXPECTEDLY_HIGH_EFFORT'
   | 'UNEXPECTEDLY_LOW_EFFORT';
 
-interface CurrentAdaptiveRunningPlanSession {
+export type AdaptiveRunningPlanSessionStatus = 'PLANNED' | 'REPLACED' | 'COMPLETED' | 'MISSED';
+
+export interface AdaptiveRunningPlanSession {
+  id: number;
   originalPlannedSessionId: number | null;
   plannedSession: PlannedSession;
-  status: 'PLANNED' | 'REPLACED' | 'COMPLETED' | 'MISSED';
+  status: AdaptiveRunningPlanSessionStatus;
   adaptationTrigger: AdaptationTrigger | null;
+  matchedActivityId: number | null;
+  postSessionPerceivedEffort: number | null;
 }
 
-interface CurrentAdaptiveRunningPlan {
+export interface CurrentAdaptiveRunningPlan {
+  id: number;
   safeMilestone: RunningGoalSummary;
   explanation: string;
-  plannedSessions: CurrentAdaptiveRunningPlanSession[];
+  acceptedAt: string;
+  plannedSessions: AdaptiveRunningPlanSession[];
+}
+
+export interface AdaptNextPlannedSessionCommand {
+  trigger: AdaptationTrigger;
+}
+
+export interface ClearInjuryConcernCommand {
+  readiness: UserReportedReadiness;
+}
+
+export interface CorrectPlannedSessionMatchCommand {
+  plannedSessionId: number;
+  activityId: number;
+}
+
+export interface PostSessionPerceivedEffortCommand {
+  perceivedEffort: number;
 }
 
 export interface ConservativeRunningPlan {
@@ -139,23 +164,51 @@ export class CoachingProfileService {
     );
   }
 
-  getCurrentAdaptiveRunningPlan(): Observable<AdaptiveRunningPlan> {
-    return this.http
-      .get<CurrentAdaptiveRunningPlan>('/api/coaching-profiles/adaptive-running-plan')
-      .pipe(
-        map((plan) => ({
-          safeMilestone: plan.safeMilestone,
-          explanation: plan.explanation,
-          adjustedBySafetyValidation: false,
-          plannedSessions: plan.plannedSessions
-            .filter((session) => session.status === 'PLANNED')
-            .map((session) => ({
-              ...session.plannedSession,
-              adapted: session.originalPlannedSessionId !== null,
-              adaptationTrigger: session.adaptationTrigger,
-            })),
-        })),
-      );
+  getCurrentAdaptiveRunningPlan(): Observable<CurrentAdaptiveRunningPlan> {
+    return this.http.get<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan',
+    );
+  }
+
+  adaptNextPlannedSession(
+    command: AdaptNextPlannedSessionCommand,
+  ): Observable<CurrentAdaptiveRunningPlan> {
+    return this.http.post<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan/adapt',
+      command,
+    );
+  }
+
+  clearInjuryConcern(command: ClearInjuryConcernCommand): Observable<CurrentAdaptiveRunningPlan> {
+    return this.http.post<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/injury-concern/clear',
+      command,
+    );
+  }
+
+  correctPlannedSessionMatch(
+    command: CorrectPlannedSessionMatchCommand,
+  ): Observable<CurrentAdaptiveRunningPlan> {
+    return this.http.put<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan/session-match',
+      command,
+    );
+  }
+
+  unlinkPlannedSessionMatch(plannedSessionId: number): Observable<CurrentAdaptiveRunningPlan> {
+    return this.http.delete<CurrentAdaptiveRunningPlan>(
+      `/api/coaching-profiles/adaptive-running-plan/sessions/${plannedSessionId}/match`,
+    );
+  }
+
+  submitPostSessionPerceivedEffort(
+    plannedSessionId: number,
+    command: PostSessionPerceivedEffortCommand,
+  ): Observable<CurrentAdaptiveRunningPlan> {
+    return this.http.put<CurrentAdaptiveRunningPlan>(
+      `/api/coaching-profiles/adaptive-running-plan/sessions/${plannedSessionId}/perceived-effort`,
+      command,
+    );
   }
 
   save(command: SaveCoachingProfileCommand): Observable<CoachingProfile> {

@@ -3,16 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 export type StravaPermissionState =
-  | 'UNLINKED'
-  | 'READY'
-  | 'PERMISSION_UPGRADE_REQUIRED'
-  | 'RECONNECT_REQUIRED';
+  'UNLINKED' | 'READY' | 'PERMISSION_UPGRADE_REQUIRED' | 'RECONNECT_REQUIRED';
 
 export type StravaProfilePermissionState =
-  | 'UNLINKED'
-  | 'AVAILABLE'
-  | 'OPTIONAL_UPGRADE_AVAILABLE'
-  | 'RECONNECT_REQUIRED';
+  'UNLINKED' | 'AVAILABLE' | 'OPTIONAL_UPGRADE_AVAILABLE' | 'RECONNECT_REQUIRED';
 
 export type StravaSummaryStatus =
   | 'UNLINKED'
@@ -24,12 +18,7 @@ export type StravaSummaryStatus =
   | 'FAILED';
 
 export type StravaPerformanceDataStatus =
-  | 'UNLINKED'
-  | 'PERMISSION_UPGRADE_REQUIRED'
-  | 'NOT_STARTED'
-  | 'PENDING'
-  | 'READY'
-  | 'FAILED';
+  'UNLINKED' | 'PERMISSION_UPGRADE_REQUIRED' | 'NOT_STARTED' | 'PENDING' | 'READY' | 'FAILED';
 
 export type StravaSyncFailureReason =
   | 'SYNC_ALREADY_RUNNING'
@@ -88,5 +77,9 @@ export class StravaAccountService {
 
   requestSync(): Observable<StravaActivitySyncResult> {
     return this.http.post<StravaActivitySyncResult>('/api/strava/sync', {});
+  }
+
+  unlink(): Observable<void> {
+    return this.http.delete<void>('/api/strava/link');
   }
 }

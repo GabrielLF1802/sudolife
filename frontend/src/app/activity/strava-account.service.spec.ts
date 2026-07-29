@@ -72,4 +72,17 @@ describe('StravaAccountService', () => {
       totalActivityCount: 12,
     });
   });
+
+  it('should_unlink_strava_account', () => {
+    let completed = false;
+
+    service.unlink().subscribe(() => {
+      completed = true;
+    });
+
+    const request = httpTestingController.expectOne('/api/strava/link');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+    expect(completed).toBeTrue();
+  });
 });

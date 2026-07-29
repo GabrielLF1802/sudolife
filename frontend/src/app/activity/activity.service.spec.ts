@@ -53,6 +53,29 @@ describe('ActivityService', () => {
     });
   });
 
+  it('should_load_activity_detail', () => {
+    const detail = {
+      ...activitySummary(),
+      totalElevationGainMeters: 82.5,
+      maxSpeedMetersPerSecond: 4.8,
+      averageHeartRate: 148,
+      maxHeartRate: 172,
+      averageCadence: 176,
+      averageWatts: 245,
+      calories: 410,
+      availableStreamMetricNames: ['HEART_RATE', 'CADENCE'],
+      enrichmentStatus: 'READY',
+    };
+
+    service.getDetail(99).subscribe((activity) => {
+      expect(activity).toEqual(detail);
+    });
+
+    const request = httpTestingController.expectOne('/api/strava/activities/99');
+    expect(request.request.method).toBe('GET');
+    request.flush(detail);
+  });
+
   function activitySummary() {
     return {
       id: 99,
