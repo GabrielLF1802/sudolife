@@ -4,7 +4,12 @@ import { Router } from '@angular/router';
 import { catchError, forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
-import { ActivityList, ActivityListItem, ActivityService } from './activity.service';
+import {
+  ActivityDetail,
+  ActivityList,
+  ActivityListItem,
+  ActivityService,
+} from './activity.service';
 import {
   CoachingProfile,
   CoachingProfileService,
@@ -31,6 +36,34 @@ import { WeeklyRhythmComponent } from './weekly-rhythm.component';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
 type DashboardView = 'TODAY' | 'PLAN' | 'ACTIVITIES';
+
+export type TodayAction =
+  | 'CONNECT_STRAVA'
+  | 'COMPLETE_PROFILE'
+  | 'CLEAR_INJURY_CONCERN'
+  | 'SYNC_ACTIVITY'
+  | 'REVIEW_MATCH'
+  | 'REPORT_EFFORT'
+  | 'VIEW_NEXT_SESSION';
+
+export interface TodayActionState {
+  stravaLinked: boolean;
+  profileComplete: boolean;
+  injuryConcern: boolean;
+  activitySyncPending: boolean;
+  matchPending: boolean;
+  effortPending: boolean;
+}
+
+export function deriveTodayAction(state: TodayActionState): TodayAction {
+  if (!state.stravaLinked) return 'CONNECT_STRAVA';
+  if (!state.profileComplete) return 'COMPLETE_PROFILE';
+  if (state.injuryConcern) return 'CLEAR_INJURY_CONCERN';
+  if (state.activitySyncPending) return 'SYNC_ACTIVITY';
+  if (state.matchPending) return 'REVIEW_MATCH';
+  if (state.effortPending) return 'REPORT_EFFORT';
+  return 'VIEW_NEXT_SESSION';
+}
 
 @Component({
   selector: 'app-activity-dashboard',
@@ -85,6 +118,20 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly adaptationAnnouncement = signal('');
   protected readonly previousNextSession = signal<AdaptiveRunningPlanSession | null>(null);
   protected readonly syncResult = signal<StravaActivitySyncResult | null>(null);
+  protected readonly activityDetails = signal<Readonly<Partial<Record<number, ActivityDetail>>>>(
+    {},
+  );
+  protected readonly openActivityIds = signal<ReadonlySet<number>>(new Set());
+  protected readonly activityDetailLoadingIds = signal<ReadonlySet<number>>(new Set());
+  protected readonly activityDetailErrors = signal<Readonly<Partial<Record<number, string>>>>({});
+  protected readonly unlinkingStrava = signal(false);
+  protected readonly stravaUnlinkConfirmationOpen = signal(false);
+  protected readonly stravaUnlinkMessage = signal('');
+  protected readonly clearInjuryConfirmationOpen = signal(false);
+  protected readonly clearInjuryReadiness = signal<UserReportedReadiness | ''>('');
+  protected readonly clearingInjuryConcern = signal(false);
+  protected readonly clearInjuryErrorMessage = signal('');
+  protected readonly clearInjuryAnnouncement = signal('');
   protected readonly birthYear = signal('');
   protected readonly targetDistanceKilometers = signal('');
   protected readonly targetPace = signal('');
@@ -174,6 +221,25 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly importedRuns = computed(
     () => this.activityList()?.activities.filter((activity) => activity.sportType === 'RUN') ?? [],
   );
+  protected readonly todayAction = computed(() => {
+    const strava = this.stravaLinkStatus();
+    const training = this.trainingProfile();
+    const coaching = this.coachingProfile();
+    const sessions = this.currentAdaptiveRunningPlan()?.plannedSessions ?? [];
+
+    return deriveTodayAction({
+      stravaLinked: strava?.linked ?? false,
+      profileComplete: Boolean(training?.adaptiveCoachingEligible && coaching?.configured),
+      injuryConcern: coaching?.injuryConcern ?? false,
+      activitySyncPending: strava?.activitySummaryStatus !== 'COMPLETED',
+      matchPending: sessions.some(
+        (session) => session.status === 'COMPLETED' && !session.matchedActivityId,
+      ),
+      effortPending: sessions.some(
+        (session) => session.status === 'COMPLETED' && session.postSessionPerceivedEffort === null,
+      ),
+    });
+  });
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -380,6 +446,11 @@ export class ActivityDashboardComponent implements OnInit {
       .subscribe({
         next: (result) => {
           this.syncResult.set(result);
+          if (result.status === 'COMPLETED') {
+            const status = this.stravaLinkStatus();
+            if (status !== null)
+              this.stravaLinkStatus.set({ ...status, activitySummaryStatus: 'COMPLETED' });
+          }
         },
         error: () => {
           this.syncErrorMessage.set(
@@ -387,6 +458,177 @@ export class ActivityDashboardComponent implements OnInit {
           );
         },
       });
+  }
+
+  protected toggleActivityDetail(activityId: number): void {
+    if (this.openActivityIds().has(activityId)) {
+      this.openActivityIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(activityId);
+        return next;
+      });
+      return;
+    }
+
+    this.openActivityIds.update((ids) => new Set([...ids, activityId]));
+    if (!this.activityDetails()[activityId]) this.loadActivityDetail(activityId);
+  }
+
+  protected loadActivityDetail(activityId: number): void {
+    if (this.activityDetailLoadingIds().has(activityId)) return;
+
+    this.activityDetailLoadingIds.update((ids) => new Set([...ids, activityId]));
+    this.activityDetailErrors.update(({ [activityId]: _, ...errors }) => errors);
+    this.activityService
+      .getDetail(activityId)
+      .pipe(
+        finalize(() => {
+          this.activityDetailLoadingIds.update((ids) => {
+            const next = new Set(ids);
+            next.delete(activityId);
+            return next;
+          });
+        }),
+      )
+      .subscribe({
+        next: (detail) =>
+          this.activityDetails.update((details) => ({ ...details, [activityId]: detail })),
+        error: () =>
+          this.activityDetailErrors.update((errors) => ({
+            ...errors,
+            [activityId]: 'Não foi possível carregar os detalhes desta atividade.',
+          })),
+      });
+  }
+
+  protected streamMetricLabel(metric: string): string {
+    const labels: Record<string, string> = {
+      time: 'Tempo',
+      distance: 'Distância',
+      heartrate: 'Frequência cardíaca',
+      cadence: 'Cadência',
+      watts: 'Potência',
+      altitude: 'Altitude',
+      velocity_smooth: 'Velocidade',
+    };
+    return labels[metric.toLowerCase()] ?? metric;
+  }
+
+  protected requestStravaUnlink(): void {
+    this.stravaUnlinkConfirmationOpen.set(true);
+    this.stravaUnlinkMessage.set('');
+  }
+
+  protected cancelStravaUnlink(): void {
+    if (!this.unlinkingStrava()) this.stravaUnlinkConfirmationOpen.set(false);
+  }
+
+  protected unlinkStrava(): void {
+    if (this.unlinkingStrava()) return;
+    this.unlinkingStrava.set(true);
+    this.stravaUnlinkMessage.set('');
+    this.stravaAccountService
+      .unlink()
+      .pipe(finalize(() => this.unlinkingStrava.set(false)))
+      .subscribe({
+        next: () => {
+          const status = this.stravaLinkStatus();
+          if (status !== null)
+            this.stravaLinkStatus.set({
+              ...status,
+              linked: false,
+              athleteId: null,
+              permissionState: 'UNLINKED',
+              profilePermissionState: 'UNLINKED',
+              activitySummaryStatus: 'UNLINKED',
+              performanceDataStatus: 'UNLINKED',
+            });
+          this.stravaUnlinkConfirmationOpen.set(false);
+          this.stravaUnlinkMessage.set(
+            'Conta Strava desvinculada. Seus dados já importados foram preservados.',
+          );
+        },
+        error: () =>
+          this.stravaUnlinkMessage.set(
+            'Não foi possível desvincular. Sua conexão foi preservada; tente novamente.',
+          ),
+      });
+  }
+
+  protected updateClearInjuryReadiness(event: Event): void {
+    this.clearInjuryReadiness.set(
+      (event.target as HTMLSelectElement).value as UserReportedReadiness | '',
+    );
+  }
+
+  protected clearInjuryConcern(): void {
+    const readiness = this.clearInjuryReadiness();
+    if (!readiness || this.clearingInjuryConcern()) {
+      this.clearInjuryErrorMessage.set('Selecione sua prontidão atual antes de continuar.');
+      return;
+    }
+
+    const previousSession = this.nextAdaptivePlanSession();
+    this.clearingInjuryConcern.set(true);
+    this.clearInjuryErrorMessage.set('');
+    this.coachingProfileService
+      .clearInjuryConcern({ readiness })
+      .pipe(finalize(() => this.clearingInjuryConcern.set(false)))
+      .subscribe({
+        next: (plan) => {
+          const profile = this.coachingProfile();
+          if (profile !== null) {
+            const updated = { ...profile, injuryConcern: false, readiness };
+            this.coachingProfile.set(updated);
+            this.fillCoachingProfileForm(updated);
+          }
+          this.currentAdaptiveRunningPlan.set(plan);
+          this.conservativeRunningPlan.set(null);
+          this.clearInjuryConfirmationOpen.set(false);
+          this.announceNextSessionChange(previousSession);
+          this.clearInjuryAnnouncement.set(
+            'Preocupação encerrada. Sua retomada conservadora e a próxima sessão já foram atualizadas.',
+          );
+        },
+        error: () =>
+          this.clearInjuryErrorMessage.set(
+            'Não foi possível encerrar a preocupação. Seu perfil e plano anteriores foram preservados.',
+          ),
+      });
+  }
+
+  protected todayActionTitle(action: TodayAction): string {
+    return {
+      CONNECT_STRAVA: 'Conecte o Strava',
+      COMPLETE_PROFILE: 'Complete seu perfil e objetivo',
+      CLEAR_INJURY_CONCERN: 'Retome quando estiver pronto',
+      SYNC_ACTIVITY: 'Sincronize sua corrida mais recente',
+      REVIEW_MATCH: 'Revise uma associação pendente',
+      REPORT_EFFORT: 'Informe como foi sua sessão',
+      VIEW_NEXT_SESSION: 'Consulte sua próxima sessão',
+    }[action];
+  }
+
+  protected activateTodayAction(action: TodayAction): void {
+    if (action === 'CONNECT_STRAVA') {
+      this.startStravaLinking();
+      return;
+    }
+    if (action === 'CLEAR_INJURY_CONCERN') {
+      this.clearInjuryConfirmationOpen.set(true);
+      return;
+    }
+    if (action === 'SYNC_ACTIVITY') {
+      this.requestActivitySync();
+      return;
+    }
+    this.selectView(
+      action === 'COMPLETE_PROFILE'
+        ? 'TODAY'
+        : action === 'VIEW_NEXT_SESSION' || action === 'REVIEW_MATCH' || action === 'REPORT_EFFORT'
+          ? 'PLAN'
+          : 'ACTIVITIES',
+    );
   }
 
   protected saveTrainingProfile(): void {

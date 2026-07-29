@@ -77,6 +77,8 @@ button:disabled {
 .strava-panel,
 .sync-result,
 .training-profile-panel,
+.today-priority,
+.injury-clear-panel,
 .activity-filters,
 .activity-list li,
 .empty-panel,
@@ -84,6 +86,95 @@ button:disabled {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-surface);
+}
+
+.today-priority {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  padding: 22px;
+  border-color: var(--color-primary);
+  background: var(--color-plan);
+}
+
+.today-priority > div,
+.injury-clear-panel > div:first-child,
+.injury-clear-panel label,
+.activity-detail {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.today-priority span,
+.injury-clear-panel span {
+  color: var(--color-label);
+  font-size: var(--font-size-label);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.today-priority h2,
+.injury-clear-panel h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.today-priority p,
+.injury-clear-panel p,
+.unlink-strava-confirmation p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.injury-clear-panel,
+.unlink-strava-confirmation {
+  display: grid;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-plan-border);
+  border-radius: var(--radius-control);
+  background: var(--color-plan);
+}
+
+.injury-clear-panel select {
+  width: min(100%, 280px);
+  min-height: 44px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  padding: 0 12px;
+}
+
+.confirmation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.primary-action {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.strava-secondary-action {
+  border-color: var(--color-integration);
+  color: var(--color-integration);
+}
+
+.sr-announcement {
+  margin: 0;
+  color: var(--color-primary-deep);
+  font-weight: 700;
+}
+
+.sr-announcement:empty {
+  display: none;
 }
 
 .strava-panel {
@@ -704,6 +795,64 @@ dd {
     background var(--transition-state);
 }
 
+.activity-list li.detail-open {
+  background: var(--color-surface-soft);
+}
+
+.activity-detail-toggle {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 36px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-primary-deep);
+}
+
+.activity-detail {
+  grid-column: 1 / -1;
+  gap: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.activity-detail dl {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.detail-status span,
+.stream-metrics {
+  color: var(--color-muted);
+}
+
+.stream-metrics {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.stream-metrics span {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 3px 9px;
+}
+
+.detail-skeleton {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.detail-skeleton span {
+  width: 100%;
+  height: 18px;
+  border-radius: var(--radius-control);
+  background: var(--color-border);
+}
+
 .activity-list li:not(.empty-panel):hover {
   border-color: var(--color-plan-border);
   background: var(--color-surface-soft);
@@ -770,9 +919,16 @@ dd {
   .dashboard-header,
   .strava-panel,
   .strava-actions,
+  .today-priority,
   .pagination {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .today-priority button,
+  .confirmation-actions button,
+  .injury-clear-panel select {
+    width: 100%;
   }
 
   .dashboard-header > button {

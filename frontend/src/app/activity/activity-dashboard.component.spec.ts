@@ -3,8 +3,12 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { AuthService } from '../auth/auth.service';
-import { ActivityDashboardComponent } from './activity-dashboard.component';
-import { ActivityList, ActivityService } from './activity.service';
+import {
+  ActivityDashboardComponent,
+  deriveTodayAction,
+  TodayActionState,
+} from './activity-dashboard.component';
+import { ActivityDetail, ActivityList, ActivityService } from './activity.service';
 import { CoachingProfileService, CurrentAdaptiveRunningPlan } from './coaching-profile.service';
 import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
 import { TrainingProfileService } from './training-profile.service';
@@ -17,13 +21,18 @@ describe('ActivityDashboardComponent', () => {
   let coachingProfileService: jasmine.SpyObj<CoachingProfileService>;
 
   beforeEach(async () => {
-    activityService = jasmine.createSpyObj<ActivityService>('ActivityService', ['list']);
+    activityService = jasmine.createSpyObj<ActivityService>('ActivityService', [
+      'list',
+      'getDetail',
+    ]);
     activityService.list.and.returnValue(of(emptyActivityList()));
+    activityService.getDetail.and.returnValue(of(activityDetail()));
 
     stravaAccountService = jasmine.createSpyObj<StravaAccountService>('StravaAccountService', [
       'status',
       'startLinking',
       'requestSync',
+      'unlink',
     ]);
     stravaAccountService.status.and.returnValue(of(stravaStatus('UNLINKED')));
     stravaAccountService.startLinking.and.returnValue(
@@ -37,6 +46,7 @@ describe('ActivityDashboardComponent', () => {
         totalActivityCount: 12,
       }),
     );
+    stravaAccountService.unlink.and.returnValue(of(undefined));
 
     trainingProfileService = jasmine.createSpyObj<TrainingProfileService>(
       'TrainingProfileService',
@@ -58,6 +68,7 @@ describe('ActivityDashboardComponent', () => {
         'correctPlannedSessionMatch',
         'unlinkPlannedSessionMatch',
         'submitPostSessionPerceivedEffort',
+        'clearInjuryConcern',
         'save',
       ],
     );
@@ -77,6 +88,7 @@ describe('ActivityDashboardComponent', () => {
     coachingProfileService.submitPostSessionPerceivedEffort.and.returnValue(
       of(currentAdaptivePlan()),
     );
+    coachingProfileService.clearInjuryConcern.and.returnValue(of(currentAdaptivePlan()));
     coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
 
     await TestBed.configureTestingModule({
@@ -188,6 +200,107 @@ describe('ActivityDashboardComponent', () => {
     expect(textContent).toContain('5:00 /km');
     expect(textContent).toContain('Dados de desempenho');
     expect(textContent).toContain('Sendo preparados');
+  });
+
+  it('should_load_and_close_inline_activity_details_without_changing_the_list', () => {
+    activityService.list.and.returnValue(of(activityListWithSummaries()));
+    fixture.detectChanges();
+    dashboardNavigationButton('Atividades').click();
+    fixture.detectChanges();
+
+    activityDetailButton('Ver detalhes').click();
+    fixture.detectChanges();
+
+    expect(activityService.getDetail).toHaveBeenCalledOnceWith(99);
+    expect(pageText()).toContain('FC média150 bpm');
+    expect(pageText()).not.toContain('Energia');
+    expect(pageText()).toContain('Morning Run');
+
+    activityDetailButton('Fechar detalhes').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.activity-detail')).toBeNull();
+  });
+
+  it('should_retry_only_the_activity_detail_that_failed', () => {
+    activityService.list.and.returnValue(of(activityListWithSummaries()));
+    activityService.getDetail.and.returnValues(
+      throwError(() => new Error('offline')),
+      of(activityDetail()),
+    );
+    fixture.detectChanges();
+    dashboardNavigationButton('Atividades').click();
+    fixture.detectChanges();
+
+    activityDetailButton('Ver detalhes').click();
+    fixture.detectChanges();
+    activityDetailButton('Tentar novamente').click();
+    fixture.detectChanges();
+
+    expect(activityService.getDetail).toHaveBeenCalledTimes(2);
+    expect(pageText()).toContain('FC média150 bpm');
+  });
+
+  it('should_confirm_strava_unlink_once_and_update_the_local_status', () => {
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
+    fixture.detectChanges();
+
+    stravaButtonByLabel('Desvincular').click();
+    fixture.detectChanges();
+    expect(stravaAccountService.unlink).not.toHaveBeenCalled();
+
+    stravaButtonByLabel('Desvincular', 1).click();
+    fixture.detectChanges();
+
+    expect(stravaAccountService.unlink).toHaveBeenCalledTimes(1);
+    expect(pageText()).toContain('Não conectado');
+    expect(pageText()).toContain('dados já importados foram preservados');
+  });
+
+  it('should_clear_injury_concern_with_readiness_and_authoritative_plan', () => {
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
+    trainingProfileService.get.and.returnValue(of(trainingProfile(1990, true, 'AGE_BASED')));
+    coachingProfileService.get.and.returnValue(of(coachingProfile(true)));
+    fixture.detectChanges();
+
+    stravaButtonByLabel('Retome quando estiver pronto').click();
+    fixture.detectChanges();
+    const readiness = fixture.nativeElement.querySelector(
+      '.injury-clear-panel select',
+    ) as HTMLSelectElement;
+    readiness.value = 'MODERATE';
+    readiness.dispatchEvent(new Event('change'));
+    stravaButtonByLabel('Encerrar preocupação').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.clearInjuryConcern).toHaveBeenCalledOnceWith({
+      readiness: 'MODERATE',
+    });
+    expect(pageText()).toContain('Preocupação encerrada');
+    expect(pageText()).not.toContain('com preocupação de lesão');
+  });
+
+  it('should_derive_exactly_one_today_action_using_the_defined_priority', () => {
+    const ready: TodayActionState = {
+      stravaLinked: true,
+      profileComplete: true,
+      injuryConcern: false,
+      activitySyncPending: false,
+      matchPending: false,
+      effortPending: false,
+    };
+    const cases: Array<[Partial<TodayActionState>, ReturnType<typeof deriveTodayAction>]> = [
+      [{ stravaLinked: false, profileComplete: false, injuryConcern: true }, 'CONNECT_STRAVA'],
+      [{ profileComplete: false, injuryConcern: true }, 'COMPLETE_PROFILE'],
+      [{ injuryConcern: true, activitySyncPending: true }, 'CLEAR_INJURY_CONCERN'],
+      [{ activitySyncPending: true, matchPending: true }, 'SYNC_ACTIVITY'],
+      [{ matchPending: true, effortPending: true }, 'REVIEW_MATCH'],
+      [{ effortPending: true }, 'REPORT_EFFORT'],
+      [{}, 'VIEW_NEXT_SESSION'],
+    ];
+
+    cases.forEach(([state, action]) =>
+      expect(deriveTodayAction({ ...ready, ...state })).toBe(action),
+    );
   });
 
   it('should_filter_loaded_activity_page_by_type', () => {
@@ -713,6 +826,18 @@ describe('ActivityDashboardComponent', () => {
     return fixture.nativeElement.querySelector('.sync-action');
   }
 
+  function activityDetailButton(label: string): HTMLButtonElement {
+    return [...fixture.nativeElement.querySelectorAll('.activity-list button')].find(
+      (button: HTMLButtonElement) => button.textContent.trim() === label,
+    ) as HTMLButtonElement;
+  }
+
+  function stravaButtonByLabel(label: string, index = 0): HTMLButtonElement {
+    return [...fixture.nativeElement.querySelectorAll('button')].filter(
+      (button: HTMLButtonElement) => button.textContent.trim() === label,
+    )[index] as HTMLButtonElement;
+  }
+
   function dashboardNavigationButton(label: string): HTMLButtonElement {
     return [...fixture.nativeElement.querySelectorAll('.dashboard-navigation button')].find(
       (button: HTMLButtonElement) => button.textContent.trim() === label,
@@ -858,6 +983,21 @@ describe('ActivityDashboardComponent', () => {
       streamsReadyActivityCount: 0,
       failureReason:
         permissionState === 'PERMISSION_UPGRADE_REQUIRED' ? 'PERMISSION_UPGRADE_REQUIRED' : null,
+    };
+  }
+
+  function activityDetail(): ActivityDetail {
+    return {
+      ...activityListWithSummaries().activities[0],
+      totalElevationGainMeters: 42,
+      maxSpeedMetersPerSecond: 4,
+      averageHeartRate: 150,
+      maxHeartRate: 170,
+      averageCadence: null,
+      averageWatts: null,
+      calories: null,
+      availableStreamMetricNames: ['heartrate', 'distance'],
+      enrichmentStatus: 'COMPLETED',
     };
   }
 

@@ -67,6 +67,65 @@
         />
       }
 
+      <section class="today-priority" aria-labelledby="today-priority-title">
+        <div>
+          <span>Próxima ação</span>
+          <h2 id="today-priority-title">{{ todayActionTitle(todayAction()) }}</h2>
+          <p>Uma decisão por vez, com base nos dados confirmados do seu treino.</p>
+        </div>
+        <button
+          type="button"
+          [class.strava-action]="todayAction() === 'CONNECT_STRAVA'"
+          (click)="activateTodayAction(todayAction())"
+        >
+          {{ todayActionTitle(todayAction()) }}
+        </button>
+      </section>
+
+      @if (clearInjuryConfirmationOpen()) {
+        <section class="injury-clear-panel" aria-labelledby="injury-clear-title">
+          <div>
+            <span>Retomada conservadora</span>
+            <h2 id="injury-clear-title">Como você está para voltar?</h2>
+            <p>
+              O Sudolife reduzirá a carga na retomada. Isso não representa orientação médica;
+              procure um profissional de saúde se houver dor ou dúvida.
+            </p>
+          </div>
+          <label>
+            <span>Prontidão atual</span>
+            <select [value]="clearInjuryReadiness()" (change)="updateClearInjuryReadiness($event)">
+              <option value="">Selecione</option>
+              <option value="LOW">Baixa</option>
+              <option value="MODERATE">Moderada</option>
+              <option value="HIGH">Alta</option>
+            </select>
+          </label>
+          <div class="confirmation-actions">
+            <button
+              type="button"
+              [disabled]="clearingInjuryConcern()"
+              (click)="clearInjuryConfirmationOpen.set(false)"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="clearingInjuryConcern()"
+              [attr.aria-busy]="clearingInjuryConcern()"
+              (click)="clearInjuryConcern()"
+            >
+              {{ clearingInjuryConcern() ? 'Atualizando plano...' : 'Encerrar preocupação' }}
+            </button>
+          </div>
+          @if (clearInjuryErrorMessage()) {
+            <p class="status error" role="alert">{{ clearInjuryErrorMessage() }}</p>
+          }
+        </section>
+      }
+      <p class="sr-announcement" aria-live="polite">{{ clearInjuryAnnouncement() }}</p>
+
       @if (stravaLinkStatus(); as stravaStatus) {
         <details class="strava-panel settings-disclosure">
           <summary class="strava-status">
@@ -102,7 +161,39 @@
                 {{ stravaActionLabel(stravaStatus) }}
               }
             </button>
+
+            @if (stravaStatus.linked) {
+              <button type="button" class="strava-secondary-action" (click)="requestStravaUnlink()">
+                Desvincular
+              </button>
+            }
           </div>
+
+          @if (stravaUnlinkConfirmationOpen()) {
+            <section class="unlink-strava-confirmation" aria-labelledby="unlink-strava-title">
+              <strong id="unlink-strava-title">Desvincular conta Strava?</strong>
+              <p>
+                Os dados já importados permanecem, mas deixarão de receber atualizações do Strava.
+              </p>
+              <div class="confirmation-actions">
+                <button type="button" [disabled]="unlinkingStrava()" (click)="cancelStravaUnlink()">
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  class="strava-action"
+                  [disabled]="unlinkingStrava()"
+                  [attr.aria-busy]="unlinkingStrava()"
+                  (click)="unlinkStrava()"
+                >
+                  {{ unlinkingStrava() ? 'Desvinculando...' : 'Desvincular' }}
+                </button>
+              </div>
+            </section>
+          }
+          @if (stravaUnlinkMessage()) {
+            <p class="status" aria-live="polite">{{ stravaUnlinkMessage() }}</p>
+          }
         </details>
 
         @if (linkingErrorMessage()) {
@@ -355,6 +446,15 @@
             <p class="status error" id="coaching-profile-error" role="alert">
               {{ coachingProfileErrorMessage() }}
             </p>
+          }
+          @if (profile.injuryConcern) {
+            <button
+              type="button"
+              class="text-action"
+              (click)="clearInjuryConfirmationOpen.set(true)"
+            >
+              Informar que a preocupação terminou
+            </button>
           }
         </details>
       }
@@ -849,7 +949,7 @@
 
         <ul class="activity-list">
           @for (activity of filteredActivities(); track activity.id) {
-            <li>
+            <li [class.detail-open]="openActivityIds().has(activity.id)">
               <div class="activity-main">
                 <strong>{{ activity.name }}</strong>
                 <span
@@ -875,6 +975,95 @@
                   <dd>{{ performanceDataStatusLabel(activity.streamStatus) }}</dd>
                 </div>
               </dl>
+              <button
+                type="button"
+                class="activity-detail-toggle"
+                [attr.aria-expanded]="openActivityIds().has(activity.id)"
+                [attr.aria-controls]="'activity-detail-' + activity.id"
+                (click)="toggleActivityDetail(activity.id)"
+              >
+                {{ openActivityIds().has(activity.id) ? 'Fechar detalhes' : 'Ver detalhes' }}
+              </button>
+              @if (openActivityIds().has(activity.id)) {
+                <section
+                  class="activity-detail"
+                  [id]="'activity-detail-' + activity.id"
+                  aria-live="polite"
+                >
+                  @if (activityDetailLoadingIds().has(activity.id)) {
+                    <div class="detail-skeleton" aria-label="Carregando detalhes" aria-busy="true">
+                      <span></span><span></span>
+                    </div>
+                  } @else if (activityDetailErrors()[activity.id]; as detailError) {
+                    <div class="inline-recovery" role="alert">
+                      <p>{{ detailError }}</p>
+                      <button type="button" (click)="loadActivityDetail(activity.id)">
+                        Tentar novamente
+                      </button>
+                    </div>
+                  } @else if (activityDetails()[activity.id]; as detail) {
+                    <div class="detail-status">
+                      <strong>{{ performanceDataStatusLabel(detail.enrichmentStatus) }}</strong>
+                      <span
+                        >Enriquecimento ·
+                        {{ performanceDataStatusLabel(detail.streamStatus) }}</span
+                      >
+                    </div>
+                    <dl>
+                      @if (detail.totalElevationGainMeters !== null) {
+                        <div>
+                          <dt>Elevação</dt>
+                          <dd>{{ detail.totalElevationGainMeters | number: '1.0-1' }} m</dd>
+                        </div>
+                      }
+                      @if (detail.maxSpeedMetersPerSecond !== null) {
+                        <div>
+                          <dt>Velocidade máxima</dt>
+                          <dd>{{ detail.maxSpeedMetersPerSecond * 3.6 | number: '1.1-1' }} km/h</dd>
+                        </div>
+                      }
+                      @if (detail.averageHeartRate !== null) {
+                        <div>
+                          <dt>FC média</dt>
+                          <dd>{{ detail.averageHeartRate | number: '1.0-0' }} bpm</dd>
+                        </div>
+                      }
+                      @if (detail.maxHeartRate !== null) {
+                        <div>
+                          <dt>FC máxima</dt>
+                          <dd>{{ detail.maxHeartRate | number: '1.0-0' }} bpm</dd>
+                        </div>
+                      }
+                      @if (detail.averageCadence !== null) {
+                        <div>
+                          <dt>Cadência</dt>
+                          <dd>{{ detail.averageCadence | number: '1.0-0' }} rpm</dd>
+                        </div>
+                      }
+                      @if (detail.averageWatts !== null) {
+                        <div>
+                          <dt>Potência</dt>
+                          <dd>{{ detail.averageWatts | number: '1.0-0' }} W</dd>
+                        </div>
+                      }
+                      @if (detail.calories !== null) {
+                        <div>
+                          <dt>Energia</dt>
+                          <dd>{{ detail.calories | number: '1.0-0' }} kcal</dd>
+                        </div>
+                      }
+                    </dl>
+                    @if (detail.availableStreamMetricNames.length > 0) {
+                      <p class="stream-metrics">
+                        <strong>Métricas disponíveis:</strong>
+                        @for (metric of detail.availableStreamMetricNames; track metric) {
+                          <span>{{ streamMetricLabel(metric) }}</span>
+                        }
+                      </p>
+                    }
+                  }
+                </section>
+              }
             </li>
           } @empty {
             <li class="empty-panel" aria-label="Sem resultados filtrados">
