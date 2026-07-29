@@ -58,7 +58,9 @@ input {
   color: var(--color-ink);
   font: inherit;
   padding: 13px 14px;
-  transition: border-color var(--transition-state), box-shadow var(--transition-state);
+  transition:
+    border-color var(--transition-state),
+    box-shadow var(--transition-state);
 }
 
 input:hover {
@@ -78,7 +80,9 @@ button {
   cursor: pointer;
   font: inherit;
   font-weight: 800;
-  transition: background var(--transition-state), transform var(--transition-state);
+  transition:
+    background var(--transition-state),
+    transform var(--transition-state);
 }
 
 button:hover:not(:disabled) {
@@ -100,6 +104,13 @@ button:disabled {
   color: var(--color-error);
   font-size: 1rem;
   font-weight: 700;
+}
+
+.field-guidance {
+  margin: calc(var(--space-md) * -1) 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 .switch-link {

@@ -20,13 +20,17 @@ export class LoginComponent {
   protected readonly errorMessage = signal('');
 
   protected login(): void {
+    if (this.submitting()) {
+      return;
+    }
+
     this.errorMessage.set('');
     this.submitting.set(true);
 
-    this.authService.login({ email: this.email(), password: this.password() }).subscribe({
+    this.authService.login({ email: this.email().trim(), password: this.password() }).subscribe({
       next: () => void this.router.navigateByUrl('/activities'),
       error: () => {
-        this.errorMessage.set('Email ou senha invalidos.');
+        this.errorMessage.set('Email ou senha inválidos. Revise os dados e tente novamente.');
         this.submitting.set(false);
       },
     });

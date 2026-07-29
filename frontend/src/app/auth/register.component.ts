@@ -21,15 +21,21 @@ export class RegisterComponent {
   protected readonly errorMessage = signal('');
 
   protected register(): void {
+    if (this.submitting()) {
+      return;
+    }
+
     this.errorMessage.set('');
     this.submitting.set(true);
 
     this.authService
-      .register({ name: this.name(), email: this.email(), password: this.password() })
+      .register({ name: this.name().trim(), email: this.email().trim(), password: this.password() })
       .subscribe({
         next: () => void this.router.navigateByUrl('/login'),
         error: () => {
-          this.errorMessage.set('Nao foi possivel criar a conta.');
+          this.errorMessage.set(
+            'Não foi possível criar a conta. Seus dados foram preservados; tente novamente.',
+          );
           this.submitting.set(false);
         },
       });

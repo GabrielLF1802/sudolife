@@ -90,7 +90,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly selectedPeriod = signal<ActivityPeriodFilter>('ALL');
   protected readonly minimumDistanceKilometers = signal('');
   protected readonly maximumDistanceKilometers = signal('');
-  private readonly currentDate = signal(new Date());
+  protected readonly currentDate = signal(new Date());
   protected readonly futurePlanSessions = computed(
     () =>
       this.conservativeRunningPlan()?.plannedSessions.filter((session) => session.weekNumber > 1) ??
@@ -99,7 +99,11 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly nextAdaptivePlanSession = computed(() => {
     const sessions = this.adaptiveRunningPlan()?.plannedSessions ?? [];
 
-    return [...sessions].sort((left, right) => left.scheduledDate.localeCompare(right.scheduledDate))[0] ?? null;
+    return (
+      [...sessions].sort((left, right) =>
+        left.scheduledDate.localeCompare(right.scheduledDate),
+      )[0] ?? null
+    );
   });
   protected readonly activityTypes = computed(() => {
     const activityList = this.activityList();
@@ -362,12 +366,23 @@ export class ActivityDashboardComponent implements OnInit {
   }
 
   protected saveTrainingProfile(): void {
+    if (this.savingTrainingProfile()) {
+      return;
+    }
+
+    const birthYear = this.parsedBirthYear();
+    if (!this.isValidBirthYear(birthYear)) {
+      this.trainingProfileSuccessMessage.set('');
+      this.trainingProfileErrorMessage.set('Informe um ano entre 1900 e o ano atual.');
+      return;
+    }
+
     this.savingTrainingProfile.set(true);
     this.trainingProfileErrorMessage.set('');
     this.trainingProfileSuccessMessage.set('');
 
     this.trainingProfileService
-      .save({ birthYear: this.parsedBirthYear() })
+      .save({ birthYear })
       .pipe(finalize(() => this.savingTrainingProfile.set(false)))
       .subscribe({
         next: (profile) => {
@@ -386,6 +401,18 @@ export class ActivityDashboardComponent implements OnInit {
   }
 
   protected saveCoachingProfile(): void {
+    if (this.savingCoachingProfile()) {
+      return;
+    }
+
+    if (!this.hasValidCoachingProfileInput()) {
+      this.coachingProfileSuccessMessage.set('');
+      this.coachingProfileErrorMessage.set(
+        'Revise a distância e o ritmo. Use uma distância positiva e um ritmo no formato min:seg.',
+      );
+      return;
+    }
+
     this.savingCoachingProfile.set(true);
     this.coachingProfileErrorMessage.set('');
     this.coachingProfileSuccessMessage.set('');
@@ -627,15 +654,24 @@ export class ActivityDashboardComponent implements OnInit {
       });
   }
 
-  protected adaptationTriggerLabel(trigger: import('./coaching-profile.service').AdaptationTrigger | null | undefined): string {
+  protected adaptationTriggerLabel(
+    trigger: import('./coaching-profile.service').AdaptationTrigger | null | undefined,
+  ): string {
     switch (trigger) {
-      case 'MISSED_PLANNED_SESSION': return 'sessão anterior perdida';
-      case 'COMPLETED_PLANNED_SESSION': return 'sessão anterior concluída';
-      case 'INJURY_CONCERN': return 'preocupação de lesão';
-      case 'LOW_READINESS': return 'baixa prontidão';
-      case 'UNEXPECTEDLY_HIGH_EFFORT': return 'esforço acima do esperado';
-      case 'UNEXPECTEDLY_LOW_EFFORT': return 'esforço abaixo do esperado';
-      default: return 'contexto recente de treino';
+      case 'MISSED_PLANNED_SESSION':
+        return 'sessão anterior perdida';
+      case 'COMPLETED_PLANNED_SESSION':
+        return 'sessão anterior concluída';
+      case 'INJURY_CONCERN':
+        return 'preocupação de lesão';
+      case 'LOW_READINESS':
+        return 'baixa prontidão';
+      case 'UNEXPECTEDLY_HIGH_EFFORT':
+        return 'esforço acima do esperado';
+      case 'UNEXPECTEDLY_LOW_EFFORT':
+        return 'esforço abaixo do esperado';
+      default:
+        return 'contexto recente de treino';
     }
   }
 
@@ -692,6 +728,25 @@ export class ActivityDashboardComponent implements OnInit {
     }
 
     return Number(trimmedBirthYear);
+  }
+
+  private isValidBirthYear(birthYear: number | null): boolean {
+    return (
+      birthYear === null ||
+      (Number.isInteger(birthYear) &&
+        birthYear >= 1900 &&
+        birthYear <= this.currentDate().getFullYear())
+    );
+  }
+
+  private hasValidCoachingProfileInput(): boolean {
+    const distance = this.parsedTargetDistance();
+    const pace = this.parsedTargetPaceSeconds();
+
+    return (
+      (distance === null || (Number.isFinite(distance) && distance > 0)) &&
+      (pace === null || (Number.isFinite(pace) && pace > 0))
+    );
   }
 
   private fillCoachingProfileForm(profile: CoachingProfile): void {

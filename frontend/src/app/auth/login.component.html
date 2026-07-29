@@ -12,7 +12,10 @@
         type="email"
         name="email"
         autocomplete="email"
+        maxlength="254"
         required
+        [attr.aria-invalid]="errorMessage() ? 'true' : null"
+        [attr.aria-describedby]="errorMessage() ? 'login-error' : null"
         [ngModel]="email()"
         (ngModelChange)="email.set($event)"
       />
@@ -24,17 +27,24 @@
         type="password"
         name="password"
         autocomplete="current-password"
+        maxlength="128"
         required
+        [attr.aria-invalid]="errorMessage() ? 'true' : null"
+        [attr.aria-describedby]="errorMessage() ? 'login-error' : null"
         [ngModel]="password()"
         (ngModelChange)="password.set($event)"
       />
     </label>
 
     @if (errorMessage()) {
-      <p class="form-error">{{ errorMessage() }}</p>
+      <p class="form-error" id="login-error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <button type="submit" [disabled]="loginForm.invalid || submitting()">
+    <button
+      type="submit"
+      [disabled]="loginForm.invalid || submitting()"
+      [attr.aria-busy]="submitting()"
+    >
       {{ submitting() ? 'Entrando...' : 'Entrar' }}
     </button>
   </form>

@@ -12,6 +12,7 @@
         type="text"
         name="name"
         autocomplete="name"
+        maxlength="100"
         required
         [ngModel]="name()"
         (ngModelChange)="name.set($event)"
@@ -24,6 +25,7 @@
         type="email"
         name="email"
         autocomplete="email"
+        maxlength="254"
         required
         [ngModel]="email()"
         (ngModelChange)="email.set($event)"
@@ -36,17 +38,26 @@
         type="password"
         name="password"
         autocomplete="new-password"
+        minlength="8"
+        maxlength="128"
         required
+        aria-describedby="password-guidance"
         [ngModel]="password()"
         (ngModelChange)="password.set($event)"
       />
     </label>
 
+    <p class="field-guidance" id="password-guidance">Use pelo menos 8 caracteres.</p>
+
     @if (errorMessage()) {
-      <p class="form-error">{{ errorMessage() }}</p>
+      <p class="form-error" id="register-error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <button type="submit" [disabled]="registerForm.invalid || submitting()">
+    <button
+      type="submit"
+      [disabled]="registerForm.invalid || submitting()"
+      [attr.aria-busy]="submitting()"
+    >
       {{ submitting() ? 'Criando...' : 'Criar conta' }}
     </button>
   </form>
