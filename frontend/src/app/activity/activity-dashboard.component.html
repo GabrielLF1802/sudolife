@@ -454,11 +454,50 @@
                   Esta sessão considera {{ adaptationTriggerLabel(nextSession.adaptationTrigger) }}.
                 </p>
               }
+              <button
+                type="button"
+                class="readiness-action"
+                [disabled]="adaptationLoading()"
+                [attr.aria-busy]="adaptationLoading()"
+                (click)="adaptForLowReadiness()"
+              >
+                @if (adaptationLoading()) {
+                  Adaptando...
+                } @else {
+                  Minha prontidão caiu
+                }
+              </button>
             } @else {
               <p class="next-session-empty">
                 Não há uma próxima sessão planejada neste momento. Seu histórico continua disponível
                 abaixo.
               </p>
+              <button type="button" class="readiness-action" disabled>Minha prontidão caiu</button>
+            }
+            @if (adaptationErrorMessage()) {
+              <p class="session-message error" role="alert">{{ adaptationErrorMessage() }}</p>
+            }
+          </section>
+
+          <section class="adaptation-update" aria-live="polite" aria-atomic="true">
+            @if (adaptationAnnouncement()) {
+              <strong>{{ adaptationAnnouncement() }}</strong>
+              @if (previousNextSession(); as previousSession) {
+                <div class="adaptation-comparison">
+                  <p>
+                    <span>Antes</span>
+                    {{ plannedSessionTypeLabel(previousSession.plannedSession) }} ·
+                    {{ previousSession.plannedSession.distanceKilometers | number: '1.0-1' }} km
+                  </p>
+                  @if (nextAdaptivePlanSession(); as adaptedSession) {
+                    <p>
+                      <span>Agora</span>
+                      {{ plannedSessionTypeLabel(adaptedSession.plannedSession) }} ·
+                      {{ adaptedSession.plannedSession.distanceKilometers | number: '1.0-1' }} km
+                    </p>
+                  }
+                </div>
+              }
             }
           </section>
 
@@ -518,7 +557,13 @@
                     @if (session.status === 'COMPLETED') {
                       @if (session.matchedActivityId) {
                         <p class="session-context">
-                          Corrida associada · atividade {{ session.matchedActivityId }}
+                          Corrida associada ·
+                          @if (activityById(session.matchedActivityId); as matchedActivity) {
+                            <strong>{{ activityOptionLabel(matchedActivity) }}</strong>
+                          } @else {
+                            <strong>atividade {{ session.matchedActivityId }}</strong>
+                            <span> (fora da página carregada)</span>
+                          }
                         </p>
                       }
                       @if (session.postSessionPerceivedEffort) {
@@ -526,6 +571,112 @@
                           Esforço percebido registrado:
                           <strong>{{ session.postSessionPerceivedEffort }} de 10</strong>
                         </p>
+                      }
+
+                      @if (session.matchedActivityId) {
+                        <div
+                          class="session-controls"
+                          [attr.aria-busy]="isSessionOperating(session.id)"
+                        >
+                          <form (submit)="$event.preventDefault(); correctSessionMatch(session.id)">
+                            <label [for]="'activity-match-' + session.id"
+                              >Corrigir associação</label
+                            >
+                            <div>
+                              <select
+                                [id]="'activity-match-' + session.id"
+                                [value]="selectedMatchActivityIds()[session.id] ?? ''"
+                                [disabled]="isSessionOperating(session.id)"
+                                (change)="updateMatchActivity(session.id, $event)"
+                              >
+                                <option value="">Escolha uma corrida</option>
+                                @for (activity of importedRuns(); track activity.id) {
+                                  <option [value]="activity.id">
+                                    {{ activityOptionLabel(activity) }}
+                                  </option>
+                                }
+                              </select>
+                              <button type="submit" [disabled]="isSessionOperating(session.id)">
+                                Salvar associação
+                              </button>
+                            </div>
+                          </form>
+
+                          @if (unlinkConfirmationId() === session.id) {
+                            <div
+                              class="unlink-confirmation"
+                              role="group"
+                              aria-label="Confirmar remoção da associação"
+                            >
+                              <p>Remover a associação não exclui a corrida da área Atividades.</p>
+                              <div>
+                                <button
+                                  type="button"
+                                  [disabled]="isSessionOperating(session.id)"
+                                  (click)="unlinkSessionMatch(session.id)"
+                                >
+                                  Confirmar remoção
+                                </button>
+                                <button
+                                  type="button"
+                                  [disabled]="isSessionOperating(session.id)"
+                                  (click)="cancelUnlinkConfirmation()"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          } @else {
+                            <button
+                              type="button"
+                              class="text-action"
+                              [disabled]="isSessionOperating(session.id)"
+                              (click)="requestUnlinkConfirmation(session.id)"
+                            >
+                              Remover associação
+                            </button>
+                          }
+
+                          <form
+                            novalidate
+                            (submit)="$event.preventDefault(); submitPerceivedEffort(session.id)"
+                          >
+                            <label [for]="'perceived-effort-' + session.id"
+                              >Esforço percebido</label
+                            >
+                            <p id="perceived-effort-guidance-{{ session.id }}">
+                              1 muito leve · 5 moderado · 10 esforço máximo percebido
+                            </p>
+                            <div>
+                              <input
+                                type="number"
+                                min="1"
+                                max="10"
+                                step="1"
+                                inputmode="numeric"
+                                [id]="'perceived-effort-' + session.id"
+                                [value]="
+                                  perceivedEfforts()[session.id] ??
+                                  session.postSessionPerceivedEffort ??
+                                  ''
+                                "
+                                [disabled]="isSessionOperating(session.id)"
+                                [attr.aria-describedby]="'perceived-effort-guidance-' + session.id"
+                                (input)="updatePerceivedEffort(session.id, $event)"
+                              />
+                              <button type="submit" [disabled]="isSessionOperating(session.id)">
+                                Salvar esforço
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      }
+
+                      @if (sessionErrors()[session.id]; as sessionError) {
+                        <p class="session-message error" role="alert">{{ sessionError }}</p>
+                      }
+                      @if (sessionSuccesses()[session.id]; as sessionSuccess) {
+                        <p class="session-message" aria-live="polite">{{ sessionSuccess }}</p>
                       }
                     }
 
@@ -555,7 +706,7 @@
             }
           </div>
 
-          @if (nextAdaptivePlanSession(); as nextSession) {
+          @if (plan.plannedSessions[0]; as nextSession) {
             <div class="conservative-plan-heading" aria-label="Próxima sessão atual">
               <span>Próxima sessão atual</span>
               <strong>{{ plannedSessionTypeLabel(nextSession) }}</strong>

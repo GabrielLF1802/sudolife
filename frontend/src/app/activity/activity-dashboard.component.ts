@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
-import { ActivityList, ActivityService } from './activity.service';
+import { ActivityList, ActivityListItem, ActivityService } from './activity.service';
 import {
   CoachingProfile,
   CoachingProfileService,
@@ -72,6 +72,18 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly trainingProfileSuccessMessage = signal('');
   protected readonly coachingProfileErrorMessage = signal('');
   protected readonly coachingProfileSuccessMessage = signal('');
+  protected readonly sessionOperationIds = signal<ReadonlySet<number>>(new Set());
+  protected readonly sessionErrors = signal<Readonly<Partial<Record<number, string>>>>({});
+  protected readonly sessionSuccesses = signal<Readonly<Partial<Record<number, string>>>>({});
+  protected readonly selectedMatchActivityIds = signal<Readonly<Partial<Record<number, string>>>>(
+    {},
+  );
+  protected readonly unlinkConfirmationId = signal<number | null>(null);
+  protected readonly perceivedEfforts = signal<Readonly<Partial<Record<number, string>>>>({});
+  protected readonly adaptationLoading = signal(false);
+  protected readonly adaptationErrorMessage = signal('');
+  protected readonly adaptationAnnouncement = signal('');
+  protected readonly previousNextSession = signal<AdaptiveRunningPlanSession | null>(null);
   protected readonly syncResult = signal<StravaActivitySyncResult | null>(null);
   protected readonly birthYear = signal('');
   protected readonly targetDistanceKilometers = signal('');
@@ -158,6 +170,9 @@ export class ActivityDashboardComponent implements OnInit {
       this.selectedPeriod() !== 'ALL' ||
       this.minimumDistanceKilometers().trim() !== '' ||
       this.maximumDistanceKilometers().trim() !== '',
+  );
+  protected readonly importedRuns = computed(
+    () => this.activityList()?.activities.filter((activity) => activity.sportType === 'RUN') ?? [],
   );
 
   ngOnInit(): void {
@@ -524,6 +539,137 @@ export class ActivityDashboardComponent implements OnInit {
     return `${this.adaptiveSessionStatusLabel(session.status)}: ${this.plannedSessionTypeLabel(session.plannedSession)}, ${this.plannedSessionDateLabel(session.plannedSession)}`;
   }
 
+  protected activityById(activityId: number | null): ActivityListItem | null {
+    return this.activityList()?.activities.find((activity) => activity.id === activityId) ?? null;
+  }
+
+  protected activityOptionLabel(activity: ActivityListItem): string {
+    return `${activity.name} · ${new Date(activity.startDate).toLocaleDateString('pt-BR')} · ${(activity.distanceMeters / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
+  }
+
+  protected updateMatchActivity(sessionId: number, event: Event): void {
+    this.selectedMatchActivityIds.update((values) => ({
+      ...values,
+      [sessionId]: (event.target as HTMLSelectElement).value,
+    }));
+  }
+
+  protected correctSessionMatch(sessionId: number): void {
+    const activityId = Number(this.selectedMatchActivityIds()[sessionId]);
+
+    if (!Number.isInteger(activityId)) {
+      this.setSessionError(sessionId, 'Escolha uma corrida importada para corrigir a associação.');
+      return;
+    }
+
+    this.beginSessionOperation(sessionId);
+    this.coachingProfileService
+      .correctPlannedSessionMatch({ plannedSessionId: sessionId, activityId })
+      .pipe(finalize(() => this.endSessionOperation(sessionId)))
+      .subscribe({
+        next: (plan) => {
+          this.currentAdaptiveRunningPlan.set(plan);
+          this.setSessionSuccess(sessionId, 'Associação atualizada.');
+        },
+        error: () =>
+          this.setSessionError(
+            sessionId,
+            'Não foi possível corrigir a associação. O plano atual foi preservado.',
+          ),
+      });
+  }
+
+  protected requestUnlinkConfirmation(sessionId: number): void {
+    this.unlinkConfirmationId.set(sessionId);
+  }
+
+  protected cancelUnlinkConfirmation(): void {
+    this.unlinkConfirmationId.set(null);
+  }
+
+  protected unlinkSessionMatch(sessionId: number): void {
+    this.beginSessionOperation(sessionId);
+    this.coachingProfileService
+      .unlinkPlannedSessionMatch(sessionId)
+      .pipe(finalize(() => this.endSessionOperation(sessionId)))
+      .subscribe({
+        next: (plan) => {
+          this.currentAdaptiveRunningPlan.set(plan);
+          this.unlinkConfirmationId.set(null);
+          this.setSessionSuccess(
+            sessionId,
+            'Associação removida. A corrida continua em Atividades.',
+          );
+        },
+        error: () =>
+          this.setSessionError(
+            sessionId,
+            'Não foi possível remover a associação. O plano e a corrida foram preservados.',
+          ),
+      });
+  }
+
+  protected updatePerceivedEffort(sessionId: number, event: Event): void {
+    this.perceivedEfforts.update((values) => ({
+      ...values,
+      [sessionId]: (event.target as HTMLInputElement).value,
+    }));
+  }
+
+  protected submitPerceivedEffort(sessionId: number): void {
+    const effort = Number(this.perceivedEfforts()[sessionId]);
+
+    if (!Number.isInteger(effort) || effort < 1 || effort > 10) {
+      this.setSessionError(sessionId, 'Informe um número inteiro de 1 a 10.');
+      return;
+    }
+
+    const previousNextSession = this.nextAdaptivePlanSession();
+    this.beginSessionOperation(sessionId);
+    this.coachingProfileService
+      .submitPostSessionPerceivedEffort(sessionId, { perceivedEffort: effort })
+      .pipe(finalize(() => this.endSessionOperation(sessionId)))
+      .subscribe({
+        next: (plan) => {
+          this.currentAdaptiveRunningPlan.set(plan);
+          this.setSessionSuccess(sessionId, `Esforço ${effort} de 10 registrado.`);
+          this.announceNextSessionChange(previousNextSession);
+        },
+        error: () =>
+          this.setSessionError(
+            sessionId,
+            'Não foi possível salvar o esforço. O plano anterior foi preservado.',
+          ),
+      });
+  }
+
+  protected adaptForLowReadiness(): void {
+    if (this.nextAdaptivePlanSession() === null || this.adaptationLoading()) {
+      return;
+    }
+
+    const previousNextSession = this.nextAdaptivePlanSession();
+    this.adaptationLoading.set(true);
+    this.adaptationErrorMessage.set('');
+    this.coachingProfileService
+      .adaptNextPlannedSession({ trigger: 'LOW_READINESS' })
+      .pipe(finalize(() => this.adaptationLoading.set(false)))
+      .subscribe({
+        next: (plan) => {
+          this.currentAdaptiveRunningPlan.set(plan);
+          this.announceNextSessionChange(previousNextSession);
+        },
+        error: () =>
+          this.adaptationErrorMessage.set(
+            'Não foi possível adaptar a próxima sessão. O plano anterior foi preservado.',
+          ),
+      });
+  }
+
+  protected isSessionOperating(sessionId: number): boolean {
+    return this.sessionOperationIds().has(sessionId);
+  }
+
   protected activityTypeLabel(activityType: string): string {
     const labels: Record<string, string> = {
       RUN: 'Corrida',
@@ -737,6 +883,61 @@ export class ActivityDashboardComponent implements OnInit {
       default:
         return 'contexto recente de treino';
     }
+  }
+
+  private beginSessionOperation(sessionId: number): void {
+    this.sessionOperationIds.update((ids) => new Set([...ids, sessionId]));
+    this.sessionErrors.update(({ [sessionId]: _, ...messages }) => messages);
+    this.sessionSuccesses.update(({ [sessionId]: _, ...messages }) => messages);
+  }
+
+  private endSessionOperation(sessionId: number): void {
+    this.sessionOperationIds.update((ids) => {
+      const remainingIds = new Set(ids);
+      remainingIds.delete(sessionId);
+      return remainingIds;
+    });
+  }
+
+  private setSessionError(sessionId: number, message: string): void {
+    this.sessionErrors.update((messages) => ({ ...messages, [sessionId]: message }));
+    this.sessionSuccesses.update(({ [sessionId]: _, ...messages }) => messages);
+  }
+
+  private setSessionSuccess(sessionId: number, message: string): void {
+    this.sessionSuccesses.update((messages) => ({ ...messages, [sessionId]: message }));
+    this.sessionErrors.update(({ [sessionId]: _, ...messages }) => messages);
+  }
+
+  private announceNextSessionChange(previousSession: AdaptiveRunningPlanSession | null): void {
+    const nextSession = this.nextAdaptivePlanSession();
+
+    if (
+      previousSession === null ||
+      nextSession === null ||
+      this.sameSession(previousSession, nextSession)
+    ) {
+      this.adaptationAnnouncement.set('Esforço salvo. A próxima sessão foi mantida.');
+      this.previousNextSession.set(null);
+      return;
+    }
+
+    this.previousNextSession.set(previousSession);
+    this.adaptationAnnouncement.set(
+      `Próxima sessão adaptada para ${this.plannedSessionTypeLabel(nextSession.plannedSession)}, considerando ${this.adaptationTriggerLabel(nextSession.adaptationTrigger)}.`,
+    );
+  }
+
+  private sameSession(
+    left: AdaptiveRunningPlanSession,
+    right: AdaptiveRunningPlanSession,
+  ): boolean {
+    return (
+      left.id === right.id &&
+      left.plannedSession.type === right.plannedSession.type &&
+      left.plannedSession.distanceKilometers === right.plannedSession.distanceKilometers &&
+      left.plannedSession.scheduledDate === right.plannedSession.scheduledDate
+    );
   }
 
   private loadRunningGoalAssessment(coachingProfile: CoachingProfile): void {

@@ -544,6 +544,112 @@ dd {
   color: var(--color-ink);
 }
 
+.readiness-action {
+  justify-self: start;
+  border-color: var(--color-primary);
+  color: var(--color-primary-deep);
+}
+
+.adaptation-update:empty {
+  display: none;
+}
+
+.adaptation-update {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-plan-border);
+  border-radius: var(--radius-control);
+  background: var(--color-plan);
+}
+
+.adaptation-comparison {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+
+.adaptation-comparison p {
+  margin: 0;
+}
+
+.adaptation-comparison span,
+.session-controls label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: var(--color-label);
+  font-size: var(--font-size-label);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.session-controls {
+  display: grid;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-soft);
+}
+
+.session-controls form,
+.unlink-confirmation {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.session-controls form > div,
+.unlink-confirmation > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.session-controls select,
+.session-controls input {
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  padding: 0 12px;
+}
+
+.session-controls select {
+  width: min(100%, 420px);
+}
+
+.session-controls input {
+  width: 92px;
+}
+
+.session-controls form p,
+.unlink-confirmation p,
+.session-message {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.text-action {
+  justify-self: start;
+  min-height: 36px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-primary-deep);
+}
+
+.session-message {
+  margin-top: var(--space-md);
+  font-weight: 700;
+}
+
 .activity-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr)) auto;
@@ -697,6 +803,18 @@ dd {
   .timeline-session-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .session-controls form > div,
+  .unlink-confirmation > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .session-controls select,
+  .session-controls input,
+  .session-controls button {
+    width: 100%;
   }
 
   .adaptive-plan-summary > p {

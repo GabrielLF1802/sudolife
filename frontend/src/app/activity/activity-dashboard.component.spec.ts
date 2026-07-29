@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { ActivityDashboardComponent } from './activity-dashboard.component';
 import { ActivityList, ActivityService } from './activity.service';
-import { CoachingProfileService } from './coaching-profile.service';
+import { CoachingProfileService, CurrentAdaptiveRunningPlan } from './coaching-profile.service';
 import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
 import { TrainingProfileService } from './training-profile.service';
 
@@ -54,6 +54,10 @@ describe('ActivityDashboardComponent', () => {
         'generateConservativeRunningPlan',
         'generateAdaptiveRunningPlan',
         'getCurrentAdaptiveRunningPlan',
+        'adaptNextPlannedSession',
+        'correctPlannedSessionMatch',
+        'unlinkPlannedSessionMatch',
+        'submitPostSessionPerceivedEffort',
         'save',
       ],
     );
@@ -66,6 +70,12 @@ describe('ActivityDashboardComponent', () => {
     coachingProfileService.generateAdaptiveRunningPlan.and.returnValue(of(adaptiveRunningPlan()));
     coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(
       throwError(() => new Error('plan not found')),
+    );
+    coachingProfileService.adaptNextPlannedSession.and.returnValue(of(currentAdaptivePlan()));
+    coachingProfileService.correctPlannedSessionMatch.and.returnValue(of(currentAdaptivePlan()));
+    coachingProfileService.unlinkPlannedSessionMatch.and.returnValue(of(currentAdaptivePlan()));
+    coachingProfileService.submitPostSessionPerceivedEffort.and.returnValue(
+      of(currentAdaptivePlan()),
     );
     coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
 
@@ -429,6 +439,98 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('A próxima sessão pode ter sido ajustada');
   });
 
+  it('should_correct_the_session_match_with_a_descriptive_activity_option', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    const select = fixture.nativeElement.querySelector('#activity-match-11') as HTMLSelectElement;
+    select.value = '99';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    sessionButton(11, 'Salvar associação').click();
+    fixture.detectChanges();
+
+    expect(select.textContent).toContain('Morning Run');
+    expect(select.textContent).toContain('5,0 km');
+    expect(coachingProfileService.correctPlannedSessionMatch).toHaveBeenCalledWith({
+      plannedSessionId: 11,
+      activityId: 99,
+    });
+    expect(pageText()).toContain('Associação atualizada.');
+  });
+
+  it('should_require_inline_confirmation_before_unlinking_a_session', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    sessionButton(11, 'Remover associação').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.unlinkPlannedSessionMatch).not.toHaveBeenCalled();
+    expect(pageText()).toContain('não exclui a corrida da área Atividades');
+
+    sessionButton(11, 'Cancelar').click();
+    fixture.detectChanges();
+    expect(pageText()).not.toContain('Confirmar remoção');
+  });
+
+  it('should_unlink_only_after_confirmation_and_keep_the_activity_loaded', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    sessionButton(11, 'Remover associação').click();
+    fixture.detectChanges();
+    sessionButton(11, 'Confirmar remoção').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.unlinkPlannedSessionMatch).toHaveBeenCalledOnceWith(11);
+    expect(pageText()).toContain('A corrida continua em Atividades.');
+    expect(pageText()).toContain('Morning Run');
+  });
+
+  it('should_reject_invalid_perceived_effort_without_sending_it', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    typeSessionInput('#perceived-effort-11', '5.5');
+    sessionButton(11, 'Salvar esforço').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.submitPostSessionPerceivedEffort).not.toHaveBeenCalled();
+    expect(pageText()).toContain('Informe um número inteiro de 1 a 10.');
+  });
+
+  it('should_submit_effort_and_announce_the_authoritative_next_session_change', () => {
+    const adaptedPlan = currentAdaptivePlan();
+    adaptedPlan.plannedSessions[0].plannedSession.distanceKilometers = 1.5;
+    adaptedPlan.plannedSessions[0].adaptationTrigger = 'UNEXPECTEDLY_HIGH_EFFORT';
+    coachingProfileService.submitPostSessionPerceivedEffort.and.returnValue(of(adaptedPlan));
+    loadCurrentAdaptivePlanWithActivities();
+
+    typeSessionInput('#perceived-effort-11', '9');
+    sessionButton(11, 'Salvar esforço').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.submitPostSessionPerceivedEffort).toHaveBeenCalledWith(11, {
+      perceivedEffort: 9,
+    });
+    expect(pageText()).toContain('Próxima sessão adaptada');
+    expect(pageText()).toContain('Antes');
+    expect(pageText()).toContain('Agora');
+    expect(pageText()).toContain('esforço acima do esperado');
+  });
+
+  it('should_expose_only_low_readiness_as_a_manual_adaptation', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    const readinessButton = fixture.nativeElement.querySelector(
+      '.readiness-action',
+    ) as HTMLButtonElement;
+    readinessButton.click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.adaptNextPlannedSession).toHaveBeenCalledOnceWith({
+      trigger: 'LOW_READINESS',
+    });
+    expect(pageText()).not.toContain('Esforço acima do esperado');
+  });
+
   it('should_retry_plan_generation_without_losing_profile', () => {
     coachingProfileService.get.and.returnValue(
       of({ ...coachingProfile(true), readiness: 'LOW', injuryConcern: false }),
@@ -660,6 +762,35 @@ describe('ActivityDashboardComponent', () => {
     return fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim();
   }
 
+  function loadCurrentAdaptivePlanWithActivities(): void {
+    activityService.list.and.returnValue(of(activityListWithSummaries()));
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
+    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(of(currentAdaptivePlan()));
+    fixture.detectChanges();
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+  }
+
+  function sessionButton(sessionId: number, label: string): HTMLButtonElement {
+    const session = fixture.nativeElement
+      .querySelector(`#perceived-effort-${sessionId}`)
+      .closest('.timeline-session') as HTMLElement;
+
+    return [...session.querySelectorAll('button')].find(
+      (button) => button.textContent?.trim() === label,
+    ) as HTMLButtonElement;
+  }
+
+  function typeSessionInput(selector: string, value: string): void {
+    const input = fixture.nativeElement.querySelector(selector) as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
   function selectFilterValue(index: number, value: string): void {
     const select = fixture.nativeElement.querySelectorAll('.activity-filters select')[
       index
@@ -843,7 +974,7 @@ describe('ActivityDashboardComponent', () => {
     };
   }
 
-  function currentAdaptivePlan() {
+  function currentAdaptivePlan(): CurrentAdaptiveRunningPlan {
     const session = (
       id: number,
       status: 'PLANNED' | 'REPLACED' | 'COMPLETED' | 'MISSED',
