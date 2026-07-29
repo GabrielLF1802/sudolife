@@ -1,15 +1,18 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { catchError, forkJoin, finalize, map } from 'rxjs';
+import { catchError, forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
 import { ActivityList, ActivityService } from './activity.service';
 import {
   CoachingProfile,
   CoachingProfileService,
+  AdaptiveRunningPlanSession,
+  AdaptiveRunningPlanSessionStatus,
   AdaptiveRunningPlan,
   ConservativeRunningPlan,
+  CurrentAdaptiveRunningPlan,
   PlannedSession,
   RunningGoalAssessment,
   RunningHistorySnapshot,
@@ -51,6 +54,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly runningHistory = signal<RunningHistorySnapshot | null>(null);
   protected readonly conservativeRunningPlan = signal<ConservativeRunningPlan | null>(null);
   protected readonly adaptiveRunningPlan = signal<AdaptiveRunningPlan | null>(null);
+  protected readonly currentAdaptiveRunningPlan = signal<CurrentAdaptiveRunningPlan | null>(null);
   protected readonly runningGoalAssessment = signal<RunningGoalAssessment | null>(null);
   protected readonly loading = signal(true);
   protected readonly pageLoading = signal(false);
@@ -97,13 +101,18 @@ export class ActivityDashboardComponent implements OnInit {
       [],
   );
   protected readonly nextAdaptivePlanSession = computed(() => {
-    const sessions = this.adaptiveRunningPlan()?.plannedSessions ?? [];
+    const sessions = this.currentAdaptiveRunningPlan()?.plannedSessions ?? [];
 
     return (
-      [...sessions].sort((left, right) =>
-        left.scheduledDate.localeCompare(right.scheduledDate),
-      )[0] ?? null
+      sessions
+        .filter((session) => session.status === 'PLANNED')
+        .sort((left, right) => this.compareAdaptiveSessions(left, right))[0] ?? null
     );
+  });
+  protected readonly adaptivePlanHistory = computed(() => {
+    const sessions = this.currentAdaptiveRunningPlan()?.plannedSessions ?? [];
+
+    return [...sessions].sort((left, right) => this.compareAdaptiveSessions(left, right));
   });
   protected readonly activityTypes = computed(() => {
     const activityList = this.activityList();
@@ -436,6 +445,7 @@ export class ActivityDashboardComponent implements OnInit {
           );
           this.conservativeRunningPlan.set(null);
           this.adaptiveRunningPlan.set(null);
+          this.currentAdaptiveRunningPlan.set(null);
           this.runningGoalAssessment.set(null);
 
           const runningHistory = this.runningHistory();
@@ -489,6 +499,29 @@ export class ActivityDashboardComponent implements OnInit {
     const [year, month, day] = session.scheduledDate.split('-');
 
     return `${day}/${month}/${year}`;
+  }
+
+  protected adaptiveSessionStatusLabel(status: AdaptiveRunningPlanSessionStatus): string {
+    const labels: Record<AdaptiveRunningPlanSessionStatus, string> = {
+      PLANNED: 'Planejada',
+      COMPLETED: 'Concluída',
+      MISSED: 'Perdida',
+      REPLACED: 'Substituída',
+    };
+
+    return labels[status];
+  }
+
+  protected replacementFor(session: AdaptiveRunningPlanSession): AdaptiveRunningPlanSession | null {
+    return (
+      this.currentAdaptiveRunningPlan()?.plannedSessions.find(
+        (candidate) => candidate.originalPlannedSessionId === session.id,
+      ) ?? null
+    );
+  }
+
+  protected adaptiveSessionAriaLabel(session: AdaptiveRunningPlanSession): string {
+    return `${this.adaptiveSessionStatusLabel(session.status)}: ${this.plannedSessionTypeLabel(session.plannedSession)}, ${this.plannedSessionDateLabel(session.plannedSession)}`;
   }
 
   protected activityTypeLabel(activityType: string): string {
@@ -643,29 +676,46 @@ export class ActivityDashboardComponent implements OnInit {
     this.planErrorMessage.set('');
     this.coachingProfileService
       .getCurrentAdaptiveRunningPlan()
-      .pipe(
-        map((plan): AdaptiveRunningPlan => ({
-          safeMilestone: plan.safeMilestone,
-          explanation: plan.explanation,
-          adjustedBySafetyValidation: false,
-          plannedSessions: plan.plannedSessions
-            .filter((session) => session.status === 'PLANNED')
-            .map((session) => ({
-              ...session.plannedSession,
-              adapted: session.originalPlannedSessionId !== null,
-              adaptationTrigger: session.adaptationTrigger,
-            })),
-        })),
-      )
       .pipe(catchError(() => this.coachingProfileService.generateAdaptiveRunningPlan()))
       .pipe(finalize(() => this.planLoading.set(false)))
       .subscribe({
-        next: (plan) => this.adaptiveRunningPlan.set(plan),
+        next: (plan) => {
+          if ('id' in plan) {
+            this.currentAdaptiveRunningPlan.set(plan);
+            this.adaptiveRunningPlan.set(null);
+            return;
+          }
+
+          this.adaptiveRunningPlan.set(plan);
+        },
         error: () =>
           this.planErrorMessage.set(
             'Seu perfil foi preservado, mas não foi possível atualizar o plano.',
           ),
       });
+  }
+
+  private compareAdaptiveSessions(
+    left: AdaptiveRunningPlanSession,
+    right: AdaptiveRunningPlanSession,
+  ): number {
+    const dateComparison = left.plannedSession.scheduledDate.localeCompare(
+      right.plannedSession.scheduledDate,
+    );
+
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    if (right.originalPlannedSessionId === left.id) {
+      return -1;
+    }
+
+    if (left.originalPlannedSessionId === right.id) {
+      return 1;
+    }
+
+    return left.id - right.id;
   }
 
   protected adaptationTriggerLabel(

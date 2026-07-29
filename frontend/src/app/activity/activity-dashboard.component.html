@@ -417,6 +417,130 @@
             </ol>
           </section>
         }
+      } @else if (currentAdaptiveRunningPlan(); as plan) {
+        <section class="adaptive-plan" aria-label="Plano de corrida adaptativo atual">
+          <header class="adaptive-plan-summary">
+            <div>
+              <span>Plano adaptativo aceito</span>
+              <strong>
+                Marco seguro de
+                {{ plan.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km
+              </strong>
+              <p>{{ plan.explanation }}</p>
+            </div>
+            <p>Em andamento desde {{ plan.acceptedAt | date: 'dd/MM/yyyy' }}</p>
+          </header>
+
+          <section class="next-session" aria-labelledby="next-session-title">
+            <div class="next-session-heading">
+              <span>Seu próximo passo</span>
+              <h3 id="next-session-title">Próxima sessão</h3>
+            </div>
+            @if (nextAdaptivePlanSession(); as nextSession) {
+              <div class="next-session-content">
+                <div>
+                  <strong>{{ plannedSessionTypeLabel(nextSession.plannedSession) }}</strong>
+                  <p>
+                    {{ plannedSessionDateLabel(nextSession.plannedSession) }} ·
+                    {{ nextSession.plannedSession.distanceKilometers | number: '1.0-1' }} km
+                  </p>
+                </div>
+                <p class="session-target">
+                  {{ plannedSessionTargetLabel(nextSession.plannedSession) }}
+                </p>
+              </div>
+              @if (nextSession.adaptationTrigger) {
+                <p class="adaptation-explanation">
+                  Esta sessão considera {{ adaptationTriggerLabel(nextSession.adaptationTrigger) }}.
+                </p>
+              }
+            } @else {
+              <p class="next-session-empty">
+                Não há uma próxima sessão planejada neste momento. Seu histórico continua disponível
+                abaixo.
+              </p>
+            }
+          </section>
+
+          <section class="plan-history" aria-labelledby="plan-history-title">
+            <header>
+              <h3 id="plan-history-title">Histórico do plano</h3>
+              <p>Acompanhe como cada sessão evoluiu ao longo do plano atual.</p>
+            </header>
+
+            <ol class="plan-timeline">
+              @for (session of adaptivePlanHistory(); track session.id) {
+                <li
+                  class="timeline-session"
+                  [class.status-planned]="session.status === 'PLANNED'"
+                  [class.status-completed]="session.status === 'COMPLETED'"
+                  [class.status-missed]="session.status === 'MISSED'"
+                  [class.status-replaced]="session.status === 'REPLACED'"
+                  tabindex="0"
+                  [attr.aria-label]="adaptiveSessionAriaLabel(session)"
+                >
+                  <div class="timeline-marker" aria-hidden="true">
+                    <span>{{ adaptiveSessionStatusLabel(session.status).charAt(0) }}</span>
+                  </div>
+                  <article>
+                    <header class="timeline-session-heading">
+                      <div>
+                        <span class="session-date">
+                          {{ plannedSessionDateLabel(session.plannedSession) }} · Semana
+                          {{ session.plannedSession.weekNumber }}
+                        </span>
+                        <strong>{{ plannedSessionTypeLabel(session.plannedSession) }}</strong>
+                      </div>
+                      <span class="status-label">
+                        {{ adaptiveSessionStatusLabel(session.status) }}
+                      </span>
+                    </header>
+
+                    <p>
+                      {{ session.plannedSession.distanceKilometers | number: '1.0-1' }} km ·
+                      {{ plannedSessionTargetLabel(session.plannedSession) }}
+                    </p>
+
+                    @if (session.status === 'REPLACED') {
+                      <p class="session-context">
+                        Esta sessão foi substituída para considerar
+                        {{ adaptationTriggerLabel(session.adaptationTrigger) }}.
+                      </p>
+                      @if (replacementFor(session); as replacement) {
+                        <p class="replacement-link">
+                          Substituída por
+                          <strong>{{ plannedSessionTypeLabel(replacement.plannedSession) }}</strong>
+                          em {{ plannedSessionDateLabel(replacement.plannedSession) }}.
+                        </p>
+                      }
+                    }
+
+                    @if (session.status === 'COMPLETED') {
+                      @if (session.matchedActivityId) {
+                        <p class="session-context">
+                          Corrida associada · atividade {{ session.matchedActivityId }}
+                        </p>
+                      }
+                      @if (session.postSessionPerceivedEffort) {
+                        <p class="session-context">
+                          Esforço percebido registrado:
+                          <strong>{{ session.postSessionPerceivedEffort }} de 10</strong>
+                        </p>
+                      }
+                    }
+
+                    @if (session.status === 'MISSED') {
+                      <p class="session-context">
+                        Esta sessão não foi realizada. A próxima sessão pode ter sido ajustada para
+                        preservar uma progressão segura.
+                      </p>
+                    }
+                  </article>
+                </li>
+              }
+            </ol>
+          </section>
+        </section>
       } @else if (adaptiveRunningPlan(); as plan) {
         <section class="conservative-plan-panel" aria-label="Plano de corrida adaptativo aceito">
           <div class="conservative-plan-heading">

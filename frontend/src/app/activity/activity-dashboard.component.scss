@@ -315,6 +315,235 @@ dd {
   border-bottom: 0;
 }
 
+.adaptive-plan {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.adaptive-plan-summary {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.adaptive-plan-summary > div,
+.next-session-heading,
+.next-session-content > div,
+.plan-history > header,
+.timeline-session article,
+.timeline-session-heading > div {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.adaptive-plan-summary span,
+.next-session-heading span,
+.session-date {
+  color: var(--color-label);
+  font-size: var(--font-size-label);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.adaptive-plan-summary strong {
+  color: var(--color-ink);
+  font-size: var(--font-size-title);
+}
+
+.adaptive-plan-summary p,
+.next-session p,
+.plan-history p,
+.timeline-session p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.adaptive-plan-summary > p {
+  white-space: nowrap;
+}
+
+.next-session {
+  display: grid;
+  gap: var(--space-lg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: var(--color-plan);
+  padding: 22px;
+}
+
+.next-session h3,
+.plan-history h3 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.35rem;
+  text-wrap: balance;
+}
+
+.next-session-content {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.next-session-content strong {
+  color: var(--color-ink);
+  font-size: 1.25rem;
+}
+
+.next-session .session-target {
+  color: var(--color-primary-deep);
+  font-weight: 800;
+}
+
+.adaptation-explanation,
+.next-session-empty {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-plan-border);
+}
+
+.plan-history {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.plan-timeline {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-session {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.timeline-session:focus-visible {
+  border-radius: var(--radius-control);
+  outline: 0;
+  box-shadow: var(--focus-ring);
+}
+
+.timeline-marker {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.timeline-marker::after {
+  position: absolute;
+  top: 30px;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+  content: '';
+}
+
+.timeline-session:last-child .timeline-marker::after {
+  display: none;
+}
+
+.timeline-marker span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-label);
+  font-weight: 800;
+}
+
+.timeline-session article {
+  padding: 2px 0 var(--space-xl);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.timeline-session:last-child article {
+  border-bottom: 0;
+}
+
+.timeline-session-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.timeline-session-heading strong {
+  color: var(--color-ink);
+  font-size: var(--font-size-title);
+}
+
+.status-label {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-control-border);
+  border-radius: 999px;
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+  font-size: var(--font-size-label);
+  font-weight: 800;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.status-completed .timeline-marker span {
+  border-radius: 50%;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.status-completed .status-label {
+  border-color: var(--color-primary);
+  color: var(--color-primary-deep);
+}
+
+.status-missed .timeline-marker span {
+  border-radius: 2px;
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.status-missed .status-label {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.status-replaced .timeline-marker span {
+  border-radius: 2px 10px 2px 10px;
+  border-color: var(--color-label);
+  background: var(--color-surface-soft);
+}
+
+.status-replaced .timeline-session-heading strong {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.session-context,
+.replacement-link {
+  max-width: 70ch;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-soft);
+}
+
+.replacement-link strong,
+.session-context strong {
+  color: var(--color-ink);
+}
+
 .activity-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr)) auto;
@@ -461,6 +690,21 @@ dd {
 
   .planned-session-list {
     grid-template-columns: 1fr;
+  }
+
+  .adaptive-plan-summary,
+  .next-session-content,
+  .timeline-session-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .adaptive-plan-summary > p {
+    white-space: normal;
+  }
+
+  .status-label {
+    align-self: flex-start;
   }
 
   dl {

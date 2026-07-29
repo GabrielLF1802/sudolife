@@ -371,6 +371,64 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('O plano foi validado pelo Sudolife');
   });
 
+  it('should_render_next_session_before_history_and_translate_all_session_states', () => {
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
+    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(of(currentAdaptivePlan()));
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+
+    const planText = dashboardView('.plan-view').textContent;
+    expect(planText.indexOf('Próxima sessão')).toBeLessThan(planText.indexOf('Histórico do plano'));
+    expect(planText).toContain('Planejada');
+    expect(planText).toContain('Concluída');
+    expect(planText).toContain('Perdida');
+    expect(planText).toContain('Substituída');
+  });
+
+  it('should_order_adaptive_history_by_date_and_replacement_chain_deterministically', () => {
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
+    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(of(currentAdaptivePlan()));
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+
+    const sessions = Array.from(
+      fixture.nativeElement.querySelectorAll('.timeline-session'),
+    ) as HTMLElement[];
+    expect(sessions.map((session) => session.getAttribute('aria-label'))).toEqual([
+      'Concluída: Corrida leve, 16/07/2026',
+      'Perdida: Corrida longa, 18/07/2026',
+      'Substituída: Corrida longa, 20/07/2026',
+      'Planejada: Sessão de recuperação, 20/07/2026',
+    ]);
+  });
+
+  it('should_explain_replacement_completion_and_missed_session_context', () => {
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
+    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(of(currentAdaptivePlan()));
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('Substituída por Sessão de recuperação em 20/07/2026');
+    expect(pageText()).toContain('Corrida associada · atividade 501');
+    expect(pageText()).toContain('Esforço percebido registrado: 7 de 10');
+    expect(pageText()).toContain('A próxima sessão pode ter sido ajustada');
+  });
+
   it('should_retry_plan_generation_without_losing_profile', () => {
     coachingProfileService.get.and.returnValue(
       of({ ...coachingProfile(true), readiness: 'LOW', injuryConcern: false }),
@@ -782,6 +840,54 @@ describe('ActivityDashboardComponent', () => {
       plannedSessions: conservativeRunningPlan().plannedSessions,
       explanation: 'O plano foi validado pelo Sudolife antes de ser exibido.',
       adjustedBySafetyValidation: true,
+    };
+  }
+
+  function currentAdaptivePlan() {
+    const session = (
+      id: number,
+      status: 'PLANNED' | 'REPLACED' | 'COMPLETED' | 'MISSED',
+      scheduledDate: string,
+      type: 'EASY_RUN' | 'LONG_RUN' | 'RECOVERY',
+      originalPlannedSessionId: number | null = null,
+    ) => ({
+      id,
+      originalPlannedSessionId,
+      status,
+      adaptationTrigger: status === 'REPLACED' ? ('LOW_READINESS' as const) : null,
+      matchedActivityId: status === 'COMPLETED' ? 501 : null,
+      postSessionPerceivedEffort: status === 'COMPLETED' ? 7 : null,
+      plannedSession: {
+        weekNumber: 1,
+        sessionNumber: id,
+        type,
+        distanceKilometers: type === 'RECOVERY' ? 2 : 5,
+        scheduledDate,
+        target: {
+          type: 'PERCEIVED_EFFORT' as const,
+          minimumHeartRate: null,
+          maximumHeartRate: null,
+          minimumPerceivedEffort: 2,
+          maximumPerceivedEffort: 4,
+        },
+      },
+    });
+
+    return {
+      id: 41,
+      safeMilestone: {
+        targetDistanceKilometers: 7.3,
+        targetPaceSecondsPerKilometer: 332,
+        targetDate: '2026-08-11',
+      },
+      explanation: 'O plano acompanha sua evolução recente.',
+      acceptedAt: '2026-07-15T10:00:00Z',
+      plannedSessions: [
+        session(14, 'PLANNED', '2026-07-20', 'RECOVERY', 13),
+        session(12, 'MISSED', '2026-07-18', 'LONG_RUN'),
+        session(13, 'REPLACED', '2026-07-20', 'LONG_RUN'),
+        session(11, 'COMPLETED', '2026-07-16', 'EASY_RUN'),
+      ],
     };
   }
 
