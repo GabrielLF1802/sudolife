@@ -1,9 +1,8 @@
 <section class="dashboard" aria-labelledby="dashboard-title">
   <header class="dashboard-header">
     <div>
-      <p class="eyebrow">Seu treino</p>
       <h1 id="dashboard-title">Hoje</h1>
-      <p class="summary">Seu treino, sua semana e o próximo passo.</p>
+      <p class="summary">O treino que move sua semana.</p>
     </div>
 
     <button type="button" (click)="logout()">Sair</button>
@@ -65,7 +64,7 @@
       <section class="today-priority" aria-labelledby="today-priority-title">
         <div class="today-priority-content">
           @if (todayAction() === 'VIEW_NEXT_SESSION' && nextTrainingSession(); as session) {
-            <span>Seu treino de hoje</span>
+            <span>Treino de hoje</span>
             <h2 id="today-priority-title">{{ plannedSessionTypeLabel(session) }}</h2>
             <dl class="today-prescription">
               <div>
@@ -73,7 +72,7 @@
                 <dd>{{ plannedSessionDateLabel(session) }}</dd>
               </div>
               @if (session.type !== 'RECOVERY') {
-                <div>
+                <div class="prescription-distance">
                   <dt>Distância</dt>
                   <dd>{{ session.distanceKilometers | number: '1.0-1' }} km</dd>
                 </div>

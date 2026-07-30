@@ -1,12 +1,12 @@
 <section class="weekly-rhythm" aria-labelledby="weekly-rhythm-title">
   <div class="weekly-rhythm-heading">
     <div>
-      <p class="weekly-rhythm-label">Ritmo da semana</p>
+      <p class="weekly-rhythm-label">Sua semana em movimento</p>
       <h2 id="weekly-rhythm-title">{{ weekRangeLabel() }}</h2>
     </div>
 
     <p class="readiness-context">
-      <span>Prontidão</span>
+      <span>Como você chega</span>
       <strong>{{ readinessLabel(coachingProfile().readiness) }}</strong>
     </p>
   </div>
@@ -44,7 +44,7 @@
   @if (goalAssessment(); as assessment) {
     <section class="goal-assessment" aria-label="Meta de corrida e marco atual">
       <article>
-        <span>Meta de longo prazo</span>
+        <span>Destino</span>
         <strong>{{ assessment.longTermGoal.targetDistanceKilometers | number: '1.0-1' }} km</strong>
         <p>
           {{ paceLabel(assessment.longTermGoal.targetPaceSecondsPerKilometer) }} ·
@@ -52,7 +52,7 @@
         </p>
       </article>
       <article class="safe-milestone">
-        <span>Distância desta etapa</span>
+        <span>Foco agora</span>
         <strong
           >{{ assessment.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km</strong
         >

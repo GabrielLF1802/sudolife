@@ -131,7 +131,7 @@ describe('ActivityDashboardComponent', () => {
 
     clickAndRefresh(recoveryButton('Tentar novamente'));
 
-    expect(pageText()).toContain('Ritmo da semana');
+    expect(pageText()).toContain('Sua semana em movimento');
     expect(pageText()).not.toContain('Seus dados não foram carregados');
   });
 
@@ -502,9 +502,9 @@ describe('ActivityDashboardComponent', () => {
 
     fixture.detectChanges();
 
-    expect(pageText()).toContain('Meta de longo prazo');
+    expect(pageText()).toContain('Destino');
     expect(pageText()).toContain('42.2 km');
-    expect(pageText()).toContain('Distância desta etapa');
+    expect(pageText()).toContain('Foco agora');
     expect(pageText()).toContain('7.3 km');
     expect(pageText()).toContain('Sua meta continua a mesma');
   });
@@ -737,7 +737,7 @@ describe('ActivityDashboardComponent', () => {
     expect(weekDays.length).toBe(7);
     expect(weekDays[0].textContent).toContain('seg');
     expect(weekDays[6].textContent).toContain('dom');
-    expect(pageText()).toContain('Ritmo da semana');
+    expect(pageText()).toContain('Sua semana em movimento');
     expect(pageText()).toContain('Corrida de hoje');
     expect(pageText()).toContain('16/07/2026');
     expect(pageText()).toContain('Ver detalhes');

@@ -22,13 +22,6 @@
   margin-bottom: 0;
 }
 
-.eyebrow {
-  margin: 0 0 var(--space-sm);
-  color: var(--color-primary-deep);
-  font-size: var(--font-size-label);
-  font-weight: 800;
-}
-
 h1 {
   margin: 0;
   color: var(--color-ink);
@@ -45,6 +38,11 @@ h1 {
   color: var(--color-muted);
   line-height: 1.55;
   text-wrap: pretty;
+}
+
+.summary {
+  margin-top: var(--space-sm);
+  font-weight: 700;
 }
 
 button {
@@ -87,9 +85,11 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-xl);
-  padding: var(--space-lg);
+  min-height: 190px;
+  padding: var(--space-xl);
   border-color: var(--color-primary);
-  background: var(--color-plan);
+  background: var(--color-primary);
+  color: var(--color-surface);
 }
 
 .today-priority-content,
@@ -108,10 +108,23 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.today-priority span,
+.today-priority dt {
+  color: var(--color-surface);
+}
+
 .today-priority h2,
 .injury-clear-panel h2 {
   margin: 0;
   font-size: 1.35rem;
+}
+
+.today-priority h2 {
+  color: var(--color-surface);
+  font-size: var(--font-size-headline);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-wrap: balance;
 }
 
 .today-priority p,
@@ -121,6 +134,30 @@ button:disabled {
   margin: 0;
   color: var(--color-muted);
   line-height: 1.5;
+}
+
+.today-priority p {
+  color: var(--color-surface);
+}
+
+.today-priority > button {
+  flex: 0 0 auto;
+  border-color: var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-primary-deep);
+}
+
+.today-priority > button:hover:not(:disabled) {
+  border-color: var(--color-surface);
+  background: var(--color-plan);
+  color: var(--color-primary-deep);
+}
+
+.today-priority > .strava-action,
+.today-priority > .strava-action:hover:not(:disabled) {
+  border-color: var(--color-integration);
+  background: var(--color-integration);
+  color: var(--color-surface);
 }
 
 .today-prescription {
@@ -140,7 +177,13 @@ button:disabled {
 }
 
 .today-prescription dd {
-  color: var(--color-ink);
+  color: var(--color-surface);
+  font-weight: 800;
+}
+
+.today-prescription .prescription-distance dd {
+  font-size: 1.35rem;
+  line-height: 1;
 }
 
 .injury-clear-panel,
@@ -1017,6 +1060,11 @@ dd {
   .pagination {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .today-priority {
+    min-height: 0;
+    padding: var(--space-lg);
   }
 
   .today-priority button,
