@@ -150,12 +150,13 @@ describe('ActivityDashboardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Sincronizar agora');
   });
 
-  it('should_open_dashboard_on_today_and_separate_plan_and_activities', () => {
+  it('should_open_dashboard_on_today_and_keep_secondary_views_hidden', () => {
     fixture.detectChanges();
 
     expect(dashboardView('.today-view').hidden).toBeFalse();
     expect(dashboardView('.plan-view').hidden).toBeTrue();
     expect(dashboardView('.activities-view').hidden).toBeTrue();
+    expect(dashboardView('.settings-view').hidden).toBeTrue();
   });
 
   it('should_switch_to_plan_from_dashboard_navigation', () => {
@@ -169,13 +170,27 @@ describe('ActivityDashboardComponent', () => {
     expect(dashboardNavigationButton('Plano').getAttribute('aria-current')).toBe('page');
   });
 
-  it('should_keep_recurring_settings_collapsed_on_today', () => {
+  it('should_keep_durable_configuration_out_of_today', () => {
     fixture.detectChanges();
 
-    const settings = fixture.nativeElement.querySelectorAll('.settings-disclosure');
+    const today = dashboardView('.today-view');
 
-    expect(settings.length).toBeGreaterThan(0);
-    expect([...settings].every((setting: HTMLDetailsElement) => !setting.open)).toBeTrue();
+    expect(today.querySelector('.settings-disclosure')).toBeNull();
+    expect(today.querySelector('.coaching-profile-panel')).toBeNull();
+    expect(today.querySelector('.strava-panel')).toBeNull();
+  });
+
+  it('should_group_durable_configuration_under_adjustments', () => {
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    const settings = dashboardView('.settings-view');
+    expect(settings.hidden).toBeFalse();
+    expect(settings.querySelector('.strava-panel')).not.toBeNull();
+    expect(settings.querySelector('.coaching-profile-panel')).not.toBeNull();
+    expect(dashboardNavigationButton('Ajustes').getAttribute('aria-current')).toBe('page');
   });
 
   it('should_lead_today_with_the_next_decision_before_weekly_context', () => {

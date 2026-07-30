@@ -3,11 +3,7 @@
     <div>
       <p class="eyebrow">Seu treino</p>
       <h1 id="dashboard-title">Hoje</h1>
-      @if (currentUser(); as user) {
-        <p class="summary">{{ user.name }} - {{ user.email }}</p>
-      } @else {
-        <p class="summary">Sua semana, seu plano e o próximo passo do treino.</p>
-      }
+      <p class="summary">Seu treino, sua semana e o próximo passo.</p>
     </div>
 
     <button type="button" (click)="logout()">Sair</button>
@@ -54,6 +50,14 @@
         (click)="selectView('ACTIVITIES')"
       >
         Atividades
+      </button>
+      <button
+        type="button"
+        [class.active]="activeView() === 'SETTINGS'"
+        [attr.aria-current]="activeView() === 'SETTINGS' ? 'page' : null"
+        (click)="selectView('SETTINGS')"
+      >
+        Ajustes
       </button>
     </nav>
 
@@ -146,6 +150,13 @@
         </section>
       }
       <p class="sr-announcement" aria-live="polite">{{ clearInjuryAnnouncement() }}</p>
+    </div>
+
+    <div class="dashboard-view settings-view" [hidden]="activeView() !== 'SETTINGS'">
+      <header class="view-heading">
+        <h2>Ajustes</h2>
+        <p>Atualize apenas quando sua meta, disponibilidade ou conexão mudar.</p>
+      </header>
 
       @if (stravaLinkStatus(); as stravaStatus) {
         <details class="strava-panel settings-disclosure">
@@ -866,8 +877,8 @@
       } @else {
         <section class="empty-panel" aria-label="Plano indisponível">
           <strong>Nenhum plano ativo</strong>
-          <p>Complete seu perfil de treino em Hoje para receber uma progressão adequada.</p>
-          <button type="button" (click)="selectView('TODAY')">Revisar perfil</button>
+          <p>Complete seus ajustes de treino para receber uma progressão adequada.</p>
+          <button type="button" (click)="selectView('SETTINGS')">Revisar ajustes</button>
         </section>
       }
     </div>

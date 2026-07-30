@@ -57,21 +57,12 @@ button {
   font: inherit;
   font-weight: 800;
   padding: 0 18px;
-  transition:
-    background var(--transition-state),
-    border-color var(--transition-state),
-    color var(--transition-state),
-    transform var(--transition-state);
 }
 
 button:hover:not(:disabled) {
   border-color: var(--color-primary);
   background: var(--color-surface-soft);
   color: var(--color-primary-deep);
-}
-
-button:active:not(:disabled) {
-  transform: translateY(1px);
 }
 
 button:disabled {
@@ -83,11 +74,9 @@ button:disabled {
 .sync-result,
 .training-profile-panel,
 .today-priority,
-.injury-clear-panel,
 .activity-filters,
 .activity-list li,
-.empty-panel,
-.callback-result {
+.empty-panel {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-surface);
@@ -614,7 +603,6 @@ dd {
 }
 
 .status-completed .timeline-marker span {
-  border-radius: 50%;
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-surface);
@@ -942,7 +930,6 @@ dd {
 
 @media (max-width: 680px) {
   .dashboard-header,
-  .strava-panel,
   .strava-actions,
   .today-priority,
   .pagination {

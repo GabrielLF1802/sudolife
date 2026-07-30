@@ -35,7 +35,7 @@ import { TrainingProfile, TrainingProfileService } from './training-profile.serv
 import { WeeklyRhythmComponent } from './weekly-rhythm.component';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
-type DashboardView = 'TODAY' | 'PLAN' | 'ACTIVITIES';
+type DashboardView = 'TODAY' | 'PLAN' | 'ACTIVITIES' | 'SETTINGS';
 
 export type TodayAction =
   | 'CONNECT_STRAVA'
@@ -642,7 +642,7 @@ export class ActivityDashboardComponent implements OnInit {
     }
     this.selectView(
       action === 'COMPLETE_PROFILE'
-        ? 'TODAY'
+        ? 'SETTINGS'
         : action === 'VIEW_NEXT_SESSION' || action === 'REVIEW_MATCH' || action === 'REPORT_EFFORT'
           ? 'PLAN'
           : 'ACTIVITIES',
