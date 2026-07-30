@@ -148,6 +148,8 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Sincronizar agora');
+    expect(fixture.nativeElement.textContent).toContain('Última sincronização concluída em');
+    expect(fixture.nativeElement.textContent).toContain('11/05/2026');
   });
 
   it('should_open_dashboard_on_today_and_keep_secondary_views_hidden', () => {
@@ -502,9 +504,9 @@ describe('ActivityDashboardComponent', () => {
 
     expect(pageText()).toContain('Meta de longo prazo');
     expect(pageText()).toContain('42.2 km');
-    expect(pageText()).toContain('Marco seguro atual');
+    expect(pageText()).toContain('Distância desta etapa');
     expect(pageText()).toContain('7.3 km');
-    expect(pageText()).toContain('Sua meta foi preservada');
+    expect(pageText()).toContain('Sua meta continua a mesma');
   });
 
   it('should_display_recovery_sessions_without_medical_diagnosis_language_for_injury_concern', () => {
@@ -550,7 +552,7 @@ describe('ActivityDashboardComponent', () => {
     fixture.detectChanges();
 
     expect(coachingProfileService.generateAdaptiveRunningPlan).toHaveBeenCalled();
-    expect(pageText()).toContain('Plano adaptativo aceito');
+    expect(pageText()).toContain('Seu plano está pronto');
     expect(pageText()).toContain('O plano foi validado pelo Sudolife');
   });
 
@@ -619,7 +621,7 @@ describe('ActivityDashboardComponent', () => {
     select.value = '99';
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    sessionButton(11, 'Salvar associação').click();
+    sessionButton(11, 'Salvar corrida').click();
     fixture.detectChanges();
 
     expect(select.textContent).toContain('Morning Run');
@@ -628,33 +630,34 @@ describe('ActivityDashboardComponent', () => {
       plannedSessionId: 11,
       activityId: 99,
     });
-    expect(pageText()).toContain('Associação atualizada.');
+    expect(pageText()).toContain('Corrida da sessão atualizada.');
   });
 
   it('should_require_inline_confirmation_before_unlinking_a_session', () => {
     loadCurrentAdaptivePlanWithActivities();
 
-    sessionButton(11, 'Remover associação').click();
+    sessionButton(11, 'Retirar corrida da sessão').click();
     fixture.detectChanges();
 
     expect(coachingProfileService.unlinkPlannedSessionMatch).not.toHaveBeenCalled();
-    expect(pageText()).toContain('não exclui a corrida da área Atividades');
+    expect(pageText()).toContain('não a exclui da área Atividades');
 
     sessionButton(11, 'Cancelar').click();
     fixture.detectChanges();
-    expect(pageText()).not.toContain('Confirmar remoção');
+
+    expect(fixture.nativeElement.querySelector('.unlink-confirmation')).toBeNull();
   });
 
   it('should_unlink_only_after_confirmation_and_keep_the_activity_loaded', () => {
     loadCurrentAdaptivePlanWithActivities();
 
-    sessionButton(11, 'Remover associação').click();
+    sessionButton(11, 'Retirar corrida da sessão').click();
     fixture.detectChanges();
-    sessionButton(11, 'Confirmar remoção').click();
+    sessionButton(11, 'Retirar corrida').click();
     fixture.detectChanges();
 
     expect(coachingProfileService.unlinkPlannedSessionMatch).toHaveBeenCalledOnceWith(11);
-    expect(pageText()).toContain('A corrida continua em Atividades.');
+    expect(pageText()).toContain('Ela continua disponível em Atividades.');
     expect(pageText()).toContain('Morning Run');
   });
 
@@ -762,6 +765,30 @@ describe('ActivityDashboardComponent', () => {
       preferredRunningDays: ['TUESDAY', 'SATURDAY'],
     });
     expect(pageText()).toContain('Meta e prontidão salvas.');
+  });
+
+  it('should_identify_the_invalid_goal_distance_before_saving', () => {
+    fixture.detectChanges();
+
+    typeCoachingInput('input[aria-label="Distância alvo em quilômetros"]', '0');
+    coachingProfileButton().click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.save).not.toHaveBeenCalled();
+    expect(pageText()).toContain('Distância da meta deve ser maior que zero. Exemplo: 5 km.');
+  });
+
+  it('should_identify_the_invalid_goal_pace_before_saving', () => {
+    fixture.detectChanges();
+
+    typeCoachingInput('input[aria-label="Ritmo alvo por quilometro"]', 'ritmo');
+    coachingProfileButton().click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.save).not.toHaveBeenCalled();
+    expect(pageText()).toContain(
+      'Ritmo da meta deve usar minutos e segundos por quilômetro. Exemplo: 5:30.',
+    );
   });
 
   it('should_show_coaching_profiles_validation_error_when_save_fails', () => {

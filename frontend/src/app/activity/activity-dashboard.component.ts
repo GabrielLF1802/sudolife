@@ -621,7 +621,7 @@ export class ActivityDashboardComponent implements OnInit {
       COMPLETE_PROFILE: 'Complete seu perfil e objetivo',
       CLEAR_INJURY_CONCERN: 'Retome quando estiver pronto',
       SYNC_ACTIVITY: 'Sincronize sua corrida mais recente',
-      REVIEW_MATCH: 'Revise uma associação pendente',
+      REVIEW_MATCH: 'Confirme qual corrida concluiu sua sessão',
       REPORT_EFFORT: 'Informe como foi sua sessão',
       VIEW_NEXT_SESSION: 'Consulte sua próxima sessão',
     }[action];
@@ -689,11 +689,10 @@ export class ActivityDashboardComponent implements OnInit {
       return;
     }
 
-    if (!this.hasValidCoachingProfileInput()) {
+    const coachingProfileValidationMessage = this.coachingProfileValidationMessage();
+    if (coachingProfileValidationMessage !== null) {
       this.coachingProfileSuccessMessage.set('');
-      this.coachingProfileErrorMessage.set(
-        'Revise a distância e o ritmo. Use uma distância positiva e um ritmo no formato min:seg.',
-      );
+      this.coachingProfileErrorMessage.set(coachingProfileValidationMessage);
       return;
     }
 
@@ -818,7 +817,7 @@ export class ActivityDashboardComponent implements OnInit {
     const activityId = Number(this.selectedMatchActivityIds()[sessionId]);
 
     if (!Number.isInteger(activityId)) {
-      this.setSessionError(sessionId, 'Escolha uma corrida importada para corrigir a associação.');
+      this.setSessionError(sessionId, 'Escolha a corrida que corresponde a esta sessão.');
       return;
     }
 
@@ -829,12 +828,12 @@ export class ActivityDashboardComponent implements OnInit {
       .subscribe({
         next: (plan) => {
           this.currentAdaptiveRunningPlan.set(plan);
-          this.setSessionSuccess(sessionId, 'Associação atualizada.');
+          this.setSessionSuccess(sessionId, 'Corrida da sessão atualizada.');
         },
         error: () =>
           this.setSessionError(
             sessionId,
-            'Não foi possível corrigir a associação. O plano atual foi preservado.',
+            'Não foi possível trocar a corrida desta sessão. O plano atual foi preservado.',
           ),
       });
   }
@@ -858,13 +857,13 @@ export class ActivityDashboardComponent implements OnInit {
           this.unlinkConfirmationId.set(null);
           this.setSessionSuccess(
             sessionId,
-            'Associação removida. A corrida continua em Atividades.',
+            'Corrida retirada da sessão. Ela continua disponível em Atividades.',
           );
         },
         error: () =>
           this.setSessionError(
             sessionId,
-            'Não foi possível remover a associação. O plano e a corrida foram preservados.',
+            'Não foi possível retirar a corrida desta sessão. O plano e a corrida foram preservados.',
           ),
       });
   }
@@ -1264,14 +1263,19 @@ export class ActivityDashboardComponent implements OnInit {
     );
   }
 
-  private hasValidCoachingProfileInput(): boolean {
+  private coachingProfileValidationMessage(): string | null {
     const distance = this.parsedTargetDistance();
     const pace = this.parsedTargetPaceSeconds();
 
-    return (
-      (distance === null || (Number.isFinite(distance) && distance > 0)) &&
-      (pace === null || (Number.isFinite(pace) && pace > 0))
-    );
+    if (distance !== null && (!Number.isFinite(distance) || distance <= 0)) {
+      return 'Distância da meta deve ser maior que zero. Exemplo: 5 km.';
+    }
+
+    if (pace !== null && (!Number.isFinite(pace) || pace <= 0)) {
+      return 'Ritmo da meta deve usar minutos e segundos por quilômetro. Exemplo: 5:30.';
+    }
+
+    return null;
   }
 
   private fillCoachingProfileForm(profile: CoachingProfile): void {

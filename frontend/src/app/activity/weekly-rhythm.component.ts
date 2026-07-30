@@ -108,7 +108,9 @@ export class WeeklyRhythmComponent {
           return 'a preocupação de lesão informada';
         }
 
-        return reason === 'LOW_READINESS' ? 'prontidão baixa' : 'histórico recente insuficiente';
+        return reason === 'LOW_READINESS'
+          ? 'como você se sente hoje'
+          : 'as corridas registradas até agora';
       })
       .join(' e ');
   }
@@ -126,9 +128,9 @@ export class WeeklyRhythmComponent {
 
   protected goalReasonLabel(reason: RunningGoalAssessmentReason): string {
     const labels: Record<RunningGoalAssessmentReason, string> = {
-      UNREALISTIC_DISTANCE: 'distância acima da progressão segura',
-      UNREALISTIC_PACE: 'ritmo mais rápido que o histórico atual permite',
-      UNREALISTIC_TARGET_DATE: 'prazo curto para uma progressão segura',
+      UNREALISTIC_DISTANCE: 'a diferença entre a distância atual e a sua meta',
+      UNREALISTIC_PACE: 'o ritmo das suas corridas recentes',
+      UNREALISTIC_TARGET_DATE: 'o tempo disponível até a data da meta',
     };
 
     return labels[reason];

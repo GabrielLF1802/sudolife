@@ -52,8 +52,10 @@
         </p>
       </article>
       <article class="safe-milestone">
-        <span>Marco seguro atual</span>
-        <strong>{{ assessment.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km</strong>
+        <span>Distância desta etapa</span>
+        <strong
+          >{{ assessment.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km</strong
+        >
         <p>
           {{ paceLabel(assessment.safeMilestone.targetPaceSecondsPerKilometer) }} ·
           {{ goalDateLabel(assessment.safeMilestone.targetDate) }}
@@ -61,7 +63,7 @@
       </article>
       @if (!assessment.realistic) {
         <p class="goal-assessment-reasons">
-          Sua meta foi preservada. O marco atual considera
+          Sua meta continua a mesma. Para chegar lá com progressão controlada, esta etapa considera
           @for (reason of assessment.reasons; track reason; let last = $last) {
             {{ goalReasonLabel(reason) }}{{ last ? '.' : ', ' }}
           }

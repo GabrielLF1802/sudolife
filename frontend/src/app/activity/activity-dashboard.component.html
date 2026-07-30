@@ -163,6 +163,14 @@
           <summary class="strava-status">
             <span>Strava</span>
             <strong>{{ stravaStatusText(stravaStatus) }}</strong>
+            @if (stravaStatus.lastSummarySyncTime) {
+              <p>
+                Última sincronização concluída em
+                {{ stravaStatus.lastSummarySyncTime | date: 'dd/MM/yyyy, HH:mm' }}
+              </p>
+            } @else if (stravaStatus.linked) {
+              <p>Nenhuma atividade sincronizada ainda.</p>
+            }
           </summary>
 
           <div class="strava-actions">
@@ -269,9 +277,9 @@
               <span>Histórico de corrida</span>
               <strong>
                 @if (history.sufficientRunningHistory) {
-                  Histórico suficiente para um plano adaptativo normal
+                  Seu plano pode avançar aos poucos com base nas suas corridas
                 } @else {
-                  Histórico insuficiente; o plano deve começar de forma conservadora
+                  Seu plano começa leve e evolui conforme você registra corridas
                 }
               </strong>
               <p>{{ history.activeWeeks }} de 4 semanas com corridas</p>
@@ -358,7 +366,7 @@
             </p>
           </summary>
 
-          <form (submit)="$event.preventDefault(); saveCoachingProfile()">
+          <form novalidate (submit)="$event.preventDefault(); saveCoachingProfile()">
             <div class="coaching-sections">
               <fieldset class="coaching-section coaching-goal-section">
                 <legend>
@@ -582,9 +590,9 @@
         <section class="adaptive-plan" aria-label="Plano de corrida adaptativo atual">
           <header class="adaptive-plan-summary">
             <div>
-              <span>Plano adaptativo aceito</span>
+              <span>Seu plano está em andamento</span>
               <strong>
-                Marco seguro de
+                Distância desta etapa:
                 {{ plan.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km
               </strong>
               <p>{{ plan.explanation }}</p>
@@ -741,7 +749,7 @@
                         >
                           <form (submit)="$event.preventDefault(); correctSessionMatch(session.id)">
                             <label [for]="'activity-match-' + session.id"
-                              >Corrigir associação</label
+                              >Trocar corrida desta sessão</label
                             >
                             <div>
                               <select
@@ -758,7 +766,7 @@
                                 }
                               </select>
                               <button type="submit" [disabled]="isSessionOperating(session.id)">
-                                Salvar associação
+                                Salvar corrida
                               </button>
                             </div>
                           </form>
@@ -767,16 +775,16 @@
                             <div
                               class="unlink-confirmation"
                               role="group"
-                              aria-label="Confirmar remoção da associação"
+                              aria-label="Confirmar retirada da corrida desta sessão"
                             >
-                              <p>Remover a associação não exclui a corrida da área Atividades.</p>
+                              <p>Retirar a corrida desta sessão não a exclui da área Atividades.</p>
                               <div>
                                 <button
                                   type="button"
                                   [disabled]="isSessionOperating(session.id)"
                                   (click)="unlinkSessionMatch(session.id)"
                                 >
-                                  Confirmar remoção
+                                  Retirar corrida
                                 </button>
                                 <button
                                   type="button"
@@ -794,7 +802,7 @@
                               [disabled]="isSessionOperating(session.id)"
                               (click)="requestUnlinkConfirmation(session.id)"
                             >
-                              Remover associação
+                              Retirar corrida da sessão
                             </button>
                           }
 
@@ -854,11 +862,11 @@
           </section>
         </section>
       } @else if (adaptiveRunningPlan(); as plan) {
-        <section class="conservative-plan-panel" aria-label="Plano de corrida adaptativo aceito">
+        <section class="conservative-plan-panel" aria-label="Plano de corrida atual">
           <div class="conservative-plan-heading">
-            <span>Plano adaptativo aceito</span>
+            <span>Seu plano está pronto</span>
             <strong
-              >Próximo marco:
+              >Distância desta etapa:
               {{ plan.safeMilestone.targetDistanceKilometers | number: '1.0-1' }} km</strong
             >
             <p>{{ plan.explanation }}</p>
