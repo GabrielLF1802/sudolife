@@ -58,20 +58,32 @@
     </nav>
 
     <div class="dashboard-view today-view" [hidden]="activeView() !== 'TODAY'">
-      @if (coachingProfile(); as profile) {
-        <app-weekly-rhythm
-          [activityList]="activityList"
-          [coachingProfile]="profile"
-          [plan]="conservativeRunningPlan()"
-          [goalAssessment]="runningGoalAssessment()"
-        />
-      }
-
       <section class="today-priority" aria-labelledby="today-priority-title">
-        <div>
-          <span>Próxima ação</span>
-          <h2 id="today-priority-title">{{ todayActionTitle(todayAction()) }}</h2>
-          <p>Uma decisão por vez, com base nos dados confirmados do seu treino.</p>
+        <div class="today-priority-content">
+          @if (todayAction() === 'VIEW_NEXT_SESSION' && nextTrainingSession(); as session) {
+            <span>Seu treino de hoje</span>
+            <h2 id="today-priority-title">{{ plannedSessionTypeLabel(session) }}</h2>
+            <dl class="today-prescription">
+              <div>
+                <dt>Quando</dt>
+                <dd>{{ plannedSessionDateLabel(session) }}</dd>
+              </div>
+              @if (session.type !== 'RECOVERY') {
+                <div>
+                  <dt>Distância</dt>
+                  <dd>{{ session.distanceKilometers | number: '1.0-1' }} km</dd>
+                </div>
+              }
+              <div>
+                <dt>Alvo</dt>
+                <dd>{{ plannedSessionTargetLabel(session) }}</dd>
+              </div>
+            </dl>
+          } @else {
+            <span>Próxima ação</span>
+            <h2 id="today-priority-title">{{ todayActionTitle(todayAction()) }}</h2>
+            <p>Resolva este passo para manter a orientação do seu treino atualizada.</p>
+          }
         </div>
         <button
           type="button"
@@ -81,6 +93,15 @@
           {{ todayActionTitle(todayAction()) }}
         </button>
       </section>
+
+      @if (coachingProfile(); as profile) {
+        <app-weekly-rhythm
+          [activityList]="activityList"
+          [coachingProfile]="profile"
+          [plan]="conservativeRunningPlan()"
+          [goalAssessment]="runningGoalAssessment()"
+        />
+      }
 
       @if (clearInjuryConfirmationOpen()) {
         <section class="injury-clear-panel" aria-labelledby="injury-clear-title">

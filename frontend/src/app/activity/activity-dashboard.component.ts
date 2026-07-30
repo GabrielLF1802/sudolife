@@ -168,6 +168,24 @@ export class ActivityDashboardComponent implements OnInit {
         .sort((left, right) => this.compareAdaptiveSessions(left, right))[0] ?? null
     );
   });
+  protected readonly nextTrainingSession = computed<PlannedSession | null>(() => {
+    const acceptedSession = this.nextAdaptivePlanSession()?.plannedSession;
+
+    if (acceptedSession) {
+      return acceptedSession;
+    }
+
+    const sessions =
+      this.conservativeRunningPlan()?.plannedSessions ??
+      this.adaptiveRunningPlan()?.plannedSessions ??
+      [];
+
+    return (
+      [...sessions].sort((left, right) =>
+        left.scheduledDate.localeCompare(right.scheduledDate),
+      )[0] ?? null
+    );
+  });
   protected readonly adaptivePlanHistory = computed(() => {
     const sessions = this.currentAdaptiveRunningPlan()?.plannedSessions ?? [];
 

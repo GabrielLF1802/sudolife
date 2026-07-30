@@ -9,6 +9,11 @@
   gap: var(--space-xl);
 }
 
+.today-view {
+  display: grid;
+  gap: var(--space-xl);
+}
+
 .dashboard-header {
   display: flex;
   align-items: flex-start;
@@ -93,12 +98,12 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-xl);
-  padding: 22px;
+  padding: var(--space-lg);
   border-color: var(--color-primary);
   background: var(--color-plan);
 }
 
-.today-priority > div,
+.today-priority-content,
 .injury-clear-panel > div:first-child,
 .injury-clear-panel label,
 .activity-detail {
@@ -127,6 +132,26 @@ button:disabled {
   margin: 0;
   color: var(--color-muted);
   line-height: 1.5;
+}
+
+.today-prescription {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md) var(--space-xl);
+  margin: var(--space-xs) 0 0;
+}
+
+.today-prescription div {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.today-prescription dt {
+  text-transform: none;
+}
+
+.today-prescription dd {
+  color: var(--color-ink);
 }
 
 .injury-clear-panel,

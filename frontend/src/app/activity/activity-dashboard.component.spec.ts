@@ -178,6 +178,36 @@ describe('ActivityDashboardComponent', () => {
     expect([...settings].every((setting: HTMLDetailsElement) => !setting.open)).toBeTrue();
   });
 
+  it('should_lead_today_with_the_next_decision_before_weekly_context', () => {
+    fixture.detectChanges();
+
+    const priority = fixture.nativeElement.querySelector('.today-priority');
+    const weeklyRhythm = fixture.nativeElement.querySelector('app-weekly-rhythm');
+
+    expect(
+      priority.compareDocumentPosition(weeklyRhythm) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('should_show_the_next_session_prescription_in_the_today_priority', () => {
+    stravaAccountService.status.and.returnValue(of(stravaStatus('READY')));
+    trainingProfileService.get.and.returnValue(of(trainingProfile(1990, true, 'AGE_BASED')));
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), injuryConcern: false }),
+    );
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
+    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(of(currentAdaptivePlan()));
+
+    fixture.detectChanges();
+
+    const priorityText = fixture.nativeElement.querySelector('.today-priority').textContent;
+    expect(priorityText).toContain('Corrida leve');
+    expect(priorityText).toContain('16/07/2026');
+    expect(priorityText).toContain('3 km');
+    expect(priorityText).toContain('Esforço percebido 2-4');
+    expect(priorityText).toContain('Consulte sua próxima sessão');
+  });
+
   it('should_render_permission_upgrade_action_when_scope_is_incomplete', () => {
     stravaAccountService.status.and.returnValue(of(stravaStatus('PERMISSION_UPGRADE_REQUIRED')));
     fixture.detectChanges();
@@ -310,9 +340,9 @@ describe('ActivityDashboardComponent', () => {
 
     selectFilterValue(0, 'RIDE');
 
-    expect(pageText()).toContain('Older Ride');
-    expect(pageText()).not.toContain('Recent Run');
-    expect(pageText()).not.toContain('Tempo Run');
+    expect(activityListText()).toContain('Older Ride');
+    expect(activityListText()).not.toContain('Recent Run');
+    expect(activityListText()).not.toContain('Tempo Run');
     expect(pageText()).toContain('1 correspondem aos filtros.');
   });
 
@@ -323,8 +353,8 @@ describe('ActivityDashboardComponent', () => {
 
     selectFilterValue(1, 'LAST_7_DAYS');
 
-    expect(pageText()).toContain('Recent Run');
-    expect(pageText()).not.toContain('Older Ride');
+    expect(activityListText()).toContain('Recent Run');
+    expect(activityListText()).not.toContain('Older Ride');
     expect(pageText()).toContain('1 correspondem aos filtros.');
   });
 
@@ -336,9 +366,9 @@ describe('ActivityDashboardComponent', () => {
     typeDistanceValue('input[aria-label="Distância mínima em quilômetros"]', '6');
     typeDistanceValue('input[aria-label="Distância máxima em quilômetros"]', '15');
 
-    expect(pageText()).toContain('Tempo Run');
-    expect(pageText()).not.toContain('Recent Run');
-    expect(pageText()).not.toContain('Older Ride');
+    expect(activityListText()).toContain('Tempo Run');
+    expect(activityListText()).not.toContain('Recent Run');
+    expect(activityListText()).not.toContain('Older Ride');
     expect(pageText()).toContain('1 correspondem aos filtros.');
   });
 
@@ -351,7 +381,7 @@ describe('ActivityDashboardComponent', () => {
 
     expect(pageText()).toContain('0 correspondem aos filtros.');
     expect(pageText()).toContain('Nenhuma atividade desta página corresponde aos filtros.');
-    expect(pageText()).not.toContain('Recent Run');
+    expect(activityListText()).not.toContain('Recent Run');
   });
 
   it('should_show_connected_empty_state_without_summary_metric_cards', () => {
@@ -885,6 +915,10 @@ describe('ActivityDashboardComponent', () => {
 
   function pageText(): string {
     return fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  function activityListText(): string {
+    return fixture.nativeElement.querySelector('.activity-list')?.textContent ?? '';
   }
 
   function loadCurrentAdaptivePlanWithActivities(): void {
