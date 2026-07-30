@@ -359,115 +359,144 @@
           </summary>
 
           <form (submit)="$event.preventDefault(); saveCoachingProfile()">
-            <label>
-              <span>Distância alvo</span>
-              <input
-                type="number"
-                min="0.1"
-                max="1000"
-                step="0.1"
-                inputmode="decimal"
-                [value]="targetDistanceKilometers()"
-                (input)="updateTargetDistance($event)"
-                aria-label="Distância alvo em quilômetros"
-              />
-            </label>
-
-            <label>
-              <span>Ritmo alvo</span>
-              <input
-                type="text"
-                inputmode="numeric"
-                maxlength="8"
-                pattern="[0-9]{1,3}:[0-5][0-9]"
-                placeholder="5:30"
-                [value]="targetPace()"
-                (input)="updateTargetPace($event)"
-                aria-label="Ritmo alvo por quilometro"
-              />
-            </label>
-
-            <label>
-              <span>Data alvo</span>
-              <input
-                type="date"
-                [value]="targetDate()"
-                (input)="updateTargetDate($event)"
-                aria-label="Data alvo"
-              />
-            </label>
-
-            <label>
-              <span>Prontidão para treinar</span>
-              <select
-                [value]="readiness()"
-                (change)="updateReadiness($event)"
-                aria-label="Prontidão informada"
-                aria-describedby="readiness-guidance"
-              >
-                <option value="">Selecione</option>
-                <option value="LOW">Baixa</option>
-                <option value="MODERATE">Moderada</option>
-                <option value="HIGH">Alta</option>
-              </select>
-            </label>
-
-            <p class="readiness-guidance" id="readiness-guidance">
-              A prontidão ajuda a ajustar a intensidade. Prontidão baixa pode gerar um plano mais
-              conservador; prontidão alta não aumenta a carga automaticamente.
-            </p>
-
-            <fieldset class="running-availability">
-              <legend>Dias preferidos para correr</legend>
-              <p>
-                Opcional. O plano preserva intervalos seguros mesmo quando você escolhe poucos dias.
-              </p>
-              <div>
-                @for (day of runningDayOptions; track day.value) {
+            <div class="coaching-sections">
+              <fieldset class="coaching-section coaching-goal-section">
+                <legend>
+                  <span>1</span>
+                  <strong>Sua meta</strong>
+                </legend>
+                <p>Defina a prova ou distância que orienta seu plano.</p>
+                <div class="coaching-fields">
                   <label>
+                    <span>Distância alvo</span>
                     <input
-                      type="checkbox"
-                      [checked]="preferredRunningDays().includes(day.value)"
-                      (change)="updatePreferredRunningDay(day.value, $event)"
-                      [attr.aria-label]="day.label"
+                      type="number"
+                      min="0.1"
+                      max="1000"
+                      step="0.1"
+                      inputmode="decimal"
+                      [value]="targetDistanceKilometers()"
+                      (input)="updateTargetDistance($event)"
+                      aria-label="Distância alvo em quilômetros"
                     />
-                    <span>{{ day.label }}</span>
                   </label>
+
+                  <label>
+                    <span>Ritmo alvo</span>
+                    <input
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="8"
+                      pattern="[0-9]{1,3}:[0-5][0-9]"
+                      placeholder="5:30"
+                      [value]="targetPace()"
+                      (input)="updateTargetPace($event)"
+                      aria-label="Ritmo alvo por quilometro"
+                      aria-describedby="target-pace-guidance"
+                    />
+                    <small id="target-pace-guidance">Minutos por quilômetro, como 5:30.</small>
+                  </label>
+
+                  <label>
+                    <span>Data alvo</span>
+                    <input
+                      type="date"
+                      [value]="targetDate()"
+                      (input)="updateTargetDate($event)"
+                      aria-label="Data alvo"
+                    />
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="coaching-section running-availability">
+                <legend>
+                  <span>2</span>
+                  <strong>Sua disponibilidade</strong>
+                </legend>
+                <p>Escolha os dias em que costuma conseguir correr. Esta etapa é opcional.</p>
+                <div>
+                  @for (day of runningDayOptions; track day.value) {
+                    <label>
+                      <input
+                        type="checkbox"
+                        [checked]="preferredRunningDays().includes(day.value)"
+                        (change)="updatePreferredRunningDay(day.value, $event)"
+                        [attr.aria-label]="day.label"
+                      />
+                      <span>{{ day.label }}</span>
+                    </label>
+                  }
+                </div>
+                <small>O plano mantém intervalos seguros mesmo com poucos dias escolhidos.</small>
+              </fieldset>
+
+              <fieldset class="coaching-section coaching-readiness-section">
+                <legend>
+                  <span>3</span>
+                  <strong>Como você está hoje</strong>
+                </legend>
+                <p>Use sua percepção atual para ajustar a intensidade do próximo treino.</p>
+                <label>
+                  <span>Prontidão para treinar</span>
+                  <select
+                    [value]="readiness()"
+                    (change)="updateReadiness($event)"
+                    aria-label="Prontidão informada"
+                    aria-describedby="readiness-guidance"
+                  >
+                    <option value="">Selecione</option>
+                    <option value="LOW">Baixa</option>
+                    <option value="MODERATE">Moderada</option>
+                    <option value="HIGH">Alta</option>
+                  </select>
+                </label>
+                <small id="readiness-guidance">
+                  Prontidão baixa reduz a carga; prontidão alta não aumenta a carga automaticamente.
+                </small>
+              </fieldset>
+
+              <fieldset class="coaching-section coaching-safety-section">
+                <legend>
+                  <span>Segurança</span>
+                  <strong>Dor ou preocupação de lesão</strong>
+                </legend>
+                <label class="injury-concern-control">
+                  <input
+                    type="checkbox"
+                    [checked]="injuryConcern()"
+                    (change)="updateInjuryConcern($event)"
+                    aria-label="Estou com dor ou preocupação de lesão"
+                  />
+                  <span>Estou com dor ou preocupação de lesão</span>
+                </label>
+
+                @if (injuryConcern()) {
+                  <section class="injury-guidance" role="status">
+                    <strong>Seu plano terá apenas sessões de recuperação.</strong>
+                    <p>
+                      Não haverá progressão de carga ou treino intenso enquanto essa preocupação
+                      estiver informada.
+                    </p>
+                  </section>
                 }
-              </div>
-            </fieldset>
+              </fieldset>
+            </div>
 
-            <label class="injury-concern-control">
-              <input
-                type="checkbox"
-                [checked]="injuryConcern()"
-                (change)="updateInjuryConcern($event)"
-                aria-label="Estou com dor ou preocupação de lesão"
-              />
-              <span>Estou com dor ou preocupação de lesão</span>
-            </label>
-
-            @if (injuryConcern()) {
-              <section class="injury-guidance" role="status">
-                <strong>Seu plano terá apenas sessões de recuperação.</strong>
-                <p>
-                  Não haverá progressão de carga ou treino intenso enquanto essa preocupação estiver
-                  informada.
-                </p>
-              </section>
-            }
-
-            <button
-              type="submit"
-              [disabled]="savingCoachingProfile()"
-              [attr.aria-busy]="savingCoachingProfile()"
-            >
-              @if (savingCoachingProfile()) {
-                Salvando...
-              } @else {
-                Salvar contexto de treino
-              }
-            </button>
+            <div class="coaching-save-action">
+              <p>Revise as quatro partes antes de atualizar seu plano.</p>
+              <button
+                type="submit"
+                [disabled]="savingCoachingProfile()"
+                [attr.aria-busy]="savingCoachingProfile()"
+              >
+                @if (savingCoachingProfile()) {
+                  Salvando...
+                } @else {
+                  Salvar contexto de treino
+                }
+              </button>
+            </div>
           </form>
 
           @if (coachingProfileSuccessMessage()) {

@@ -468,6 +468,21 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Salvar contexto de treino');
   });
 
+  it('should_split_coaching_context_into_progressive_sections_with_safety_visible', () => {
+    fixture.detectChanges();
+
+    const sections = fixture.nativeElement.querySelectorAll('.coaching-section');
+
+    expect(sections.length).toBe(4);
+    expect(sections[0].textContent).toContain('Sua meta');
+    expect(sections[1].textContent).toContain('Sua disponibilidade');
+    expect(sections[2].textContent).toContain('Como você está hoje');
+    expect(sections[3].textContent).toContain('Dor ou preocupação de lesão');
+    expect(
+      sections[3].querySelector('input[aria-label="Estou com dor ou preocupação de lesão"]'),
+    ).not.toBeNull();
+  });
+
   it('should_render_current_coaching_profiles_when_saved', () => {
     coachingProfileService.get.and.returnValue(of(coachingProfile(true)));
 

@@ -296,6 +296,91 @@ dd {
   padding-top: var(--space-lg);
 }
 
+.coaching-profile-panel form {
+  display: grid;
+  align-items: stretch;
+  gap: var(--space-lg);
+}
+
+.coaching-sections {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.coaching-section {
+  display: grid;
+  gap: var(--space-md);
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 0 var(--space-lg);
+}
+
+.coaching-section legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0;
+}
+
+.coaching-section legend > span {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-control);
+  background: var(--color-plan);
+  color: var(--color-primary-deep);
+}
+
+.coaching-section legend strong {
+  font-size: var(--font-size-title);
+}
+
+.coaching-section > p,
+.coaching-section small,
+.coaching-save-action p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.coaching-fields {
+  display: flex;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.coaching-fields label {
+  align-content: start;
+}
+
+.coaching-safety-section {
+  border: 1px solid var(--color-plan-border);
+  border-radius: var(--radius-control);
+  background: var(--color-plan);
+  padding: var(--space-lg);
+}
+
+.coaching-safety-section legend {
+  padding: 0 var(--space-xs);
+}
+
+.coaching-safety-section legend > span {
+  width: auto;
+  padding: 0 var(--space-sm);
+  background: var(--color-primary-deep);
+  color: var(--color-surface);
+}
+
+.coaching-save-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
 .training-profile-panel input,
 .coaching-profile-panel select,
 .activity-filters select,
@@ -355,9 +440,6 @@ dd {
 
 .running-availability {
   flex-basis: 100%;
-  margin: 0;
-  border: 0;
-  padding: 0;
 }
 
 .running-availability legend {
@@ -955,6 +1037,16 @@ dd {
   .training-profile-panel form {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .coaching-fields,
+  .coaching-save-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coaching-save-action button {
+    width: 100%;
   }
 
   .training-profile-panel input,
