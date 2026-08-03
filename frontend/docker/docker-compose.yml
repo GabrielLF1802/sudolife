@@ -1,0 +1,14 @@
+name: sudolife-frontend
+
+services:
+  frontend-sudolife:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: gabriellf1802/sudolife-frontend:${FRONTEND_VERSION:-latest}
+    container_name: sudolife-frontend
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
