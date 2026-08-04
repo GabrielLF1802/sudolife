@@ -36,6 +36,21 @@ npm run build
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
+## Docker scripts
+
+The scripts in `scripts/` mirror the backend build and deployment workflow:
+
+```bash
+./scripts/build-docker.sh
+./scripts/start.sh
+./scripts/stop.sh
+./scripts/build-and-push.sh
+./scripts/release-to-production.sh
+./scripts/deploy-prod.sh <version>
+```
+
+The local container is available at `http://localhost:4200` and proxies `/api` to the backend at `http://localhost:8081`.
+
 ## Running unit tests
 
 To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
