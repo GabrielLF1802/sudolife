@@ -59,4 +59,4 @@ When reviewing tests, prioritize findings in this order:
 
 ## References
 
-- Read [unit-test-principles.md](./references/unit-test-principles.md) for the detailed checklist, anti-patterns, stub-vs-mock rules, and feature-level test recipe guidance.
+- Read [unit-test-principles.md](references/unit-test-principles.md) for the detailed checklist, anti-patterns, stub-vs-mock rules, and feature-level test recipe guidance.
