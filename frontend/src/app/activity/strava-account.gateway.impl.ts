@@ -1,28 +1,29 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { StravaAccountGateway, STRAVA_ACCOUNT_GATEWAY } from './strava-account.gateway';
+import { StravaAccountGateway } from './strava-account.gateway';
 import { StravaActivitySyncResult } from './services/dtos/strava-activity-sync';
 import { StravaAuthorizationUrl } from './services/dtos/strava-authorization-url';
 import { StravaLinkStatus } from './services/dtos/strava-link-status';
 
 @Injectable({ providedIn: 'root' })
-export class StravaAccountService {
-  private readonly stravaAccountGateway: StravaAccountGateway = inject(STRAVA_ACCOUNT_GATEWAY);
+export class StravaAccountGatewayImpl implements StravaAccountGateway {
+  private readonly http = inject(HttpClient);
 
   status(): Observable<StravaLinkStatus> {
-    return this.stravaAccountGateway.status();
+    return this.http.get<StravaLinkStatus>('/api/strava/status');
   }
 
   startLinking(): Observable<StravaAuthorizationUrl> {
-    return this.stravaAccountGateway.startLinking();
+    return this.http.post<StravaAuthorizationUrl>('/api/strava/link', {});
   }
 
   requestSync(): Observable<StravaActivitySyncResult> {
-    return this.stravaAccountGateway.requestSync();
+    return this.http.post<StravaActivitySyncResult>('/api/strava/sync', {});
   }
 
   unlink(): Observable<void> {
-    return this.stravaAccountGateway.unlink();
+    return this.http.delete<void>('/api/strava/link');
   }
 }

@@ -1,24 +1,42 @@
-import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 
+import { STRAVA_ACCOUNT_GATEWAY, StravaAccountGateway } from './strava-account.gateway';
 import { StravaAccountService } from './strava-account.service';
 
 describe('StravaAccountService', () => {
   let service: StravaAccountService;
-  let httpTestingController: HttpTestingController;
+  let stravaAccountGateway: jasmine.SpyObj<StravaAccountGateway>;
 
   beforeEach(() => {
+    stravaAccountGateway = jasmine.createSpyObj<StravaAccountGateway>('StravaAccountGateway', [
+      'status',
+      'startLinking',
+      'requestSync',
+      'unlink',
+    ]);
+    stravaAccountGateway.status.and.returnValue(of(stravaStatus()));
+    stravaAccountGateway.startLinking.and.returnValue(
+      of({ authorizationUrl: 'https://strava.example/oauth' }),
+    );
+    stravaAccountGateway.requestSync.and.returnValue(
+      of({
+        status: 'COMPLETED',
+        failureReason: null,
+        importedActivityCount: 3,
+        totalActivityCount: 12,
+      }),
+    );
+    stravaAccountGateway.unlink.and.returnValue(of(undefined));
+
     TestBed.configureTestingModule({
-      providers: [StravaAccountService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        StravaAccountService,
+        { provide: STRAVA_ACCOUNT_GATEWAY, useValue: stravaAccountGateway },
+      ],
     });
 
     service = TestBed.inject(StravaAccountService);
-    httpTestingController = TestBed.inject(HttpTestingController);
-  });
-
-  afterEach(() => {
-    httpTestingController.verify();
   });
 
   it('should_load_strava_link_status', () => {
@@ -28,20 +46,7 @@ describe('StravaAccountService', () => {
       expect(status.importedActivityCount).toBe(4);
     });
 
-    const request = httpTestingController.expectOne('/api/strava/status');
-    expect(request.request.method).toBe('GET');
-    request.flush({
-      linked: true,
-      athleteId: 123,
-      permissionState: 'READY',
-      activitySummaryStatus: 'COMPLETED',
-      performanceDataStatus: 'PENDING',
-      lastSummarySyncTime: '2026-05-11T12:00:00Z',
-      lastStreamEnrichmentTime: null,
-      importedActivityCount: 4,
-      streamsReadyActivityCount: 1,
-      failureReason: null,
-    });
+    expect(stravaAccountGateway.status).toHaveBeenCalledOnceWith();
   });
 
   it('should_start_strava_linking', () => {
@@ -49,10 +54,7 @@ describe('StravaAccountService', () => {
       expect(result.authorizationUrl).toBe('https://strava.example/oauth');
     });
 
-    const request = httpTestingController.expectOne('/api/strava/link');
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({});
-    request.flush({ authorizationUrl: 'https://strava.example/oauth' });
+    expect(stravaAccountGateway.startLinking).toHaveBeenCalledOnceWith();
   });
 
   it('should_request_manual_activity_sync', () => {
@@ -62,15 +64,7 @@ describe('StravaAccountService', () => {
       expect(result.totalActivityCount).toBe(12);
     });
 
-    const request = httpTestingController.expectOne('/api/strava/sync');
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({});
-    request.flush({
-      status: 'COMPLETED',
-      failureReason: null,
-      importedActivityCount: 3,
-      totalActivityCount: 12,
-    });
+    expect(stravaAccountGateway.requestSync).toHaveBeenCalledOnceWith();
   });
 
   it('should_unlink_strava_account', () => {
@@ -80,9 +74,23 @@ describe('StravaAccountService', () => {
       completed = true;
     });
 
-    const request = httpTestingController.expectOne('/api/strava/link');
-    expect(request.request.method).toBe('DELETE');
-    request.flush(null);
+    expect(stravaAccountGateway.unlink).toHaveBeenCalledOnceWith();
     expect(completed).toBeTrue();
   });
+
+  function stravaStatus() {
+    return {
+      linked: true,
+      athleteId: 123,
+      permissionState: 'READY' as const,
+      profilePermissionState: 'AVAILABLE' as const,
+      activitySummaryStatus: 'COMPLETED' as const,
+      performanceDataStatus: 'PENDING' as const,
+      lastSummarySyncTime: '2026-05-11T12:00:00Z',
+      lastStreamEnrichmentTime: null,
+      importedActivityCount: 4,
+      streamsReadyActivityCount: 1,
+      failureReason: null,
+    };
+  }
 });

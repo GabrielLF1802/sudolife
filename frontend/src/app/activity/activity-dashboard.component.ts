@@ -4,34 +4,39 @@ import { Router } from '@angular/router';
 import { catchError, forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../auth/auth.service';
+import { ActivityService } from './activity.service';
 import {
-  ActivityDetail,
-  ActivityList,
-  ActivityListItem,
-  ActivityService,
-} from './activity.service';
-import {
-  CoachingProfile,
   CoachingProfileService,
+} from './coaching-profile.service';
+import {
   AdaptiveRunningPlanSession,
   AdaptiveRunningPlanSessionStatus,
   AdaptiveRunningPlan,
+  AdaptationTrigger,
   ConservativeRunningPlan,
   CurrentAdaptiveRunningPlan,
   PlannedSession,
   RunningGoalAssessment,
+} from './services/dtos/adaptive-running-plan';
+import { ActivityDetail } from './services/dtos/activity-detail';
+import { ActivityList, ActivityListItem } from './services/dtos/activity-list';
+import {
+  CoachingProfile,
   RunningHistorySnapshot,
   RunningDay,
   UserReportedReadiness,
-} from './coaching-profile.service';
+} from './services/dtos/coaching-profile';
 import {
-  StravaAccountService,
   StravaActivitySyncFailureReason,
   StravaActivitySyncResult,
   StravaActivitySyncStatus,
-  StravaLinkStatus,
+} from './services/dtos/strava-activity-sync';
+import { StravaLinkStatus } from './services/dtos/strava-link-status';
+import {
+  StravaAccountService,
 } from './strava-account.service';
-import { TrainingProfile, TrainingProfileService } from './training-profile.service';
+import { TrainingProfile } from './services/dtos/training-profile';
+import { TrainingProfileService } from './training-profile.service';
 import { WeeklyRhythmComponent } from './weekly-rhythm.component';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
@@ -1124,7 +1129,7 @@ export class ActivityDashboardComponent implements OnInit {
   }
 
   protected adaptationTriggerLabel(
-    trigger: import('./coaching-profile.service').AdaptationTrigger | null | undefined,
+    trigger: AdaptationTrigger | null | undefined,
   ): string {
     switch (trigger) {
       case 'MISSED_PLANNED_SESSION':

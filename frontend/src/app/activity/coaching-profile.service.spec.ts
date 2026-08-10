@@ -1,29 +1,91 @@
-import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 
 import {
-  CoachingProfileService,
   ConservativeRunningPlan,
   CurrentAdaptiveRunningPlan,
   PlannedSession,
-} from './coaching-profile.service';
+} from './services/dtos/adaptive-running-plan';
+import { CoachingProfile } from './services/dtos/coaching-profile';
+import { COACHING_PROFILE_GATEWAY, CoachingProfileGateway } from './coaching-profile.gateway';
+import { CoachingProfileService } from './coaching-profile.service';
 
 describe('CoachingProfileService', () => {
   let service: CoachingProfileService;
-  let httpTestingController: HttpTestingController;
+  let coachingProfileGateway: jasmine.SpyObj<CoachingProfileGateway>;
 
   beforeEach(() => {
+    coachingProfileGateway = jasmine.createSpyObj<CoachingProfileGateway>(
+      'CoachingProfileGateway',
+      [
+        'get',
+        'getRunningHistory',
+        'evaluateRunningGoal',
+        'generateConservativeRunningPlan',
+        'generateAdaptiveRunningPlan',
+        'getCurrentAdaptiveRunningPlan',
+        'adaptNextPlannedSession',
+        'clearInjuryConcern',
+        'correctPlannedSessionMatch',
+        'unlinkPlannedSessionMatch',
+        'submitPostSessionPerceivedEffort',
+        'save',
+      ],
+    );
+    coachingProfileGateway.get.and.returnValue(of(coachingProfile()));
+    coachingProfileGateway.save.and.returnValue(of(coachingProfile()));
+    coachingProfileGateway.getRunningHistory.and.returnValue(
+      of({
+        sufficientRunningHistory: true,
+        activeWeeks: 8,
+        runningActivityCount: 16,
+        totalDistanceKilometers: 84,
+        totalMovingTimeSeconds: 30240,
+        latestRunAt: '2026-07-18T10:15:00Z',
+      }),
+    );
+    coachingProfileGateway.generateConservativeRunningPlan.and.returnValue(
+      of(conservativeRunningPlan()),
+    );
+    coachingProfileGateway.evaluateRunningGoal.and.returnValue(
+      of({
+        realistic: false,
+        reasons: ['UNREALISTIC_DISTANCE'],
+        longTermGoal: {
+          targetDistanceKilometers: 42.2,
+          targetPaceSecondsPerKilometer: 240,
+          targetDate: '2026-10-01',
+        },
+        safeMilestone: {
+          targetDistanceKilometers: 7.3,
+          targetPaceSecondsPerKilometer: 332,
+          targetDate: '2026-08-11',
+        },
+      }),
+    );
+    coachingProfileGateway.getCurrentAdaptiveRunningPlan.and.returnValue(
+      of(currentAdaptiveRunningPlan()),
+    );
+    coachingProfileGateway.adaptNextPlannedSession.and.returnValue(of(currentAdaptiveRunningPlan()));
+    coachingProfileGateway.clearInjuryConcern.and.returnValue(of(currentAdaptiveRunningPlan()));
+    coachingProfileGateway.correctPlannedSessionMatch.and.returnValue(
+      of(currentAdaptiveRunningPlan()),
+    );
+    coachingProfileGateway.unlinkPlannedSessionMatch.and.returnValue(
+      of(currentAdaptiveRunningPlan()),
+    );
+    coachingProfileGateway.submitPostSessionPerceivedEffort.and.returnValue(
+      of(currentAdaptiveRunningPlan()),
+    );
+
     TestBed.configureTestingModule({
-      providers: [CoachingProfileService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        CoachingProfileService,
+        { provide: COACHING_PROFILE_GATEWAY, useValue: coachingProfileGateway },
+      ],
     });
 
     service = TestBed.inject(CoachingProfileService);
-    httpTestingController = TestBed.inject(HttpTestingController);
-  });
-
-  afterEach(() => {
-    httpTestingController.verify();
   });
 
   it('should_load_coaching_profiles', () => {
@@ -33,9 +95,7 @@ describe('CoachingProfileService', () => {
       expect(profile.injuryConcern).toBeTrue();
     });
 
-    const request = httpTestingController.expectOne('/api/coaching-profiles');
-    expect(request.request.method).toBe('GET');
-    request.flush(coachingProfile());
+    expect(coachingProfileGateway.get).toHaveBeenCalledOnceWith();
   });
 
   it('should_save_coaching_profiles', () => {
@@ -53,10 +113,7 @@ describe('CoachingProfileService', () => {
       expect(profile.configured).toBeTrue();
     });
 
-    const request = httpTestingController.expectOne('/api/coaching-profiles');
-    expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual(command);
-    request.flush(coachingProfile());
+    expect(coachingProfileGateway.save).toHaveBeenCalledOnceWith(command);
   });
 
   it('should_load_running_history_snapshot', () => {
@@ -64,9 +121,7 @@ describe('CoachingProfileService', () => {
       expect(snapshot.sufficientRunningHistory).toBeTrue();
     });
 
-    const request = httpTestingController.expectOne('/api/coaching-profiles/running-history');
-
-    request.flush({ sufficientRunningHistory: true });
+    expect(coachingProfileGateway.getRunningHistory).toHaveBeenCalledOnceWith();
   });
 
   it('should_request_a_structured_conservative_running_plan', () => {
@@ -75,9 +130,7 @@ describe('CoachingProfileService', () => {
       expect(plan.plannedSessions[0].type).toBe('EASY_RUN');
     });
 
-    const request = httpTestingController.expectOne('/api/coaching-profiles/running-plan');
-    expect(request.request.method).toBe('POST');
-    request.flush(conservativeRunningPlan());
+    expect(coachingProfileGateway.generateConservativeRunningPlan).toHaveBeenCalledOnceWith();
   });
 
   it('should_load_the_running_goal_assessment', () => {
@@ -87,24 +140,7 @@ describe('CoachingProfileService', () => {
       expect(assessment.safeMilestone.targetDistanceKilometers).toBe(7.3);
     });
 
-    const request = httpTestingController.expectOne(
-      '/api/coaching-profiles/running-goal-assessment',
-    );
-    expect(request.request.method).toBe('GET');
-    request.flush({
-      realistic: false,
-      reasons: ['UNREALISTIC_DISTANCE'],
-      longTermGoal: {
-        targetDistanceKilometers: 42.2,
-        targetPaceSecondsPerKilometer: 240,
-        targetDate: '2026-10-01',
-      },
-      safeMilestone: {
-        targetDistanceKilometers: 7.3,
-        targetPaceSecondsPerKilometer: 332,
-        targetDate: '2026-08-11',
-      },
-    });
+    expect(coachingProfileGateway.evaluateRunningGoal).toHaveBeenCalledOnceWith();
   });
 
   it('should_preserve_the_complete_current_adaptive_plan', () => {
@@ -120,9 +156,7 @@ describe('CoachingProfileService', () => {
       ]);
     });
 
-    const request = httpTestingController.expectOne('/api/coaching-profiles/adaptive-running-plan');
-    expect(request.request.method).toBe('GET');
-    request.flush(currentPlan);
+    expect(coachingProfileGateway.getCurrentAdaptiveRunningPlan).toHaveBeenCalledOnceWith();
   });
 
   it('should_adapt_the_next_planned_session', () => {
@@ -132,12 +166,7 @@ describe('CoachingProfileService', () => {
       expect(plan.id).toBe(31);
     });
 
-    const request = httpTestingController.expectOne(
-      '/api/coaching-profiles/adaptive-running-plan/adapt',
-    );
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual(command);
-    request.flush(currentAdaptiveRunningPlan());
+    expect(coachingProfileGateway.adaptNextPlannedSession).toHaveBeenCalledOnceWith(command);
   });
 
   it('should_clear_the_injury_concern', () => {
@@ -147,10 +176,7 @@ describe('CoachingProfileService', () => {
       expect(plan.acceptedAt).toBe('2026-07-18T10:15:00Z');
     });
 
-    const request = httpTestingController.expectOne('/api/coaching-profiles/injury-concern/clear');
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual(command);
-    request.flush(currentAdaptiveRunningPlan());
+    expect(coachingProfileGateway.clearInjuryConcern).toHaveBeenCalledOnceWith(command);
   });
 
   it('should_correct_a_planned_session_match', () => {
@@ -160,12 +186,7 @@ describe('CoachingProfileService', () => {
       expect(plan.plannedSessions[2].matchedActivityId).toBe(99);
     });
 
-    const request = httpTestingController.expectOne(
-      '/api/coaching-profiles/adaptive-running-plan/session-match',
-    );
-    expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual(command);
-    request.flush(currentAdaptiveRunningPlan());
+    expect(coachingProfileGateway.correctPlannedSessionMatch).toHaveBeenCalledOnceWith(command);
   });
 
   it('should_unlink_a_planned_session_match', () => {
@@ -173,12 +194,7 @@ describe('CoachingProfileService', () => {
       expect(plan.plannedSessions.length).toBe(4);
     });
 
-    const request = httpTestingController.expectOne(
-      '/api/coaching-profiles/adaptive-running-plan/sessions/12/match',
-    );
-    expect(request.request.method).toBe('DELETE');
-    expect(request.request.body).toBeNull();
-    request.flush(currentAdaptiveRunningPlan());
+    expect(coachingProfileGateway.unlinkPlannedSessionMatch).toHaveBeenCalledOnceWith(12);
   });
 
   it('should_submit_post_session_perceived_effort', () => {
@@ -188,15 +204,13 @@ describe('CoachingProfileService', () => {
       expect(plan.plannedSessions[2].postSessionPerceivedEffort).toBe(7);
     });
 
-    const request = httpTestingController.expectOne(
-      '/api/coaching-profiles/adaptive-running-plan/sessions/12/perceived-effort',
+    expect(coachingProfileGateway.submitPostSessionPerceivedEffort).toHaveBeenCalledOnceWith(
+      12,
+      command,
     );
-    expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual(command);
-    request.flush(currentAdaptiveRunningPlan());
   });
 
-  function coachingProfile() {
+  function coachingProfile(): CoachingProfile {
     return {
       targetDistanceKilometers: 10,
       targetPaceSecondsPerKilometer: 330,

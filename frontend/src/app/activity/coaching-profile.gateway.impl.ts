@@ -1,7 +1,8 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { COACHING_PROFILE_GATEWAY, CoachingProfileGateway } from './coaching-profile.gateway';
+import { CoachingProfileGateway } from './coaching-profile.gateway';
 import {
   AdaptNextPlannedSessionCommand,
   AdaptiveRunningPlan,
@@ -19,61 +20,80 @@ import {
 } from './services/dtos/coaching-profile';
 
 @Injectable({ providedIn: 'root' })
-export class CoachingProfileService {
-  private readonly coachingProfileGateway: CoachingProfileGateway = inject(COACHING_PROFILE_GATEWAY);
+export class CoachingProfileGatewayImpl implements CoachingProfileGateway {
+  private readonly http = inject(HttpClient);
 
   get(): Observable<CoachingProfile> {
-    return this.coachingProfileGateway.get();
+    return this.http.get<CoachingProfile>('/api/coaching-profiles');
   }
 
   getRunningHistory(): Observable<RunningHistorySnapshot> {
-    return this.coachingProfileGateway.getRunningHistory();
+    return this.http.get<RunningHistorySnapshot>('/api/coaching-profiles/running-history');
   }
 
   evaluateRunningGoal(): Observable<RunningGoalAssessment> {
-    return this.coachingProfileGateway.evaluateRunningGoal();
+    return this.http.get<RunningGoalAssessment>('/api/coaching-profiles/running-goal-assessment');
   }
 
   generateConservativeRunningPlan(): Observable<ConservativeRunningPlan> {
-    return this.coachingProfileGateway.generateConservativeRunningPlan();
+    return this.http.post<ConservativeRunningPlan>('/api/coaching-profiles/running-plan', null);
   }
 
   generateAdaptiveRunningPlan(): Observable<AdaptiveRunningPlan> {
-    return this.coachingProfileGateway.generateAdaptiveRunningPlan();
+    return this.http.post<AdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan',
+      null,
+    );
   }
 
   getCurrentAdaptiveRunningPlan(): Observable<CurrentAdaptiveRunningPlan> {
-    return this.coachingProfileGateway.getCurrentAdaptiveRunningPlan();
+    return this.http.get<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan',
+    );
   }
 
   adaptNextPlannedSession(
     command: AdaptNextPlannedSessionCommand,
   ): Observable<CurrentAdaptiveRunningPlan> {
-    return this.coachingProfileGateway.adaptNextPlannedSession(command);
+    return this.http.post<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan/adapt',
+      command,
+    );
   }
 
   clearInjuryConcern(command: ClearInjuryConcernCommand): Observable<CurrentAdaptiveRunningPlan> {
-    return this.coachingProfileGateway.clearInjuryConcern(command);
+    return this.http.post<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/injury-concern/clear',
+      command,
+    );
   }
 
   correctPlannedSessionMatch(
     command: CorrectPlannedSessionMatchCommand,
   ): Observable<CurrentAdaptiveRunningPlan> {
-    return this.coachingProfileGateway.correctPlannedSessionMatch(command);
+    return this.http.put<CurrentAdaptiveRunningPlan>(
+      '/api/coaching-profiles/adaptive-running-plan/session-match',
+      command,
+    );
   }
 
   unlinkPlannedSessionMatch(plannedSessionId: number): Observable<CurrentAdaptiveRunningPlan> {
-    return this.coachingProfileGateway.unlinkPlannedSessionMatch(plannedSessionId);
+    return this.http.delete<CurrentAdaptiveRunningPlan>(
+      `/api/coaching-profiles/adaptive-running-plan/sessions/${plannedSessionId}/match`,
+    );
   }
 
   submitPostSessionPerceivedEffort(
     plannedSessionId: number,
     command: PostSessionPerceivedEffortCommand,
   ): Observable<CurrentAdaptiveRunningPlan> {
-    return this.coachingProfileGateway.submitPostSessionPerceivedEffort(plannedSessionId, command);
+    return this.http.put<CurrentAdaptiveRunningPlan>(
+      `/api/coaching-profiles/adaptive-running-plan/sessions/${plannedSessionId}/perceived-effort`,
+      command,
+    );
   }
 
   save(command: SaveCoachingProfileCommand): Observable<CoachingProfile> {
-    return this.coachingProfileGateway.save(command);
+    return this.http.put<CoachingProfile>('/api/coaching-profiles', command);
   }
 }

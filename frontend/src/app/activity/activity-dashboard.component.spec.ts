@@ -8,9 +8,13 @@ import {
   deriveTodayAction,
   TodayActionState,
 } from './activity-dashboard.component';
-import { ActivityDetail, ActivityList, ActivityService } from './activity.service';
-import { CoachingProfileService, CurrentAdaptiveRunningPlan } from './coaching-profile.service';
-import { StravaAccountService, StravaLinkStatus } from './strava-account.service';
+import { ActivityService } from './activity.service';
+import { CoachingProfileService } from './coaching-profile.service';
+import { ActivityDetail } from './services/dtos/activity-detail';
+import { ActivityList } from './services/dtos/activity-list';
+import { CurrentAdaptiveRunningPlan } from './services/dtos/adaptive-running-plan';
+import { StravaLinkStatus } from './services/dtos/strava-link-status';
+import { StravaAccountService } from './strava-account.service';
 import { TrainingProfileService } from './training-profile.service';
 
 describe('ActivityDashboardComponent', () => {
