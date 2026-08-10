@@ -318,3 +318,7 @@ The default triage label vocabulary is used: `needs-triage`, `needs-info`, `read
 ### Domain docs
 
 This is a single-context repo using root-level `CONTEXT.md` and `docs/adr/` when present. See `docs/agents/domain.md`.
+
+### Frontend docs
+
+Angular frontend generation rules live in `docs/agents/frontend.md`. Use them for work under `frontend/`.
