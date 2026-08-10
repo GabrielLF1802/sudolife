@@ -1,17 +1,17 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
 
-import { ActivityList, ActivityListItem } from './services/dtos/activity-list';
+import { ActivityList, ActivityListItem } from '../../services/dtos/activity-list';
 import {
   CoachingProfile,
   UserReportedReadiness,
-} from './services/dtos/coaching-profile';
+} from '../../services/dtos/coaching-profile';
 import {
   ConservativeRunningPlan,
   PlannedSession,
   RunningGoalAssessment,
   RunningGoalAssessmentReason,
-} from './services/dtos/adaptive-running-plan';
+} from '../../services/dtos/adaptive-running-plan';
 
 interface WeekDay {
   date: Date;

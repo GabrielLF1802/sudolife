@@ -5,8 +5,8 @@ import {
   ConservativeRunningPlan,
   CurrentAdaptiveRunningPlan,
   PlannedSession,
-} from './services/dtos/adaptive-running-plan';
-import { CoachingProfile } from './services/dtos/coaching-profile';
+} from './dtos/adaptive-running-plan';
+import { CoachingProfile } from './dtos/coaching-profile';
 import { COACHING_PROFILE_GATEWAY, CoachingProfileGateway } from './coaching-profile.gateway';
 import { CoachingProfileService } from './coaching-profile.service';
 

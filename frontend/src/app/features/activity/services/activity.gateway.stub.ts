@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 
 import { ActivityGateway } from './activity.gateway';
-import { ActivityDetail } from './services/dtos/activity-detail';
-import { ActivityList, ActivityListItem } from './services/dtos/activity-list';
+import { ActivityDetail } from './dtos/activity-detail';
+import { ActivityList, ActivityListItem } from './dtos/activity-list';
 
 @Injectable()
 export class ActivityGatewayStub implements ActivityGateway {

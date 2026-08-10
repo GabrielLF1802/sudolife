@@ -12,12 +12,12 @@ import {
   CurrentAdaptiveRunningPlan,
   PostSessionPerceivedEffortCommand,
   RunningGoalAssessment,
-} from './services/dtos/adaptive-running-plan';
+} from './dtos/adaptive-running-plan';
 import {
   CoachingProfile,
   RunningHistorySnapshot,
   SaveCoachingProfileCommand,
-} from './services/dtos/coaching-profile';
+} from './dtos/coaching-profile';
 
 @Injectable({ providedIn: 'root' })
 export class CoachingProfileGatewayImpl implements CoachingProfileGateway {

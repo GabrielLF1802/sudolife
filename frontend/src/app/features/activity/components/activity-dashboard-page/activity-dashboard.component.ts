@@ -3,11 +3,11 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, finalize } from 'rxjs';
 
-import { AuthService, CurrentUser } from '../auth/auth.service';
-import { ActivityService } from './activity.service';
+import { AuthService, CurrentUser } from '../../../../core/auth/auth.service';
+import { ActivityService } from '../../services/activity.service';
 import {
   CoachingProfileService,
-} from './coaching-profile.service';
+} from '../../services/coaching-profile.service';
 import {
   AdaptiveRunningPlanSession,
   AdaptiveRunningPlanSessionStatus,
@@ -17,27 +17,31 @@ import {
   CurrentAdaptiveRunningPlan,
   PlannedSession,
   RunningGoalAssessment,
-} from './services/dtos/adaptive-running-plan';
-import { ActivityDetail } from './services/dtos/activity-detail';
-import { ActivityList, ActivityListItem } from './services/dtos/activity-list';
+} from '../../services/dtos/adaptive-running-plan';
+import { ActivityDetail } from '../../services/dtos/activity-detail';
+import { ActivityList, ActivityListItem } from '../../services/dtos/activity-list';
 import {
   CoachingProfile,
   RunningHistorySnapshot,
   RunningDay,
   UserReportedReadiness,
-} from './services/dtos/coaching-profile';
+} from '../../services/dtos/coaching-profile';
 import {
   StravaActivitySyncFailureReason,
   StravaActivitySyncResult,
   StravaActivitySyncStatus,
-} from './services/dtos/strava-activity-sync';
-import { StravaLinkStatus } from './services/dtos/strava-link-status';
+} from '../../services/dtos/strava-activity-sync';
+import { StravaLinkStatus } from '../../services/dtos/strava-link-status';
 import {
   StravaAccountService,
-} from './strava-account.service';
-import { TrainingProfile } from './services/dtos/training-profile';
-import { TrainingProfileService } from './training-profile.service';
-import { WeeklyRhythmComponent } from './weekly-rhythm.component';
+} from '../../services/strava-account.service';
+import { TrainingProfile } from '../../services/dtos/training-profile';
+import { TrainingProfileService } from '../../services/training-profile.service';
+import {
+  ActivityListItemComponent,
+  ActivityListItemOptions,
+} from '../activity-list-item/activity-list-item.component';
+import { WeeklyRhythmComponent } from '../weekly-rhythm/weekly-rhythm.component';
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
 type DashboardView = 'TODAY' | 'PLAN' | 'ACTIVITIES' | 'SETTINGS';
@@ -72,7 +76,7 @@ export function deriveTodayAction(state: TodayActionState): TodayAction {
 
 @Component({
   selector: 'app-activity-dashboard',
-  imports: [DatePipe, DecimalPipe, WeeklyRhythmComponent],
+  imports: [DatePipe, DecimalPipe, ActivityListItemComponent, WeeklyRhythmComponent],
   templateUrl: './activity-dashboard.component.html',
   styleUrl: './activity-dashboard.component.scss',
 })
@@ -411,31 +415,6 @@ export class ActivityDashboardComponent implements OnInit {
     return status === null || this.isSyncEnabled(status);
   }
 
-  protected movingTimeLabel(seconds: number): string {
-    const totalMinutes = Math.round(seconds / 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}min`;
-    }
-
-    return `${minutes} min`;
-  }
-
-  protected paceOrSpeedLabel(activity: ActivityList['activities'][number]): string {
-    if (activity.averagePaceSecondsPerKilometer !== null) {
-      const minutes = Math.floor(activity.averagePaceSecondsPerKilometer / 60);
-      const seconds = Math.round(activity.averagePaceSecondsPerKilometer % 60)
-        .toString()
-        .padStart(2, '0');
-
-      return `${minutes}:${seconds} /km`;
-    }
-
-    return `${(activity.averageSpeedMetersPerSecond * 3.6).toFixed(1)} km/h`;
-  }
-
   protected logout(): void {
     this.authService.logout();
     void this.router.navigateByUrl('/login');
@@ -522,19 +501,6 @@ export class ActivityDashboardComponent implements OnInit {
             [activityId]: 'Não foi possível carregar os detalhes desta atividade.',
           })),
       });
-  }
-
-  protected streamMetricLabel(metric: string): string {
-    const labels: Record<string, string> = {
-      time: 'Tempo',
-      distance: 'Distância',
-      heartrate: 'Frequência cardíaca',
-      cadence: 'Cadência',
-      watts: 'Potência',
-      altitude: 'Altitude',
-      velocity_smooth: 'Velocidade',
-    };
-    return labels[metric.toLowerCase()] ?? metric;
   }
 
   protected requestStravaUnlink(): void {
@@ -955,6 +921,16 @@ export class ActivityDashboardComponent implements OnInit {
     };
 
     return labels[status] ?? 'Ainda não disponíveis';
+  }
+
+  protected activityListItemOptions(activity: ActivityListItem): ActivityListItemOptions {
+    return {
+      activity,
+      detail: this.activityDetails()[activity.id] ?? null,
+      detailError: this.activityDetailErrors()[activity.id] ?? '',
+      detailLoading: this.activityDetailLoadingIds().has(activity.id),
+      open: this.openActivityIds().has(activity.id),
+    };
   }
 
   protected stravaActionLabel(status: StravaLinkStatus): string {

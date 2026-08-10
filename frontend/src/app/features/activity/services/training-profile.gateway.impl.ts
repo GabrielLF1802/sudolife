@@ -6,7 +6,7 @@ import { TrainingProfileGateway } from './training-profile.gateway';
 import {
   SaveTrainingProfileCommand,
   TrainingProfile,
-} from './services/dtos/training-profile';
+} from './dtos/training-profile';
 
 @Injectable({ providedIn: 'root' })
 export class TrainingProfileGatewayImpl implements TrainingProfileGateway {

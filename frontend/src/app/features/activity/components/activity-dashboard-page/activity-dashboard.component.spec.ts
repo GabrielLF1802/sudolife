@@ -2,20 +2,20 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../../../../core/auth/auth.service';
 import {
   ActivityDashboardComponent,
   deriveTodayAction,
   TodayActionState,
 } from './activity-dashboard.component';
-import { ActivityService } from './activity.service';
-import { CoachingProfileService } from './coaching-profile.service';
-import { ActivityDetail } from './services/dtos/activity-detail';
-import { ActivityList } from './services/dtos/activity-list';
-import { CurrentAdaptiveRunningPlan } from './services/dtos/adaptive-running-plan';
-import { StravaLinkStatus } from './services/dtos/strava-link-status';
-import { StravaAccountService } from './strava-account.service';
-import { TrainingProfileService } from './training-profile.service';
+import { ActivityService } from '../../services/activity.service';
+import { CoachingProfileService } from '../../services/coaching-profile.service';
+import { ActivityDetail } from '../../services/dtos/activity-detail';
+import { ActivityList } from '../../services/dtos/activity-list';
+import { CurrentAdaptiveRunningPlan } from '../../services/dtos/adaptive-running-plan';
+import { StravaLinkStatus } from '../../services/dtos/strava-link-status';
+import { StravaAccountService } from '../../services/strava-account.service';
+import { TrainingProfileService } from '../../services/training-profile.service';
 
 describe('ActivityDashboardComponent', () => {
   let fixture: ComponentFixture<ActivityDashboardComponent>;

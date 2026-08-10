@@ -2,9 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 
 import { StravaAccountGateway } from './strava-account.gateway';
-import { StravaActivitySyncResult } from './services/dtos/strava-activity-sync';
-import { StravaAuthorizationUrl } from './services/dtos/strava-authorization-url';
-import { StravaLinkStatus } from './services/dtos/strava-link-status';
+import { StravaActivitySyncResult } from './dtos/strava-activity-sync';
+import { StravaAuthorizationUrl } from './dtos/strava-authorization-url';
+import { StravaLinkStatus } from './dtos/strava-link-status';
 
 @Injectable()
 export class StravaAccountGatewayStub implements StravaAccountGateway {

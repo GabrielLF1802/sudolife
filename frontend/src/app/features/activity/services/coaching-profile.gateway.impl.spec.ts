@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { CoachingProfileGatewayImpl } from './coaching-profile.gateway.impl';
-import { PlannedSession } from './services/dtos/adaptive-running-plan';
+import { PlannedSession } from './dtos/adaptive-running-plan';
 
 describe('CoachingProfileGatewayImpl', () => {
   let gateway: CoachingProfileGatewayImpl;

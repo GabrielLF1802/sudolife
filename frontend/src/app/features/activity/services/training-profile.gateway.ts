@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import {
   SaveTrainingProfileCommand,
   TrainingProfile,
-} from './services/dtos/training-profile';
+} from './dtos/training-profile';
 
 export interface TrainingProfileGateway {
   get(): Observable<TrainingProfile>;

@@ -3,8 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ActivityGateway } from './activity.gateway';
-import { ActivityDetail } from './services/dtos/activity-detail';
-import { ActivityList } from './services/dtos/activity-list';
+import { ActivityDetail } from './dtos/activity-detail';
+import { ActivityList } from './dtos/activity-list';
 
 @Injectable({ providedIn: 'root' })
 export class ActivityGatewayImpl implements ActivityGateway {

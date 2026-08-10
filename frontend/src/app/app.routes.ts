@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
 
-import { ActivityDashboardComponent } from './activity/activity-dashboard.component';
-import { StravaCallbackResultComponent } from './activity/strava-callback-result.component';
-import { authGuard } from './auth/auth.guard';
-import { LoginComponent } from './auth/login.component';
-import { RegisterComponent } from './auth/register.component';
+import { authGuard } from './core/auth/auth.guard';
+import { LoginComponent } from './core/auth/login.component';
+import { RegisterComponent } from './core/auth/register.component';
+import { ActivityDashboardComponent } from './features/activity/components/activity-dashboard-page/activity-dashboard.component';
+import { StravaCallbackResultComponent } from './features/activity/components/strava-callback-result/strava-callback-result.component';
 
 export const routes: Routes = [
   {
