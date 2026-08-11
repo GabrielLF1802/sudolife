@@ -1,0 +1,10 @@
+<button
+  [type]="type()"
+  [class.primary]="variant() === 'primary'"
+  [class.integration]="variant() === 'integration'"
+  [class.large]="size() === 'large'"
+  [disabled]="disabled() || busy()"
+  [attr.aria-busy]="busy() ? 'true' : null"
+>
+  <ng-content />
+</button>

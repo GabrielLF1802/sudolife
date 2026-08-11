@@ -53,13 +53,15 @@
       <p class="form-error" id="register-error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <button
+    <sudo-button
       type="submit"
+      variant="primary"
+      size="large"
       [disabled]="registerForm.invalid || submitting()"
-      [attr.aria-busy]="submitting()"
+      [busy]="submitting()"
     >
       {{ submitting() ? 'Criando...' : 'Criar conta' }}
-    </button>
+    </sudo-button>
   </form>
 
   <p class="switch-link">Já tem conta? <a routerLink="/login">Entrar</a></p>

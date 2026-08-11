@@ -2,11 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { SudoButtonComponent } from '../../shared/components/sudo/sudo-button/sudo-button.component';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, SudoButtonComponent],
   templateUrl: './login.component.html',
   styleUrl: './auth-form.component.scss',
 })
