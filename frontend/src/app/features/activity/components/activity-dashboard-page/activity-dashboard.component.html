@@ -733,6 +733,11 @@
                             <span> (fora da página carregada)</span>
                           }
                         </p>
+                      } @else {
+                        <p class="session-context">
+                          Nenhuma corrida associada ainda. Escolha uma corrida importada para
+                          confirmar esta sessão.
+                        </p>
                       }
                       @if (session.postSessionPerceivedEffort) {
                         <p class="session-context">
@@ -741,35 +746,36 @@
                         </p>
                       }
 
-                      @if (session.matchedActivityId) {
-                        <div
-                          class="session-controls"
-                          [attr.aria-busy]="isSessionOperating(session.id)"
-                        >
-                          <form (submit)="$event.preventDefault(); correctSessionMatch(session.id)">
-                            <label [for]="'activity-match-' + session.id"
-                              >Trocar corrida desta sessão</label
+                      <div class="session-controls" [attr.aria-busy]="isSessionOperating(session.id)">
+                        <form (submit)="$event.preventDefault(); correctSessionMatch(session.id)">
+                          <label [for]="'activity-match-' + session.id">
+                            @if (session.matchedActivityId) {
+                              Trocar corrida desta sessão
+                            } @else {
+                              Corrida desta sessão
+                            }
+                          </label>
+                          <div>
+                            <select
+                              [id]="'activity-match-' + session.id"
+                              [value]="selectedMatchActivityIds()[session.id] ?? ''"
+                              [disabled]="isSessionOperating(session.id)"
+                              (change)="updateMatchActivity(session.id, $event)"
                             >
-                            <div>
-                              <select
-                                [id]="'activity-match-' + session.id"
-                                [value]="selectedMatchActivityIds()[session.id] ?? ''"
-                                [disabled]="isSessionOperating(session.id)"
-                                (change)="updateMatchActivity(session.id, $event)"
-                              >
-                                <option value="">Escolha uma corrida</option>
-                                @for (activity of importedRuns(); track activity.id) {
-                                  <option [value]="activity.id">
-                                    {{ activityOptionLabel(activity) }}
-                                  </option>
-                                }
-                              </select>
-                              <button type="submit" [disabled]="isSessionOperating(session.id)">
-                                Salvar corrida
-                              </button>
-                            </div>
-                          </form>
+                              <option value="">Escolha uma corrida</option>
+                              @for (activity of importedRuns(); track activity.id) {
+                                <option [value]="activity.id">
+                                  {{ activityOptionLabel(activity) }}
+                                </option>
+                              }
+                            </select>
+                            <button type="submit" [disabled]="isSessionOperating(session.id)">
+                              Salvar corrida
+                            </button>
+                          </div>
+                        </form>
 
+                        @if (session.matchedActivityId) {
                           @if (unlinkConfirmationId() === session.id) {
                             <div
                               class="unlink-confirmation"
@@ -837,8 +843,8 @@
                               </button>
                             </div>
                           </form>
-                        </div>
-                      }
+                        }
+                      </div>
 
                       @if (sessionErrors()[session.id]; as sessionError) {
                         <p class="session-message error" role="alert">{{ sessionError }}</p>

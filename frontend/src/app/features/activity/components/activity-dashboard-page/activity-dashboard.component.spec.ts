@@ -637,6 +637,36 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('Corrida da sessão atualizada.');
   });
 
+  it('should_allow_matching_a_completed_session_without_showing_effort_first', () => {
+    loadCurrentAdaptivePlanWithActivities(currentAdaptivePlanWithUnmatchedCompletedSession());
+
+    expect(pageText()).toContain('Nenhuma corrida associada ainda.');
+    expect(fixture.nativeElement.querySelector('#activity-match-11')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#perceived-effort-11')).toBeNull();
+
+    const select = fixture.nativeElement.querySelector('#activity-match-11') as HTMLSelectElement;
+    select.value = '99';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    buttonByText('Salvar corrida').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.correctPlannedSessionMatch).toHaveBeenCalledWith({
+      plannedSessionId: 11,
+      activityId: 99,
+    });
+  });
+
+  it('should_reject_empty_session_match_without_sending_activity_zero', () => {
+    loadCurrentAdaptivePlanWithActivities(currentAdaptivePlanWithUnmatchedCompletedSession());
+
+    buttonByText('Salvar corrida').click();
+    fixture.detectChanges();
+
+    expect(coachingProfileService.correctPlannedSessionMatch).not.toHaveBeenCalled();
+    expect(pageText()).toContain('Escolha a corrida que corresponde a esta sessão.');
+  });
+
   it('should_require_inline_confirmation_before_unlinking_a_session', () => {
     loadCurrentAdaptivePlanWithActivities();
 
@@ -982,16 +1012,22 @@ describe('ActivityDashboardComponent', () => {
     return fixture.nativeElement.querySelector('.activity-list')?.textContent ?? '';
   }
 
-  function loadCurrentAdaptivePlanWithActivities(): void {
+  function loadCurrentAdaptivePlanWithActivities(plan = currentAdaptivePlan()): void {
     activityService.list.and.returnValue(of(activityListWithSummaries()));
     coachingProfileService.get.and.returnValue(
       of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
     );
     coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
-    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(of(currentAdaptivePlan()));
+    coachingProfileService.getCurrentAdaptiveRunningPlan.and.returnValue(of(plan));
     fixture.detectChanges();
     dashboardNavigationButton('Plano').click();
     fixture.detectChanges();
+  }
+
+  function buttonByText(label: string): HTMLButtonElement {
+    return [...fixture.nativeElement.querySelectorAll('button')].find(
+      (button: HTMLButtonElement) => button.textContent.trim() === label,
+    ) as HTMLButtonElement;
   }
 
   function sessionButton(sessionId: number, label: string): HTMLButtonElement {
@@ -1254,6 +1290,17 @@ describe('ActivityDashboardComponent', () => {
         session(13, 'REPLACED', '2026-07-20', 'LONG_RUN'),
         session(11, 'COMPLETED', '2026-07-16', 'EASY_RUN'),
       ],
+    };
+  }
+
+  function currentAdaptivePlanWithUnmatchedCompletedSession(): CurrentAdaptiveRunningPlan {
+    return {
+      ...currentAdaptivePlan(),
+      plannedSessions: currentAdaptivePlan().plannedSessions.map((session) =>
+        session.id === 11
+          ? { ...session, matchedActivityId: null, postSessionPerceivedEffort: null }
+          : session,
+      ),
     };
   }
 

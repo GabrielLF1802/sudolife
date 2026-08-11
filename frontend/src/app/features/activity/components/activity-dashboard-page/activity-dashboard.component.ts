@@ -785,9 +785,10 @@ export class ActivityDashboardComponent implements OnInit {
   }
 
   protected correctSessionMatch(sessionId: number): void {
-    const activityId = Number(this.selectedMatchActivityIds()[sessionId]);
+    const selectedActivityId = this.selectedMatchActivityIds()[sessionId]?.trim() ?? '';
+    const activityId = Number(selectedActivityId);
 
-    if (!Number.isInteger(activityId)) {
+    if (selectedActivityId === '' || !Number.isInteger(activityId)) {
       this.setSessionError(sessionId, 'Escolha a corrida que corresponde a esta sessão.');
       return;
     }
