@@ -14,7 +14,7 @@ Run the backend with `SPRING_PROFILES_ACTIVE=prod` so production values come fro
 | `DB_PASSWORD` | Production database password. |
 | `API_SECURITY_TOKEN_SECRET` | JWT signing secret. |
 | `API_SECURITY_TOKEN_ISSUER` | JWT issuer. |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed browser origins. |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated explicit HTTPS browser origins. |
 | `STRAVA_CLIENT_ID` | Strava OAuth client id. |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth client secret. |
 | `STRAVA_AUTHORIZATION_URL` | Strava authorization endpoint. |
@@ -38,4 +38,4 @@ Optional production tuning variables are documented in `.env.example`.
 
 The `prod` profile exposes only Actuator health endpoints, never includes health details in responses, and disables Springdoc API docs plus Swagger UI.
 
-CORS is explicit in production. Set `CORS_ALLOWED_ORIGINS` to the deployed frontend origin list; do not use `*` when credentials are enabled.
+CORS is explicit in production. Set `CORS_ALLOWED_ORIGINS` to the deployed frontend origin list using HTTPS origins only, for example `https://app.sudolife.example,https://admin.sudolife.example`. Startup fails in the `prod` profile when the value is missing, empty, contains `*`, uses a non-HTTPS scheme, or includes anything other than an origin.
