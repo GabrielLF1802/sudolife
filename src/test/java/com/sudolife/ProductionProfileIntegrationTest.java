@@ -84,6 +84,13 @@ class ProductionProfileIntegrationTest {
     }
 
     @Test
+    void secure_production_response_includes_hsts() throws Exception {
+        mockMvc.perform(get("/actuator/health").secure(true))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Strict-Transport-Security", "max-age=31536000 ; includeSubDomains"));
+    }
+
+    @Test
     void production_profile_uses_environment_driven_external_settings() {
         assertThat(environment.getRequiredProperty("ai.running-plan-provider-url")).isEqualTo("http://ollama-sudolife:11434");
         assertThat(environment.getRequiredProperty("strava.redirect-uri")).isEqualTo("https://api.sudolife.example/api/strava/callback");

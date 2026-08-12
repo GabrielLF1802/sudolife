@@ -35,6 +35,7 @@ import com.sudolife.application.service.strava.ports.provided.UnlinkStravaAccoun
 import com.sudolife.application.service.user.ports.required.UserRepository;
 import com.sudolife.application.service.user.ports.required.UserToken;
 import com.sudolife.config.security.CorsProperties;
+import com.sudolife.config.security.SecurityHeadersProperties;
 import com.sudolife.config.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -405,6 +406,11 @@ class StravaAccountLinkControllerWebMvcTest {
         CorsProperties corsProperties() {
             return new CorsProperties(List.of("http://localhost:4200"), List.of("GET", "POST", "OPTIONS"),
                     List.of("Authorization", "Content-Type"), true, Duration.ofHours(1));
+        }
+
+        @Bean
+        SecurityHeadersProperties securityHeadersProperties() {
+            return new SecurityHeadersProperties(false, Duration.ofDays(365), true);
         }
     }
 }

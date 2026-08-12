@@ -23,6 +23,7 @@ import static com.sudolife.helper.UserTestHelper.PASSWORD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -56,6 +57,39 @@ class AuthenticationFlowIntegrationTest {
                 .getContentAsString();
 
         assertThat(response).isEqualTo("ok");
+    }
+
+    @Test
+    void public_api_response_includes_security_headers() throws Exception {
+        RegisterUserCommand command = new RegisterUserCommand(NAME, EMAIL, PASSWORD);
+
+        mockMvc.perform(post("/api/users/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(header().string("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"))
+                .andExpect(header().string("Permissions-Policy",
+                        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"))
+                .andExpect(header().doesNotExist("Strict-Transport-Security"));
+    }
+
+    @Test
+    void authenticated_api_response_includes_security_headers() throws Exception {
+        registerUser();
+        String token = login();
+
+        mockMvc.perform(get("/api/protected").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(header().string("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"))
+                .andExpect(header().string("Permissions-Policy",
+                        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"))
+                .andExpect(header().doesNotExist("Strict-Transport-Security"));
     }
 
     @Test
