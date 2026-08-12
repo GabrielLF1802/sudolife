@@ -34,6 +34,7 @@ import com.sudolife.application.service.strava.ports.provided.StartStravaAccount
 import com.sudolife.application.service.strava.ports.provided.UnlinkStravaAccountUseCase;
 import com.sudolife.application.service.user.ports.required.UserRepository;
 import com.sudolife.application.service.user.ports.required.UserToken;
+import com.sudolife.config.security.CorsProperties;
 import com.sudolife.config.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
 import java.util.List;
 
 import static com.sudolife.helper.StravaTestHelper.NOW;
@@ -397,6 +399,12 @@ class StravaAccountLinkControllerWebMvcTest {
         @Bean
         StravaFrontendRedirectProperties stravaFrontendRedirectProperties() {
             return new StravaFrontendRedirectProperties(FRONTEND_SUCCESS_URL, FRONTEND_FAILURE_URL);
+        }
+
+        @Bean
+        CorsProperties corsProperties() {
+            return new CorsProperties(List.of("http://localhost:4200"), List.of("GET", "POST", "OPTIONS"),
+                    List.of("Authorization", "Content-Type"), true, Duration.ofHours(1));
         }
     }
 }
