@@ -39,3 +39,13 @@ Optional production tuning variables are documented in `.env.example`.
 The `prod` profile exposes only Actuator health endpoints, never includes health details in responses, and disables Springdoc API docs plus Swagger UI.
 
 CORS is explicit in production. Set `CORS_ALLOWED_ORIGINS` to the deployed frontend origin list using HTTPS origins only, for example `https://app.sudolife.example,https://admin.sudolife.example`. Startup fails in the `prod` profile when the value is missing, empty, contains `*`, uses a non-HTTPS scheme, or includes anything other than an origin.
+
+##############################
+# Security Headers
+##############################
+
+The backend owns security headers for API responses. It emits `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy`, and `Permissions-Policy` on API and actuator responses.
+
+HSTS is enabled by default only in the `prod` profile and is emitted only for HTTPS requests. Use `SECURITY_HEADERS_HSTS_ENABLED=false` only when a production proxy already owns HSTS for the API host.
+
+The frontend deployment or edge proxy owns frontend document policies that need knowledge of scripts, styles, images, analytics, fonts, and static asset hosts. Do not widen the backend API CSP to support browser-rendered frontend assets.
