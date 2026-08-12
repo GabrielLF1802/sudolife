@@ -48,4 +48,13 @@ describe('AuthService', () => {
     expect(authService.token()).toBe('jwt-token');
     expect(authService.isAuthenticated()).toBeTrue();
   });
+
+  it('should_remove_token_after_logout', () => {
+    localStorage.setItem('sudolife.jwt', 'jwt-token');
+
+    authService.logout();
+
+    expect(authService.token()).toBeNull();
+    expect(authService.isAuthenticated()).toBeFalse();
+  });
 });
