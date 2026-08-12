@@ -8,6 +8,7 @@ RUN java -Djarmode=layertools -jar application.jar extract
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /application
 
+RUN apk add --no-cache curl
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
