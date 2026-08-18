@@ -32,6 +32,8 @@ Run the backend with `SPRING_PROFILES_ACTIVE=prod` so production values come fro
 
 Optional production tuning variables are documented in `.env.example`.
 
+Rate-limit behavior and tuning knobs are documented in [API Rate Limiting](operations/rate-limit/api-rate-limiting.md).
+
 ##############################
 # Production Exposure
 ##############################
