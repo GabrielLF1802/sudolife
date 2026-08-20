@@ -2,7 +2,7 @@
 
 Sudolife rate limiting runs inside the backend inbound REST adapter using Bucket4j, as decided in [ADR 0007](../../adr/0007-api-rate-limiting.md). The current bucket registry is in process and is intended for the single-backend deployment topology.
 
-See [Rate Limit Policies](rate-limit-policies.md) for a concise comparison of the generic API, login, and registration policies.
+See [Rate Limit Policies](rate-limit-policies.md) for a concise comparison of the generic API, login, and registration policies. See [Staging Rate Limit Smoke Test](staging-rate-limit-smoke-test.md) for the operational script used to verify `429` responses in staging.
 
 ##############################
 # Policy Behavior
