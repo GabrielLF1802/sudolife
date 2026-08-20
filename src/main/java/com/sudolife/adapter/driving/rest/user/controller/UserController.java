@@ -1,9 +1,12 @@
 package com.sudolife.adapter.driving.rest.user.controller;
 
+import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
+import com.sudolife.adapter.driving.rest.ratelimit.RegistrationRateLimitPolicy;
 import com.sudolife.application.service.user.CurrentUserResult;
 import com.sudolife.application.service.user.RegisterUserCommand;
 import com.sudolife.application.service.user.ports.provided.GetCurrentUserUseCase;
 import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +24,13 @@ public class UserController {
 
     private final RegisterUserUseCase registerUserUseCase;
     private final GetCurrentUserUseCase getCurrentUserUseCase;
+    private final RegistrationRateLimitPolicy registrationRateLimitPolicy;
+    private final HttpRequestOriginResolver originResolver;
 
     @PostMapping("/register")
-    public ResponseEntity<Void> registerUser(@RequestBody RegisterUserCommand command) {
+    public ResponseEntity<Void> registerUser(@RequestBody RegisterUserCommand command, HttpServletRequest request) {
+        String origin = originResolver.resolveOrigin(request);
+        registrationRateLimitPolicy.consumeRegistrationAttempt(command, origin);
         registerUserUseCase.execute(command);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();

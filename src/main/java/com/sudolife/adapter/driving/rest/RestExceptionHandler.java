@@ -1,5 +1,7 @@
 package com.sudolife.adapter.driving.rest;
 
+import com.sudolife.adapter.driving.rest.ratelimit.LoginRateLimitExceededException;
+import com.sudolife.adapter.driving.rest.ratelimit.RegisterRateLimitExceededException;
 import com.sudolife.application.service.user.exception.AuthenticatedUserNotFoundException;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
@@ -25,6 +27,18 @@ public class RestExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("INVALID_CREDENTIALS", exception.getMessage()));
+    }
+
+    @ExceptionHandler(LoginRateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleLoginRateLimitExceeded(LoginRateLimitExceededException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse("LOGIN_RATE_LIMIT_EXCEEDED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(RegisterRateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRegisterRateLimitExceeded(RegisterRateLimitExceededException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse("REGISTER_RATE_LIMIT_EXCEEDED", exception.getMessage()));
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
