@@ -1,6 +1,11 @@
 package com.sudolife.config.security;
 
+import com.sudolife.adapter.driving.rest.ratelimit.GenericApiRateLimitFilter;
+import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
+import com.sudolife.adapter.driving.rest.ratelimit.RestRateLimitBucketRegistry;
 import com.sudolife.application.service.user.ports.required.UserRepository;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -41,6 +46,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            ObjectProvider<GenericApiRateLimitFilter> genericApiRateLimitFilter,
             CorsConfigurationSource corsConfigurationSource
     ) throws Exception {
         http
@@ -59,6 +65,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        genericApiRateLimitFilter.ifAvailable(filter -> http.addFilterAfter(filter, JwtAuthenticationFilter.class));
 
         return http.build();
     }
@@ -93,6 +101,12 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    @ConditionalOnBean(RestRateLimitBucketRegistry.class)
+    public GenericApiRateLimitFilter genericApiRateLimitFilter(RestRateLimitBucketRegistry bucketRegistry, HttpRequestOriginResolver originResolver) {
+        return new GenericApiRateLimitFilter(bucketRegistry, originResolver);
     }
 
     @Bean
