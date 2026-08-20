@@ -1,5 +1,10 @@
 package com.sudolife.adapter.driving.rest.ratelimit;
 
+import com.sudolife.application.service.ratelimit.RateLimitBucketKey;
+import com.sudolife.application.service.ratelimit.RateLimitConsumption;
+import com.sudolife.application.service.ratelimit.RateLimitPolicy;
+import com.sudolife.application.service.ratelimit.exception.LoginRateLimitExceededException;
+import com.sudolife.application.service.ratelimit.ports.required.RateLimitBucketRegistry;
 import com.sudolife.application.service.user.AuthenticateUserCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -12,7 +17,7 @@ public class LoginRateLimitPolicy {
 
     private static final String MISSING_EMAIL_KEY = "missing-email";
 
-    private final RestRateLimitBucketRegistry bucketRegistry;
+    private final RateLimitBucketRegistry bucketRegistry;
 
     public void consumePreAuthenticationOrigin(String origin) {
         RateLimitConsumption consumption = bucketRegistry.consume(loginOriginKey(origin));
@@ -44,15 +49,15 @@ public class LoginRateLimitPolicy {
     }
 
     private RateLimitBucketKey loginOriginKey(String origin) {
-        return new RateLimitBucketKey(RestRateLimitPolicy.LOGIN_IP, origin);
+        return new RateLimitBucketKey(RateLimitPolicy.LOGIN_IP, origin);
     }
 
     private RateLimitBucketKey loginEmailKey(AuthenticateUserCommand command) {
-        return new RateLimitBucketKey(RestRateLimitPolicy.LOGIN_EMAIL, normalizedEmail(command));
+        return new RateLimitBucketKey(RateLimitPolicy.LOGIN_EMAIL, normalizedEmail(command));
     }
 
     private RateLimitBucketKey loginEmailOriginKey(AuthenticateUserCommand command, String origin) {
-        return new RateLimitBucketKey(RestRateLimitPolicy.LOGIN_EMAIL_ORIGIN, normalizedEmail(command) + "|" + origin);
+        return new RateLimitBucketKey(RateLimitPolicy.LOGIN_EMAIL_ORIGIN, normalizedEmail(command) + "|" + origin);
     }
 
     private String normalizedEmail(AuthenticateUserCommand command) {

@@ -1,5 +1,9 @@
 package com.sudolife.adapter.driving.rest.ratelimit;
 
+import com.sudolife.application.service.ratelimit.RateLimitBucketKey;
+import com.sudolife.application.service.ratelimit.RateLimitConsumption;
+import com.sudolife.application.service.ratelimit.RateLimitPolicy;
+import com.sudolife.application.service.ratelimit.ports.required.RateLimitBucketRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,7 +38,7 @@ public class GenericApiRateLimitFilter extends OncePerRequestFilter {
     private static final String RATE_LIMIT_RESPONSE =
             "{\"code\":\"GENERIC_API_RATE_LIMIT_EXCEEDED\",\"message\":\"API rate limit exceeded\"}";
 
-    private final RestRateLimitBucketRegistry bucketRegistry;
+    private final RateLimitBucketRegistry bucketRegistry;
     private final HttpRequestOriginResolver originResolver;
 
     @Override
@@ -68,10 +72,10 @@ public class GenericApiRateLimitFilter extends OncePerRequestFilter {
     RateLimitBucketKey bucketKey(HttpServletRequest request) {
         String authenticatedUser = authenticatedUser();
         if (authenticatedUser != null) {
-            return new RateLimitBucketKey(RestRateLimitPolicy.GENERIC_API, USER_KEY_PREFIX + authenticatedUser);
+            return new RateLimitBucketKey(RateLimitPolicy.GENERIC_API, USER_KEY_PREFIX + authenticatedUser);
         }
 
-        return new RateLimitBucketKey(RestRateLimitPolicy.GENERIC_API,
+        return new RateLimitBucketKey(RateLimitPolicy.GENERIC_API,
                 ORIGIN_KEY_PREFIX + originResolver.resolveOrigin(request));
     }
 

@@ -1,5 +1,9 @@
 package com.sudolife.adapter.driving.rest.ratelimit;
 
+import com.sudolife.application.service.ratelimit.RateLimitBucketKey;
+import com.sudolife.application.service.ratelimit.RateLimitConsumption;
+import com.sudolife.application.service.ratelimit.RateLimitPolicy;
+import com.sudolife.application.service.ratelimit.ports.required.RateLimitBucketRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -22,7 +26,7 @@ class GenericApiRateLimitFilterUnitTest {
 
         RateLimitBucketKey key = filter().bucketKey(request("203.0.113.70"));
 
-        assertThat(key).isEqualTo(new RateLimitBucketKey(RestRateLimitPolicy.GENERIC_API, "user:user@sudolife.com"));
+        assertThat(key).isEqualTo(new RateLimitBucketKey(RateLimitPolicy.GENERIC_API, "user:user@sudolife.com"));
     }
 
     @Test
@@ -31,7 +35,7 @@ class GenericApiRateLimitFilterUnitTest {
 
         RateLimitBucketKey key = filter().bucketKey(request("203.0.113.71"));
 
-        assertThat(key).isEqualTo(new RateLimitBucketKey(RestRateLimitPolicy.GENERIC_API, "origin:203.0.113.71"));
+        assertThat(key).isEqualTo(new RateLimitBucketKey(RateLimitPolicy.GENERIC_API, "origin:203.0.113.71"));
     }
 
     private GenericApiRateLimitFilter filter() {
@@ -45,7 +49,7 @@ class GenericApiRateLimitFilterUnitTest {
         return request;
     }
 
-    private static class AllowedBucketRegistry implements RestRateLimitBucketRegistry {
+    private static class AllowedBucketRegistry implements RateLimitBucketRegistry {
 
         @Override
         public long availableTokens(RateLimitBucketKey key) {

@@ -1,5 +1,7 @@
-package com.sudolife.adapter.driving.rest.ratelimit;
+package com.sudolife.config.security.infraestructure.ratelimit;
 
+import com.sudolife.application.service.ratelimit.RateLimitPolicyProperties;
+import com.sudolife.application.service.ratelimit.RateLimitPolicy;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("api.rate-limit")
@@ -19,7 +21,7 @@ public record RestRateLimitProperties(RateLimitPolicyProperties loginIp,
         genericApi = requirePolicy(genericApi, "generic-api");
     }
 
-    public RateLimitPolicyProperties policy(RestRateLimitPolicy policy) {
+    public RateLimitPolicyProperties policy(RateLimitPolicy policy) {
         return switch (policy) {
             case LOGIN_IP -> loginIp;
             case LOGIN_EMAIL -> loginEmail;

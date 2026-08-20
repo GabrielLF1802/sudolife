@@ -1,4 +1,4 @@
-package com.sudolife.adapter.driving.rest.ratelimit;
+package com.sudolife.application.service.ratelimit.exception;
 
 public class LoginRateLimitExceededException extends RuntimeException {
 

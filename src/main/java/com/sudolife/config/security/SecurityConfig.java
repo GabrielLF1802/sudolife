@@ -2,7 +2,7 @@ package com.sudolife.config.security;
 
 import com.sudolife.adapter.driving.rest.ratelimit.GenericApiRateLimitFilter;
 import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
-import com.sudolife.adapter.driving.rest.ratelimit.RestRateLimitBucketRegistry;
+import com.sudolife.application.service.ratelimit.ports.required.RateLimitBucketRegistry;
 import com.sudolife.application.service.user.ports.required.UserRepository;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -104,8 +104,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    @ConditionalOnBean(RestRateLimitBucketRegistry.class)
-    public GenericApiRateLimitFilter genericApiRateLimitFilter(RestRateLimitBucketRegistry bucketRegistry, HttpRequestOriginResolver originResolver) {
+    @ConditionalOnBean(RateLimitBucketRegistry.class)
+    public GenericApiRateLimitFilter genericApiRateLimitFilter(RateLimitBucketRegistry bucketRegistry, HttpRequestOriginResolver originResolver) {
         return new GenericApiRateLimitFilter(bucketRegistry, originResolver);
     }
 

@@ -1,6 +1,6 @@
-package com.sudolife.adapter.driving.rest.ratelimit;
+package com.sudolife.application.service.ratelimit;
 
-public enum RestRateLimitPolicy {
+public enum RateLimitPolicy {
 
     LOGIN_IP,
     LOGIN_EMAIL,

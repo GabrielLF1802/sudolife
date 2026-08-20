@@ -1,5 +1,10 @@
-package com.sudolife.adapter.driving.rest.ratelimit;
+package com.sudolife.adapter.driven.ratelimit;
 
+import com.sudolife.application.service.ratelimit.RateLimitPolicyProperties;
+import com.sudolife.config.security.infraestructure.ratelimit.RestRateLimitProperties;
+import com.sudolife.application.service.ratelimit.RateLimitBucketKey;
+import com.sudolife.application.service.ratelimit.RateLimitConsumption;
+import com.sudolife.application.service.ratelimit.ports.required.RateLimitBucketRegistry;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -15,18 +20,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Component
-public class InProcessBucket4jRestRateLimitBucketRegistry implements RestRateLimitBucketRegistry {
+public class InProcessBucket4JRateLimitBucketRegistry implements RateLimitBucketRegistry {
 
     private final RestRateLimitProperties properties;
     private final Clock clock;
     private final ConcurrentMap<RateLimitBucketKey, BucketEntry> buckets = new ConcurrentHashMap<>();
 
     @Autowired
-    public InProcessBucket4jRestRateLimitBucketRegistry(RestRateLimitProperties properties) {
+    public InProcessBucket4JRateLimitBucketRegistry(RestRateLimitProperties properties) {
         this(properties, Clock.systemUTC());
     }
 
-    InProcessBucket4jRestRateLimitBucketRegistry(RestRateLimitProperties properties, Clock clock) {
+    InProcessBucket4JRateLimitBucketRegistry(RestRateLimitProperties properties, Clock clock) {
         this.properties = properties;
         this.clock = clock;
     }

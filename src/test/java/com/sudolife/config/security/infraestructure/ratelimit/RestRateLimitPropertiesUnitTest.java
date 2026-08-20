@@ -1,5 +1,7 @@
-package com.sudolife.adapter.driving.rest.ratelimit;
+package com.sudolife.config.security.infrastructure.ratelimit;
 
+import com.sudolife.application.service.ratelimit.RateLimitPolicyProperties;
+import com.sudolife.config.security.infraestructure.ratelimit.RestRateLimitProperties;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;

@@ -1,5 +1,10 @@
 package com.sudolife.adapter.driving.rest.ratelimit;
 
+import com.sudolife.application.service.ratelimit.RateLimitBucketKey;
+import com.sudolife.application.service.ratelimit.RateLimitConsumption;
+import com.sudolife.application.service.ratelimit.RateLimitPolicy;
+import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
+import com.sudolife.application.service.ratelimit.ports.required.RateLimitBucketRegistry;
 import com.sudolife.application.service.user.RegisterUserCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -12,7 +17,7 @@ public class RegistrationRateLimitPolicy {
 
     private static final String MISSING_EMAIL_KEY = "missing-email";
 
-    private final RestRateLimitBucketRegistry bucketRegistry;
+    private final RateLimitBucketRegistry bucketRegistry;
 
     public void consumeRegistrationAttempt(RegisterUserCommand command, String origin) {
         RateLimitConsumption originConsumption = bucketRegistry.consume(registrationOriginKey(origin));
@@ -27,11 +32,11 @@ public class RegistrationRateLimitPolicy {
     }
 
     private RateLimitBucketKey registrationOriginKey(String origin) {
-        return new RateLimitBucketKey(RestRateLimitPolicy.REGISTRATION_ORIGIN, origin);
+        return new RateLimitBucketKey(RateLimitPolicy.REGISTRATION_ORIGIN, origin);
     }
 
     private RateLimitBucketKey registrationEmailKey(RegisterUserCommand command) {
-        return new RateLimitBucketKey(RestRateLimitPolicy.REGISTRATION_EMAIL, normalizedEmail(command));
+        return new RateLimitBucketKey(RateLimitPolicy.REGISTRATION_EMAIL, normalizedEmail(command));
     }
 
     private String normalizedEmail(RegisterUserCommand command) {

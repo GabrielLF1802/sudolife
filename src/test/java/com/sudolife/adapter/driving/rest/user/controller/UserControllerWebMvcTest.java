@@ -1,7 +1,7 @@
 package com.sudolife.adapter.driving.rest.user.controller;
 
 import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
-import com.sudolife.adapter.driving.rest.ratelimit.RegisterRateLimitExceededException;
+import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
 import com.sudolife.adapter.driving.rest.ratelimit.RegistrationRateLimitPolicy;
 import com.sudolife.application.service.user.CurrentUserResult;
 import com.sudolife.application.service.user.RegisterUserCommand;

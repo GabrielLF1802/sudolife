@@ -1,7 +1,7 @@
 package com.sudolife.adapter.driving.rest;
 
-import com.sudolife.adapter.driving.rest.ratelimit.LoginRateLimitExceededException;
-import com.sudolife.adapter.driving.rest.ratelimit.RegisterRateLimitExceededException;
+import com.sudolife.application.service.ratelimit.exception.LoginRateLimitExceededException;
+import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
 import com.sudolife.application.service.user.exception.AuthenticatedUserNotFoundException;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;

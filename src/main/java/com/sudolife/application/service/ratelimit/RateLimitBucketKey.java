@@ -1,6 +1,6 @@
-package com.sudolife.adapter.driving.rest.ratelimit;
+package com.sudolife.application.service.ratelimit;
 
-public record RateLimitBucketKey(RestRateLimitPolicy policy, String value) {
+public record RateLimitBucketKey(RateLimitPolicy policy, String value) {
 
     public RateLimitBucketKey {
         if (policy == null) {

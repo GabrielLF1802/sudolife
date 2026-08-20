@@ -1,7 +1,7 @@
 package com.sudolife.adapter.driving.rest.auth.controller;
 
 import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
-import com.sudolife.adapter.driving.rest.ratelimit.LoginRateLimitExceededException;
+import com.sudolife.application.service.ratelimit.exception.LoginRateLimitExceededException;
 import com.sudolife.adapter.driving.rest.ratelimit.LoginRateLimitPolicy;
 import com.sudolife.application.service.user.AuthenticateUserCommand;
 import com.sudolife.application.service.user.AuthenticationResult;
