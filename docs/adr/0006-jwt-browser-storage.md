@@ -35,6 +35,8 @@ The MVP preserves the current stateless backend contract and avoids adding CSRF 
 
 Logout remains client-side token deletion. A stolen token can remain usable until expiration, so the short token lifetime is part of the decision rather than an optional tuning value.
 
+Password change remains compatible with the same stateless JWT decision. When an authenticated user changes their password, Sudolife will require the current password, update the stored password hash, and the frontend will remove the locally stored JWT and redirect the user to login. The backend will not revoke already-issued JWTs for the MVP, so any token issued before the password change can remain valid until its configured expiration. This limitation is accepted only because JWT expiration is short and because server-side revocation would require additional session state, token versioning, or issued-at validation against a password-change timestamp.
+
 Existing auth tests continue to cover the affected behavior: the frontend persists the token after login, removes it on logout, attaches the bearer header when authenticated, omits it when unauthenticated, and backend integration tests authenticate protected endpoints from the bearer header.
 
 Sudolife must revisit this decision when any of these conditions is true:
