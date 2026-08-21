@@ -38,9 +38,9 @@ Authenticated password change will use a provided application port and a command
 5. Reject a new password that matches the current password.
 6. Hash and persist the new password.
 
-The frontend will remove the stored JWT and redirect to login after a successful password change.
+The frontend will remove the stored JWT and redirect to login after a successful password change. This clears the current browser token only.
 
-Sudolife will not add server-side JWT revocation for password change in the MVP. This follows ADR 0006. Tokens issued before the password change can remain valid until expiration.
+Sudolife will not add server-side JWT revocation for password change in the MVP. This follows ADR 0006. Tokens issued before the password change can remain valid until expiration. Server-side revocation, token versioning, issued-at validation against a password-change timestamp, refresh tokens, and explicit session tracking remain non-MVP follow-up options.
 
 ## Consequences
 

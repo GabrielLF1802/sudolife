@@ -2,6 +2,16 @@
 
 ## Glossary
 
+### Account Deletion
+
+The irreversible removal of a Sudolife user account and all locally stored personal, training, Strava-imported, and account-owned data for that user. Account deletion is stronger than logout, password change, or Strava unlinking because it ends the user's relationship with Sudolife and frees the e-mail address for future registration.
+_Avoid_: Account cancellation, account deactivation, account unlinking
+
+### Account-Owned Data
+
+Data that exists only because a Sudolife user account exists, including credentials, training profile, coaching profile, adaptive running plans, Strava account links, imported Strava snapshots, sync jobs, and pending Strava authorization states.
+_Avoid_: User data, account metadata
+
 ### Strava Account Link
 
 An authorization relationship between a Sudolife user and a Strava athlete. The link stores the Strava athlete identity and token lifecycle metadata needed to call Strava on behalf of that user.
