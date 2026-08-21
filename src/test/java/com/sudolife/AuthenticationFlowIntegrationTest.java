@@ -1,5 +1,6 @@
 package com.sudolife;
 
+import com.sudolife.adapter.driving.rest.user.webmodel.ChangePasswordRequest;
 import com.sudolife.application.service.user.AuthenticateUserCommand;
 import com.sudolife.application.service.user.RegisterUserCommand;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,11 +21,14 @@ import tools.jackson.databind.ObjectMapper;
 
 import static com.sudolife.helper.UserTestHelper.EMAIL;
 import static com.sudolife.helper.UserTestHelper.NAME;
+import static com.sudolife.helper.UserTestHelper.NEW_PASSWORD;
 import static com.sudolife.helper.UserTestHelper.PASSWORD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
@@ -104,6 +108,78 @@ class AuthenticationFlowIntegrationTest {
         assertThat(status).isIn(401, 403);
     }
 
+    @Test
+    void password_change_rejects_request_without_token() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, NEW_PASSWORD);
+        int status = mockMvc.perform(patch("/api/users/me/password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn()
+                .getResponse()
+                .getStatus();
+
+        assertThat(status).isIn(401, 403);
+    }
+
+    @Test
+    void password_change_rejects_wrong_current_password() throws Exception {
+        registerUser();
+        String token = login(PASSWORD);
+        ChangePasswordRequest request = new ChangePasswordRequest("wrong-password", NEW_PASSWORD);
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void password_change_rejects_weak_new_password_with_policy_details() throws Exception {
+        registerUser();
+        String token = login(PASSWORD);
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, "weak");
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.violations").isArray());
+    }
+
+    @Test
+    void password_change_rejects_reusing_current_password() throws Exception {
+        registerUser();
+        String token = login(PASSWORD);
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, PASSWORD);
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("NEW_PASSWORD_MATCHES_CURRENT_PASSWORD"));
+    }
+
+    @Test
+    void password_change_updates_password_used_for_login() throws Exception {
+        registerUser();
+        String token = login(PASSWORD);
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, NEW_PASSWORD);
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        loginFails(PASSWORD);
+        login(NEW_PASSWORD);
+    }
+
     private void registerUser() throws Exception {
         RegisterUserCommand command = new RegisterUserCommand(NAME, EMAIL, PASSWORD);
 
@@ -114,7 +190,11 @@ class AuthenticationFlowIntegrationTest {
     }
 
     private String login() throws Exception {
-        AuthenticateUserCommand command = new AuthenticateUserCommand(EMAIL, PASSWORD);
+        return login(PASSWORD);
+    }
+
+    private String login(String password) throws Exception {
+        AuthenticateUserCommand command = new AuthenticateUserCommand(EMAIL, password);
 
         String response = mockMvc.perform(post("/api/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,6 +206,15 @@ class AuthenticationFlowIntegrationTest {
 
         JsonNode body = objectMapper.readTree(response);
         return body.get("token").asText();
+    }
+
+    private void loginFails(String password) throws Exception {
+        AuthenticateUserCommand command = new AuthenticateUserCommand(EMAIL, password);
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isUnauthorized());
     }
 
     @RestController

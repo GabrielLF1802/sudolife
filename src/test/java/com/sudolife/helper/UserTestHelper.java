@@ -4,6 +4,7 @@ import com.sudolife.application.model.user.Email;
 import com.sudolife.application.model.user.HashedPassword;
 import com.sudolife.application.model.user.User;
 import com.sudolife.application.service.user.AuthenticateUserCommand;
+import com.sudolife.application.service.user.ChangePasswordCommand;
 import com.sudolife.application.service.user.RegisterUserCommand;
 
 public class UserTestHelper {
@@ -11,7 +12,9 @@ public class UserTestHelper {
     public static final String EMAIL = "gabriel@sudolife.com";
     public static final String NAME = "Gabriel";
     public static final String PASSWORD = "Str0ng!Password";
+    public static final String NEW_PASSWORD = "An0ther!Password";
     public static final String HASHED_PASSWORD = "hashed-password";
+    public static final String NEW_HASHED_PASSWORD = "new-hashed-password";
     public static final String TOKEN = "jwt-token";
 
     public static User user() {
@@ -24,5 +27,9 @@ public class UserTestHelper {
 
     public static RegisterUserCommand registerUserCommand() {
         return new RegisterUserCommand(NAME, EMAIL, PASSWORD);
+    }
+
+    public static ChangePasswordCommand changePasswordCommand() {
+        return new ChangePasswordCommand(EMAIL, PASSWORD, NEW_PASSWORD);
     }
 }

@@ -1,9 +1,11 @@
 package com.sudolife.adapter.driving.rest;
 
+import com.sudolife.application.model.user.InvalidPasswordException;
 import com.sudolife.application.service.ratelimit.exception.LoginRateLimitExceededException;
 import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
 import com.sudolife.application.service.user.exception.AuthenticatedUserNotFoundException;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
+import com.sudolife.application.service.user.exception.NewPasswordMatchesCurrentPasswordException;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
 import com.sudolife.application.service.strava.exception.StravaAccountLinkingException;
@@ -19,6 +21,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.List;
 
 @RestControllerAdvice
 public class RestExceptionHandler {
@@ -51,6 +55,24 @@ public class RestExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAuthenticatedUserNotFound(AuthenticatedUserNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("AUTHENTICATED_USER_NOT_FOUND", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<PasswordPolicyErrorResponse> handleInvalidPassword(InvalidPasswordException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new PasswordPolicyErrorResponse(
+                        "PASSWORD_POLICY_VIOLATION",
+                        exception.getMessage(),
+                        exception.violations().stream().map(Enum::name).toList()
+                ));
+    }
+
+    @ExceptionHandler(NewPasswordMatchesCurrentPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleNewPasswordMatchesCurrentPassword(
+            NewPasswordMatchesCurrentPasswordException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("NEW_PASSWORD_MATCHES_CURRENT_PASSWORD", exception.getMessage()));
     }
 
     @ExceptionHandler(DuplicateStravaAthleteOwnershipException.class)
@@ -122,5 +144,8 @@ public class RestExceptionHandler {
     }
 
     public record ErrorResponse(String code, String message) {
+    }
+
+    public record PasswordPolicyErrorResponse(String code, String message, List<String> violations) {
     }
 }

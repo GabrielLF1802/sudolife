@@ -2,8 +2,11 @@ package com.sudolife.adapter.driving.rest.user.controller;
 
 import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
 import com.sudolife.adapter.driving.rest.ratelimit.RegistrationRateLimitPolicy;
+import com.sudolife.adapter.driving.rest.user.webmodel.ChangePasswordRequest;
+import com.sudolife.application.service.user.ChangePasswordCommand;
 import com.sudolife.application.service.user.CurrentUserResult;
 import com.sudolife.application.service.user.RegisterUserCommand;
+import com.sudolife.application.service.user.ports.provided.ChangePasswordUseCase;
 import com.sudolife.application.service.user.ports.provided.GetCurrentUserUseCase;
 import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +28,7 @@ public class UserController {
 
     private final RegisterUserUseCase registerUserUseCase;
     private final GetCurrentUserUseCase getCurrentUserUseCase;
+    private final ChangePasswordUseCase changePasswordUseCase;
     private final RegistrationRateLimitPolicy registrationRateLimitPolicy;
     private final HttpRequestOriginResolver originResolver;
 
@@ -41,5 +46,17 @@ public class UserController {
         CurrentUserResult result = getCurrentUserUseCase.execute(authentication.getName());
 
         return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/me/password")
+    public ResponseEntity<Void> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest request) {
+        ChangePasswordCommand command = new ChangePasswordCommand(
+                authentication.getName(),
+                request.currentPassword(),
+                request.newPassword()
+        );
+        changePasswordUseCase.execute(command);
+
+        return ResponseEntity.noContent().build();
     }
 }

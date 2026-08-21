@@ -30,5 +30,12 @@ public class User {
         this.email = email;
         this.password = password;
     }
-}
 
+    public void changePassword(HashedPassword password) {
+        if (password == null) {
+            throw new IllegalArgumentException("password cant be null");
+        }
+
+        this.password = password;
+    }
+}

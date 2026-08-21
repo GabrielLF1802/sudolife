@@ -3,8 +3,15 @@ package com.sudolife.adapter.driving.rest.user.controller;
 import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
 import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
 import com.sudolife.adapter.driving.rest.ratelimit.RegistrationRateLimitPolicy;
+import com.sudolife.adapter.driving.rest.user.webmodel.ChangePasswordRequest;
+import com.sudolife.application.model.user.InvalidPasswordException;
+import com.sudolife.application.model.user.PasswordPolicyViolation;
+import com.sudolife.application.service.user.ChangePasswordCommand;
 import com.sudolife.application.service.user.CurrentUserResult;
 import com.sudolife.application.service.user.RegisterUserCommand;
+import com.sudolife.application.service.user.exception.InvalidCredentialsException;
+import com.sudolife.application.service.user.exception.NewPasswordMatchesCurrentPasswordException;
+import com.sudolife.application.service.user.ports.provided.ChangePasswordUseCase;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
 import com.sudolife.application.service.user.ports.provided.GetCurrentUserUseCase;
 import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
@@ -20,7 +27,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
+
 import static com.sudolife.helper.UserTestHelper.EMAIL;
+import static com.sudolife.helper.UserTestHelper.NEW_PASSWORD;
 import static com.sudolife.helper.UserTestHelper.PASSWORD;
 import static com.sudolife.helper.UserTestHelper.NAME;
 import static org.mockito.Mockito.doThrow;
@@ -30,6 +40,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.any;
 import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,6 +65,9 @@ public class UserControllerWebMvcTest {
 
     @MockitoBean
     private GetCurrentUserUseCase getCurrentUserUseCase;
+
+    @MockitoBean
+    private ChangePasswordUseCase changePasswordUseCase;
 
     @MockitoBean
     private RegistrationRateLimitPolicy registrationRateLimitPolicy;
@@ -120,5 +134,67 @@ public class UserControllerWebMvcTest {
                 .andExpect(jsonPath("$.email").value(EMAIL));
 
         verify(getCurrentUserUseCase).execute(EMAIL);
+    }
+
+    @Test
+    void changePassword_returns_no_content_when_request_is_valid() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, NEW_PASSWORD);
+        ChangePasswordCommand command = new ChangePasswordCommand(EMAIL, PASSWORD, NEW_PASSWORD);
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .principal(authenticated(EMAIL, null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(changePasswordUseCase).execute(command);
+    }
+
+    @Test
+    void changePassword_returns_unauthorized_when_current_password_is_wrong() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest("wrong-password", NEW_PASSWORD);
+        ChangePasswordCommand command = new ChangePasswordCommand(EMAIL, "wrong-password", NEW_PASSWORD);
+        doThrow(new InvalidCredentialsException()).when(changePasswordUseCase).execute(command);
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .principal(authenticated(EMAIL, null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void changePassword_returns_password_policy_details_when_new_password_is_weak() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, "weak");
+        ChangePasswordCommand command = new ChangePasswordCommand(EMAIL, PASSWORD, "weak");
+        InvalidPasswordException exception = new InvalidPasswordException(List.of(
+                PasswordPolicyViolation.TOO_SHORT,
+                PasswordPolicyViolation.MISSING_UPPERCASE
+        ));
+        doThrow(exception).when(changePasswordUseCase).execute(command);
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .principal(authenticated(EMAIL, null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.violations[0]").value("TOO_SHORT"))
+                .andExpect(jsonPath("$.violations[1]").value("MISSING_UPPERCASE"));
+    }
+
+    @Test
+    void changePassword_returns_bad_request_when_new_password_matches_current_password() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, PASSWORD);
+        ChangePasswordCommand command = new ChangePasswordCommand(EMAIL, PASSWORD, PASSWORD);
+        doThrow(new NewPasswordMatchesCurrentPasswordException()).when(changePasswordUseCase).execute(command);
+
+        mockMvc.perform(patch("/api/users/me/password")
+                        .principal(authenticated(EMAIL, null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("NEW_PASSWORD_MATCHES_CURRENT_PASSWORD"));
     }
 }
