@@ -80,6 +80,12 @@ public class StravaActivityStreamSyncJob {
                 createdAt, now);
     }
 
+    public StravaActivityStreamSyncJob cancelled(Instant now) {
+        return new StravaActivityStreamSyncJob(id, activitySummaryId, accountLinkId, userEmail, sourceActivityId,
+                priority, StravaSummarySyncJobStatus.CANCELLED, attemptCount, runAfter, startedAt, now, failureReason,
+                createdAt, now);
+    }
+
     public boolean isQueuedOrRunning() {
         return status == StravaSummarySyncJobStatus.QUEUED || status == StravaSummarySyncJobStatus.RUNNING;
     }

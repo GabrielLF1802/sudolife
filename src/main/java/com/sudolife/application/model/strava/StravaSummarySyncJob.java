@@ -67,6 +67,11 @@ public class StravaSummarySyncJob {
                 attemptCount, importedActivityCount, runAfter, startedAt, now, failureReason, createdAt, now);
     }
 
+    public StravaSummarySyncJob cancelled(Instant now) {
+        return new StravaSummarySyncJob(id, accountLinkId, userEmail, StravaSummarySyncJobStatus.CANCELLED,
+                attemptCount, importedActivityCount, runAfter, startedAt, now, failureReason, createdAt, now);
+    }
+
     public boolean isQueuedOrRunning() {
         return status == StravaSummarySyncJobStatus.QUEUED || status == StravaSummarySyncJobStatus.RUNNING;
     }

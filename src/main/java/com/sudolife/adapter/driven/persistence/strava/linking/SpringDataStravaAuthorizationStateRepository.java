@@ -19,4 +19,6 @@ public interface SpringDataStravaAuthorizationStateRepository extends JpaReposit
             and authorizationState.expiresAt > :now
             """)
     int consumePending(@Param("state") String state, @Param("now") Instant now, @Param("consumedAt") Instant consumedAt);
+
+    void deleteByUserEmail(String userEmail);
 }

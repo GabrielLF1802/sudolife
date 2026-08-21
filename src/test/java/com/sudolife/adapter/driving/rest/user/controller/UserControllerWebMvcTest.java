@@ -4,14 +4,17 @@ import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
 import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
 import com.sudolife.adapter.driving.rest.ratelimit.RegistrationRateLimitPolicy;
 import com.sudolife.adapter.driving.rest.user.webmodel.ChangePasswordRequest;
+import com.sudolife.adapter.driving.rest.user.webmodel.DeleteAccountRequest;
 import com.sudolife.application.model.user.InvalidPasswordException;
 import com.sudolife.application.model.user.PasswordPolicyViolation;
 import com.sudolife.application.service.user.ChangePasswordCommand;
 import com.sudolife.application.service.user.CurrentUserResult;
+import com.sudolife.application.service.user.DeleteAccountCommand;
 import com.sudolife.application.service.user.RegisterUserCommand;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
 import com.sudolife.application.service.user.exception.NewPasswordMatchesCurrentPasswordException;
 import com.sudolife.application.service.user.ports.provided.ChangePasswordUseCase;
+import com.sudolife.application.service.user.ports.provided.DeleteAccountUseCase;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
 import com.sudolife.application.service.user.ports.provided.GetCurrentUserUseCase;
 import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
@@ -39,6 +42,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.any;
 import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -68,6 +72,9 @@ public class UserControllerWebMvcTest {
 
     @MockitoBean
     private ChangePasswordUseCase changePasswordUseCase;
+
+    @MockitoBean
+    private DeleteAccountUseCase deleteAccountUseCase;
 
     @MockitoBean
     private RegistrationRateLimitPolicy registrationRateLimitPolicy;
@@ -196,5 +203,33 @@ public class UserControllerWebMvcTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("NEW_PASSWORD_MATCHES_CURRENT_PASSWORD"));
+    }
+
+    @Test
+    void deleteAccount_returns_no_content_when_request_is_valid() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest(PASSWORD);
+        DeleteAccountCommand command = new DeleteAccountCommand(EMAIL, PASSWORD);
+
+        mockMvc.perform(delete("/api/users/me")
+                        .principal(authenticated(EMAIL, null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(deleteAccountUseCase).execute(command);
+    }
+
+    @Test
+    void deleteAccount_returns_unauthorized_when_current_password_is_wrong() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest("wrong-password");
+        DeleteAccountCommand command = new DeleteAccountCommand(EMAIL, "wrong-password");
+        doThrow(new InvalidCredentialsException()).when(deleteAccountUseCase).execute(command);
+
+        mockMvc.perform(delete("/api/users/me")
+                        .principal(authenticated(EMAIL, null, java.util.List.of()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
     }
 }

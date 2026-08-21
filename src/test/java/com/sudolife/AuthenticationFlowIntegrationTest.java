@@ -1,6 +1,7 @@
 package com.sudolife;
 
 import com.sudolife.adapter.driving.rest.user.webmodel.ChangePasswordRequest;
+import com.sudolife.adapter.driving.rest.user.webmodel.DeleteAccountRequest;
 import com.sudolife.application.service.user.AuthenticateUserCommand;
 import com.sudolife.application.service.user.RegisterUserCommand;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,7 @@ import static com.sudolife.helper.UserTestHelper.NAME;
 import static com.sudolife.helper.UserTestHelper.NEW_PASSWORD;
 import static com.sudolife.helper.UserTestHelper.PASSWORD;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -48,6 +50,17 @@ class AuthenticationFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("delete from strava_activity_stream_sync_jobs");
+        jdbcTemplate.update("delete from strava_summary_sync_jobs");
+        jdbcTemplate.update("delete from strava_activity_stream_snapshots");
+        jdbcTemplate.update("delete from strava_activity_detail_snapshots");
+        jdbcTemplate.update("delete from strava_activity_summaries");
+        jdbcTemplate.update("delete from strava_authorization_states");
+        jdbcTemplate.update("delete from strava_account_links");
+        jdbcTemplate.update("delete from adaptive_running_plan_sessions");
+        jdbcTemplate.update("delete from adaptive_running_plans");
+        jdbcTemplate.update("delete from coaching_profiles");
+        jdbcTemplate.update("delete from training_profiles");
         jdbcTemplate.update("delete from users");
     }
 
@@ -180,6 +193,76 @@ class AuthenticationFlowIntegrationTest {
         login(NEW_PASSWORD);
     }
 
+    @Test
+    void account_deletion_rejects_request_without_token() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest(PASSWORD);
+        int status = mockMvc.perform(delete("/api/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn()
+                .getResponse()
+                .getStatus();
+
+        assertThat(status).isIn(401, 403);
+    }
+
+    @Test
+    void account_deletion_rejects_wrong_current_password() throws Exception {
+        registerUser();
+        String token = login(PASSWORD);
+        DeleteAccountRequest request = new DeleteAccountRequest("wrong-password");
+
+        mockMvc.perform(delete("/api/users/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void account_deletion_deletes_user_and_allows_same_email_registration() throws Exception {
+        registerUser();
+        String token = login(PASSWORD);
+        DeleteAccountRequest request = new DeleteAccountRequest(PASSWORD);
+
+        mockMvc.perform(delete("/api/users/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where email = ?", Long.class, EMAIL))
+                .isZero();
+        registerUser();
+    }
+
+    @Test
+    void account_deletion_deletes_account_owned_data() throws Exception {
+        registerUser();
+        seedAccountOwnedData();
+        String token = login(PASSWORD);
+        DeleteAccountRequest request = new DeleteAccountRequest(PASSWORD);
+
+        mockMvc.perform(delete("/api/users/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        assertThat(countRows("training_profiles")).isZero();
+        assertThat(countRows("coaching_profiles")).isZero();
+        assertThat(countRows("adaptive_running_plans")).isZero();
+        assertThat(countRows("adaptive_running_plan_sessions")).isZero();
+        assertThat(countRows("strava_authorization_states")).isZero();
+        assertThat(countRows("strava_account_links")).isZero();
+        assertThat(countRows("strava_activity_summaries")).isZero();
+        assertThat(countRows("strava_activity_detail_snapshots")).isZero();
+        assertThat(countRows("strava_activity_stream_snapshots")).isZero();
+        assertThat(countRows("strava_summary_sync_jobs")).isZero();
+        assertThat(countRows("strava_activity_stream_sync_jobs")).isZero();
+    }
+
     private void registerUser() throws Exception {
         RegisterUserCommand command = new RegisterUserCommand(NAME, EMAIL, PASSWORD);
 
@@ -215,6 +298,126 @@ class AuthenticationFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(command)))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private void seedAccountOwnedData() {
+        jdbcTemplate.update("insert into training_profiles (user_email) values (?)", EMAIL);
+        jdbcTemplate.update("""
+                insert into coaching_profiles (
+                    user_email,
+                    target_distance_kilometers,
+                    readiness,
+                    injury_concern
+                ) values (?, 5.0, 'READY', false)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into adaptive_running_plans (
+                    id,
+                    user_email,
+                    safe_milestone_distance_kilometers,
+                    explanation,
+                    accepted_at
+                ) values (100, ?, 5.0, 'Plan', current_timestamp)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into adaptive_running_plan_sessions (
+                    id,
+                    plan_id,
+                    week_number,
+                    session_number,
+                    session_type,
+                    distance_kilometers,
+                    target_type,
+                    scheduled_date,
+                    status
+                ) values (101, 100, 1, 1, 'EASY_RUN', 5.0, 'PERCEIVED_EFFORT', current_date, 'PLANNED')
+                """);
+        jdbcTemplate.update("""
+                insert into strava_account_links (
+                    id,
+                    user_email,
+                    athlete_id,
+                    active,
+                    linked_at,
+                    unlinked_at,
+                    reconnect_required
+                ) values (200, ?, 9001, false, current_timestamp, current_timestamp, false)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into strava_authorization_states (
+                    state,
+                    user_email,
+                    expires_at
+                ) values ('state-token', ?, current_timestamp)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into strava_activity_summaries (
+                    id,
+                    user_email,
+                    account_link_id,
+                    source_activity_id,
+                    activity_type,
+                    raw_sport_type,
+                    name,
+                    start_date,
+                    imported_at
+                ) values (300, ?, 200, 457, 'RUN', 'Run', 'Morning Run', current_timestamp, current_timestamp)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into strava_activity_detail_snapshots (
+                    activity_summary_id,
+                    user_email,
+                    source_activity_id,
+                    activity_type,
+                    raw_sport_type,
+                    name,
+                    start_date,
+                    fetched_at
+                ) values (300, ?, 457, 'RUN', 'Run', 'Morning Run', current_timestamp, current_timestamp)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into strava_activity_stream_snapshots (
+                    activity_summary_id,
+                    account_link_id,
+                    user_email,
+                    source_activity_id,
+                    available_metric_names,
+                    stream_samples_json,
+                    fetched_at
+                ) values (300, 200, ?, 457, 'time,distance', '[]', current_timestamp)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into strava_summary_sync_jobs (
+                    account_link_id,
+                    open_account_link_id,
+                    user_email,
+                    status,
+                    attempt_count,
+                    imported_activity_count,
+                    run_after,
+                    created_at,
+                    updated_at
+                ) values (200, 200, ?, 'QUEUED', 0, 0, current_timestamp, current_timestamp, current_timestamp)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into strava_activity_stream_sync_jobs (
+                    activity_summary_id,
+                    open_activity_summary_id,
+                    account_link_id,
+                    user_email,
+                    source_activity_id,
+                    priority,
+                    status,
+                    attempt_count,
+                    run_after,
+                    created_at,
+                    updated_at
+                ) values (300, 300, 200, ?, 457, 'NORMAL', 'QUEUED', 0, current_timestamp, current_timestamp, current_timestamp)
+                """, EMAIL);
+    }
+
+    private Long countRows(String tableName) {
+        return jdbcTemplate.queryForObject("select count(*) from " + tableName, Long.class);
     }
 
     @RestController

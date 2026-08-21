@@ -18,4 +18,6 @@ public interface SpringDataStravaActivityStreamSnapshotRepository
                                                                                            Pageable pageable);
 
     void deleteByAccountLinkId(Long accountLinkId);
+
+    void deleteByUserEmail(String userEmail);
 }

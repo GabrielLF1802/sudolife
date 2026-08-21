@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface SpringDataCoachingProfileRepository extends JpaRepository<CoachingProfileEntity, Long> {
 
     Optional<CoachingProfileEntity> findByUserEmail(String userEmail);
+
+    void deleteByUserEmail(String userEmail);
 }

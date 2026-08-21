@@ -5,6 +5,7 @@ import com.sudolife.application.model.user.HashedPassword;
 import com.sudolife.application.model.user.User;
 import com.sudolife.application.service.user.AuthenticateUserCommand;
 import com.sudolife.application.service.user.ChangePasswordCommand;
+import com.sudolife.application.service.user.DeleteAccountCommand;
 import com.sudolife.application.service.user.RegisterUserCommand;
 
 public class UserTestHelper {
@@ -31,5 +32,9 @@ public class UserTestHelper {
 
     public static ChangePasswordCommand changePasswordCommand() {
         return new ChangePasswordCommand(EMAIL, PASSWORD, NEW_PASSWORD);
+    }
+
+    public static DeleteAccountCommand deleteAccountCommand() {
+        return new DeleteAccountCommand(EMAIL, PASSWORD);
     }
 }

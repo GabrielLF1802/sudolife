@@ -31,4 +31,6 @@ public interface SpringDataStravaActivitySummaryRepository extends JpaRepository
     );
 
     void deleteByAccountLinkId(Long accountLinkId);
+
+    void deleteByUserEmail(String userEmail);
 }

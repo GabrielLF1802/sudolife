@@ -3,10 +3,13 @@ package com.sudolife.adapter.driving.rest.user.controller;
 import com.sudolife.adapter.driving.rest.ratelimit.HttpRequestOriginResolver;
 import com.sudolife.adapter.driving.rest.ratelimit.RegistrationRateLimitPolicy;
 import com.sudolife.adapter.driving.rest.user.webmodel.ChangePasswordRequest;
+import com.sudolife.adapter.driving.rest.user.webmodel.DeleteAccountRequest;
 import com.sudolife.application.service.user.ChangePasswordCommand;
 import com.sudolife.application.service.user.CurrentUserResult;
+import com.sudolife.application.service.user.DeleteAccountCommand;
 import com.sudolife.application.service.user.RegisterUserCommand;
 import com.sudolife.application.service.user.ports.provided.ChangePasswordUseCase;
+import com.sudolife.application.service.user.ports.provided.DeleteAccountUseCase;
 import com.sudolife.application.service.user.ports.provided.GetCurrentUserUseCase;
 import com.sudolife.application.service.user.ports.provided.RegisterUserUseCase;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +33,7 @@ public class UserController {
     private final RegisterUserUseCase registerUserUseCase;
     private final GetCurrentUserUseCase getCurrentUserUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
+    private final DeleteAccountUseCase deleteAccountUseCase;
     private final RegistrationRateLimitPolicy registrationRateLimitPolicy;
     private final HttpRequestOriginResolver originResolver;
 
@@ -56,6 +61,14 @@ public class UserController {
                 request.newPassword()
         );
         changePasswordUseCase.execute(command);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(Authentication authentication, @RequestBody DeleteAccountRequest request) {
+        DeleteAccountCommand command = new DeleteAccountCommand(authentication.getName(), request.currentPassword());
+        deleteAccountUseCase.execute(command);
 
         return ResponseEntity.noContent().build();
     }

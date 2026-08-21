@@ -24,4 +24,6 @@ public interface SpringDataStravaActivityDetailSnapshotRepository
             )
             """)
     void deleteByAccountLinkId(Long accountLinkId);
+
+    void deleteByUserEmail(String userEmail);
 }
