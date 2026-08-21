@@ -1,5 +1,6 @@
 package com.sudolife.application.service.user;
 
+import com.sudolife.application.model.user.InvalidPasswordException;
 import com.sudolife.application.model.user.User;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
 import com.sudolife.application.service.user.ports.required.UserHashPassword;
@@ -62,12 +63,13 @@ class RegisterUserUseCaseImplUnitTest {
 
     @Test
     void execute_throws_when_password_is_invalid() {
-        RegisterUserCommand command = new RegisterUserCommand(NAME, EMAIL, "123");
+        RegisterUserCommand command = new RegisterUserCommand(NAME, EMAIL, "weak");
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.execute(command))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(InvalidPasswordException.class);
         verifyNoInteractions(userHashPassword);
+        verifyNoMoreInteractions(userRepository);
     }
 
     private User capturedSavedUser() {

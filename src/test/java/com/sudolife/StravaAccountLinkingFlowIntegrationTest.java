@@ -78,7 +78,7 @@ class StravaAccountLinkingFlowIntegrationTest {
     private static final String USER_EMAIL = "gabriel-flow@sudolife.com";
     private static final String OTHER_USER_NAME = "Ana";
     private static final String OTHER_USER_EMAIL = "ana-flow@sudolife.com";
-    private static final String PASSWORD = "plain-password";
+    private static final String PASSWORD = "Str0ng!Password";
     private static final String ROTATED_ACCESS_TOKEN = "rotated-access-token";
     private static final String ROTATED_REFRESH_TOKEN = "rotated-refresh-token";
     private static final String TOKEN_EXCHANGE_FAILURE_CODE = "exchange-fails";

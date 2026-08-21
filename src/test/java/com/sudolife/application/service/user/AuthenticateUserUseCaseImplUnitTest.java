@@ -51,6 +51,18 @@ class AuthenticateUserUseCaseImplUnitTest {
     }
 
     @Test
+    void execute_returns_token_when_legacy_password_shape_matches() {
+        AuthenticateUserCommand command = new AuthenticateUserCommand(EMAIL, "legacy-password");
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user()));
+        when(userHashPassword.matches("legacy-password", HASHED_PASSWORD)).thenReturn(true);
+        when(userToken.generateToken(any())).thenReturn(TOKEN);
+
+        AuthenticationResult result = useCase.execute(command);
+
+        assertThat(result.token()).isEqualTo(TOKEN);
+    }
+
+    @Test
     void execute_throws_when_user_does_not_exist() {
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
 

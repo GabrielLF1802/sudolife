@@ -10,7 +10,7 @@ public class UserTestHelper {
 
     public static final String EMAIL = "gabriel@sudolife.com";
     public static final String NAME = "Gabriel";
-    public static final String PASSWORD = "plain-password";
+    public static final String PASSWORD = "Str0ng!Password";
     public static final String HASHED_PASSWORD = "hashed-password";
     public static final String TOKEN = "jwt-token";
 
