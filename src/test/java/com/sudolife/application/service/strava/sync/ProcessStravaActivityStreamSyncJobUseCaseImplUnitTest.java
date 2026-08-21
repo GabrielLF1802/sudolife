@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class ProcessStravaActivityStreamSyncJobUseCaseImplUnitTest {
@@ -122,10 +123,49 @@ class ProcessStravaActivityStreamSyncJobUseCaseImplUnitTest {
         verify(streamSnapshotRepository, never()).saveIfAbsent(any());
     }
 
+    @Test
+    void execute_when_job_is_missing_does_not_import_stream() {
+        when(streamSyncJobRepository.findById(JOB_ID)).thenReturn(Optional.empty());
+
+        useCase.execute(new ProcessStravaActivityStreamSyncJobCommand(JOB_ID));
+
+        verifyNoInteractions(streamSnapshotRepository, accountLinkRepository, activityProvider, accessTokenService);
+    }
+
+    @Test
+    void execute_when_job_is_cancelled_does_not_import_stream() {
+        when(streamSyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(cancelledJob()));
+
+        useCase.execute(new ProcessStravaActivityStreamSyncJobCommand(JOB_ID));
+
+        verifyNoInteractions(streamSnapshotRepository, accountLinkRepository, activityProvider, accessTokenService);
+    }
+
+    @Test
+    void execute_when_account_link_was_deleted_does_not_import_stream() {
+        when(streamSyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
+        when(streamSyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.empty());
+        when(timeProvider.now()).thenReturn(NOW);
+
+        useCase.execute(new ProcessStravaActivityStreamSyncJobCommand(JOB_ID));
+
+        StravaActivityStreamSyncJob failedJob = lastSavedJob();
+        assertThat(failedJob.getStatus()).isEqualTo(StravaSummarySyncJobStatus.FAILED);
+        verify(streamSnapshotRepository, never()).saveIfAbsent(any());
+        verifyNoInteractions(activityProvider, accessTokenService);
+    }
+
     private StravaActivityStreamSyncJob queuedJob() {
         return new StravaActivityStreamSyncJob(JOB_ID, ACTIVITY_ID, LINK_ID, USER_EMAIL, SOURCE_ACTIVITY_ID,
                 StravaActivityStreamSyncJobPriority.NORMAL, StravaSummarySyncJobStatus.QUEUED, 0, NOW, null,
                 null, null, NOW, NOW);
+    }
+
+    private StravaActivityStreamSyncJob cancelledJob() {
+        return new StravaActivityStreamSyncJob(JOB_ID, ACTIVITY_ID, LINK_ID, USER_EMAIL, SOURCE_ACTIVITY_ID,
+                StravaActivityStreamSyncJobPriority.NORMAL, StravaSummarySyncJobStatus.CANCELLED, 0, NOW, null,
+                NOW, null, NOW, NOW);
     }
 
     private StravaActivityStreamSnapshot capturedSnapshot() {

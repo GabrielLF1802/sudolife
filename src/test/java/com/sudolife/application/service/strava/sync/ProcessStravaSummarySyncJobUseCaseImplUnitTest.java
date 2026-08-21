@@ -43,7 +43,9 @@ import static com.sudolife.helper.StravaTestHelper.reconnectRequiredStravaAccoun
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -161,9 +163,49 @@ class ProcessStravaSummarySyncJobUseCaseImplUnitTest {
         org.mockito.Mockito.verifyNoInteractions(activityProvider);
     }
 
+    @Test
+    void execute_when_job_is_missing_does_not_import_summaries() {
+        when(summarySyncJobRepository.findById(JOB_ID)).thenReturn(Optional.empty());
+
+        useCase.execute(new ProcessStravaSummarySyncJobCommand(JOB_ID));
+
+        verifyNoInteractions(accountLinkRepository, activityProvider, activitySummaryRepository,
+                streamSyncJobRepository, accessTokenService);
+    }
+
+    @Test
+    void execute_when_job_is_cancelled_does_not_import_summaries() {
+        when(summarySyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(cancelledJob()));
+
+        useCase.execute(new ProcessStravaSummarySyncJobCommand(JOB_ID));
+
+        verifyNoInteractions(accountLinkRepository, activityProvider, activitySummaryRepository,
+                streamSyncJobRepository, accessTokenService);
+    }
+
+    @Test
+    void execute_when_account_link_was_deleted_does_not_import_summaries() {
+        when(summarySyncJobRepository.findById(JOB_ID)).thenReturn(Optional.of(queuedJob()));
+        when(summarySyncJobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountLinkRepository.findActiveById(LINK_ID)).thenReturn(Optional.empty());
+        when(timeProvider.now()).thenReturn(NOW);
+
+        useCase.execute(new ProcessStravaSummarySyncJobCommand(JOB_ID));
+
+        StravaSummarySyncJob failedJob = lastSavedJob();
+        assertThat(failedJob.getStatus()).isEqualTo(StravaSummarySyncJobStatus.FAILED);
+        verify(activitySummaryRepository, never()).saveIfAbsent(any());
+        verifyNoInteractions(activityProvider, streamSyncJobRepository, accessTokenService);
+    }
+
     private StravaSummarySyncJob queuedJob() {
         return new StravaSummarySyncJob(JOB_ID, LINK_ID, USER_EMAIL, StravaSummarySyncJobStatus.QUEUED, 0, 0,
                 NOW, null, null, null, NOW, NOW);
+    }
+
+    private StravaSummarySyncJob cancelledJob() {
+        return new StravaSummarySyncJob(JOB_ID, LINK_ID, USER_EMAIL, StravaSummarySyncJobStatus.CANCELLED, 0, 0,
+                NOW, null, NOW, null, NOW, NOW);
     }
 
     private StravaActivitySummaryImport activitySummaryImport() {
