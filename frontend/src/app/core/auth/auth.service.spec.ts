@@ -57,4 +57,22 @@ describe('AuthService', () => {
     expect(authService.token()).toBeNull();
     expect(authService.isAuthenticated()).toBeFalse();
   });
+
+  it('should_send_password_change_request_and_remove_token_after_success', () => {
+    localStorage.setItem('sudolife.jwt', 'jwt-token');
+    const command = {
+      currentPassword: 'Str0ng!Password',
+      newPassword: 'An0ther!Password',
+    };
+
+    authService.changePassword(command).subscribe();
+
+    const request = httpTestingController.expectOne('/api/users/me/password');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual(command);
+    request.flush(null);
+
+    expect(authService.token()).toBeNull();
+    expect(authService.isAuthenticated()).toBeFalse();
+  });
 });

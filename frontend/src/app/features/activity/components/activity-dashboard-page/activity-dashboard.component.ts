@@ -1,13 +1,12 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, finalize } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../../../../core/auth/auth.service';
 import { ActivityService } from '../../services/activity.service';
-import {
-  CoachingProfileService,
-} from '../../services/coaching-profile.service';
+import { CoachingProfileService } from '../../services/coaching-profile.service';
 import {
   AdaptiveRunningPlanSession,
   AdaptiveRunningPlanSessionStatus,
@@ -32,9 +31,7 @@ import {
   StravaActivitySyncStatus,
 } from '../../services/dtos/strava-activity-sync';
 import { StravaLinkStatus } from '../../services/dtos/strava-link-status';
-import {
-  StravaAccountService,
-} from '../../services/strava-account.service';
+import { StravaAccountService } from '../../services/strava-account.service';
 import { TrainingProfile } from '../../services/dtos/training-profile';
 import { TrainingProfileService } from '../../services/training-profile.service';
 import {
@@ -45,6 +42,27 @@ import { WeeklyRhythmComponent } from '../weekly-rhythm/weekly-rhythm.component'
 
 type ActivityPeriodFilter = 'ALL' | 'LAST_7_DAYS' | 'LAST_30_DAYS';
 type DashboardView = 'TODAY' | 'PLAN' | 'ACTIVITIES' | 'SETTINGS';
+type PasswordPolicyViolation =
+  | 'BLANK'
+  | 'TOO_SHORT'
+  | 'TOO_LONG'
+  | 'MISSING_UPPERCASE'
+  | 'MISSING_LOWERCASE'
+  | 'MISSING_NUMBER'
+  | 'MISSING_SPECIAL_CHARACTER'
+  | 'CONTAINS_CONTEXTUAL_DATA';
+
+interface PasswordPolicyRequirement {
+  key: PasswordPolicyViolation;
+  label: string;
+  satisfied: boolean;
+}
+
+interface PasswordChangeErrorResponse {
+  code?: string;
+  message?: string;
+  violations?: PasswordPolicyViolation[];
+}
 
 export type TodayAction =
   | 'CONNECT_STRAVA'
@@ -114,6 +132,11 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly trainingProfileSuccessMessage = signal('');
   protected readonly coachingProfileErrorMessage = signal('');
   protected readonly coachingProfileSuccessMessage = signal('');
+  protected readonly currentPassword = signal('');
+  protected readonly newPassword = signal('');
+  protected readonly changingPassword = signal(false);
+  protected readonly passwordChangeErrorMessage = signal('');
+  protected readonly passwordPolicyViolations = signal<PasswordPolicyViolation[]>([]);
   protected readonly sessionOperationIds = signal<ReadonlySet<number>>(new Set());
   protected readonly sessionErrors = signal<Readonly<Partial<Record<number, string>>>>({});
   protected readonly sessionSuccesses = signal<Readonly<Partial<Record<number, string>>>>({});
@@ -163,6 +186,48 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly minimumDistanceKilometers = signal('');
   protected readonly maximumDistanceKilometers = signal('');
   protected readonly currentDate = signal(new Date());
+  protected readonly passwordPolicyRequirements = computed<PasswordPolicyRequirement[]>(() => {
+    const password = this.newPassword();
+
+    return [
+      {
+        key: 'TOO_SHORT',
+        label: 'Pelo menos 12 caracteres',
+        satisfied: password.length >= 12,
+      },
+      {
+        key: 'TOO_LONG',
+        label: 'No máximo 128 caracteres',
+        satisfied: password.length <= 128,
+      },
+      {
+        key: 'MISSING_UPPERCASE',
+        label: 'Uma letra maiúscula',
+        satisfied: /[A-Z]/.test(password),
+      },
+      {
+        key: 'MISSING_LOWERCASE',
+        label: 'Uma letra minúscula',
+        satisfied: /[a-z]/.test(password),
+      },
+      {
+        key: 'MISSING_NUMBER',
+        label: 'Um número',
+        satisfied: /\d/.test(password),
+      },
+      {
+        key: 'MISSING_SPECIAL_CHARACTER',
+        label: 'Um caractere especial',
+        satisfied: /[^A-Za-z0-9]/.test(password),
+      },
+    ];
+  });
+  protected readonly canSubmitPasswordChange = computed(
+    () =>
+      this.currentPassword().trim() !== '' &&
+      this.newPassword().trim() !== '' &&
+      !this.changingPassword(),
+  );
   protected readonly futurePlanSessions = computed(
     () =>
       this.conservativeRunningPlan()?.plannedSessions.filter((session) => session.weekNumber > 1) ??
@@ -334,6 +399,17 @@ export class ActivityDashboardComponent implements OnInit {
     this.birthYear.set((event.target as HTMLInputElement).value);
   }
 
+  protected updateCurrentPassword(event: Event): void {
+    this.currentPassword.set((event.target as HTMLInputElement).value);
+    this.passwordChangeErrorMessage.set('');
+  }
+
+  protected updateNewPassword(event: Event): void {
+    this.newPassword.set((event.target as HTMLInputElement).value);
+    this.passwordPolicyViolations.set([]);
+    this.passwordChangeErrorMessage.set('');
+  }
+
   protected updateTargetDistance(event: Event): void {
     this.targetDistanceKilometers.set((event.target as HTMLInputElement).value);
   }
@@ -418,6 +494,30 @@ export class ActivityDashboardComponent implements OnInit {
   protected logout(): void {
     this.authService.logout();
     void this.router.navigateByUrl('/login');
+  }
+
+  protected changePassword(): void {
+    if (!this.canSubmitPasswordChange()) {
+      this.passwordChangeErrorMessage.set('Informe a senha atual e a nova senha para continuar.');
+      return;
+    }
+
+    this.changingPassword.set(true);
+    this.passwordChangeErrorMessage.set('');
+    this.passwordPolicyViolations.set([]);
+
+    this.authService
+      .changePassword({
+        currentPassword: this.currentPassword(),
+        newPassword: this.newPassword(),
+      })
+      .pipe(finalize(() => this.changingPassword.set(false)))
+      .subscribe({
+        next: () => void this.router.navigateByUrl('/login'),
+        error: (error) => {
+          this.passwordChangeErrorMessage.set(this.passwordChangeErrorMessageFor(error));
+        },
+      });
   }
 
   protected startStravaLinking(): void {
@@ -1105,9 +1205,7 @@ export class ActivityDashboardComponent implements OnInit {
     return left.id - right.id;
   }
 
-  protected adaptationTriggerLabel(
-    trigger: AdaptationTrigger | null | undefined,
-  ): string {
+  protected adaptationTriggerLabel(trigger: AdaptationTrigger | null | undefined): string {
     switch (trigger) {
       case 'MISSED_PLANNED_SESSION':
         return 'sessão anterior perdida';
@@ -1267,6 +1365,30 @@ export class ActivityDashboardComponent implements OnInit {
     this.readiness.set(profile.readiness ?? '');
     this.injuryConcern.set(profile.injuryConcern);
     this.preferredRunningDays.set(profile.preferredRunningDays ?? []);
+  }
+
+  private passwordChangeErrorMessageFor(error: unknown): string {
+    const response = error instanceof HttpErrorResponse ? error.error : null;
+    const errorResponse = this.isPasswordChangeErrorResponse(response) ? response : null;
+
+    if (errorResponse?.code === 'PASSWORD_POLICY_VIOLATION') {
+      this.passwordPolicyViolations.set(errorResponse.violations ?? []);
+      return 'A nova senha ainda não atende à política de segurança. Revise os itens marcados.';
+    }
+
+    if (errorResponse?.code === 'INVALID_CREDENTIALS') {
+      return 'A senha atual não confere. Revise a senha atual e tente novamente.';
+    }
+
+    if (errorResponse?.code === 'NEW_PASSWORD_MATCHES_CURRENT_PASSWORD') {
+      return 'A nova senha precisa ser diferente da senha atual.';
+    }
+
+    return 'Não foi possível alterar a senha agora. Seus dados foram preservados; tente novamente.';
+  }
+
+  private isPasswordChangeErrorResponse(value: unknown): value is PasswordChangeErrorResponse {
+    return typeof value === 'object' && value !== null;
   }
 
   private parsedTargetDistance(): number | null {

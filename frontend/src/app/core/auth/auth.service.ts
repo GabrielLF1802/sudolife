@@ -13,6 +13,11 @@ export interface LoginCommand {
   password: string;
 }
 
+export interface ChangePasswordCommand {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface CurrentUser {
   id: number;
   name: string;
@@ -38,6 +43,10 @@ export class AuthService {
       tap((result) => localStorage.setItem(AuthService.tokenStorageKey, result.token)),
       map(() => undefined),
     );
+  }
+
+  changePassword(command: ChangePasswordCommand): Observable<void> {
+    return this.http.patch<void>('/api/users/me/password', command).pipe(tap(() => this.logout()));
   }
 
   currentUser(): Observable<CurrentUser> {

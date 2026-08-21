@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
@@ -23,6 +24,8 @@ describe('ActivityDashboardComponent', () => {
   let stravaAccountService: jasmine.SpyObj<StravaAccountService>;
   let trainingProfileService: jasmine.SpyObj<TrainingProfileService>;
   let coachingProfileService: jasmine.SpyObj<CoachingProfileService>;
+  let authService: jasmine.SpyObj<AuthService>;
+  let router: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
     activityService = jasmine.createSpyObj<ActivityService>('ActivityService', [
@@ -95,15 +98,25 @@ describe('ActivityDashboardComponent', () => {
     coachingProfileService.clearInjuryConcern.and.returnValue(of(currentAdaptivePlan()));
     coachingProfileService.save.and.returnValue(of(coachingProfile(true)));
 
+    authService = jasmine.createSpyObj<AuthService>('AuthService', [
+      'currentUser',
+      'logout',
+      'changePassword',
+    ]);
+    authService.currentUser.and.returnValue(
+      of({ id: 1, name: 'Gabriel', email: 'gabriel@example.com' }),
+    );
+    authService.changePassword.and.returnValue(of(undefined));
+
+    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
+    router.navigateByUrl.and.resolveTo(true);
+
     await TestBed.configureTestingModule({
       imports: [ActivityDashboardComponent],
       providers: [
         {
           provide: AuthService,
-          useValue: {
-            currentUser: () => of({ id: 1, name: 'Gabriel', email: 'gabriel@example.com' }),
-            logout: () => undefined,
-          },
+          useValue: authService,
         },
         {
           provide: ActivityService,
@@ -112,7 +125,7 @@ describe('ActivityDashboardComponent', () => {
         { provide: StravaAccountService, useValue: stravaAccountService },
         { provide: TrainingProfileService, useValue: trainingProfileService },
         { provide: CoachingProfileService, useValue: coachingProfileService },
-        { provide: Router, useValue: { navigateByUrl: () => Promise.resolve(true) } },
+        { provide: Router, useValue: router },
       ],
     }).compileComponents();
 
@@ -197,6 +210,66 @@ describe('ActivityDashboardComponent', () => {
     expect(settings.querySelector('.strava-panel')).not.toBeNull();
     expect(settings.querySelector('.coaching-profile-panel')).not.toBeNull();
     expect(dashboardNavigationButton('Ajustes').getAttribute('aria-current')).toBe('page');
+  });
+
+  it('should_prevent_password_change_when_required_fields_are_empty', () => {
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    passwordChangeButton().click();
+    fixture.detectChanges();
+
+    expect(passwordChangeButton().disabled).toBeTrue();
+    expect(authService.changePassword).not.toHaveBeenCalled();
+  });
+
+  it('should_change_password_and_navigate_to_login_after_success', () => {
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    typePasswordChangeInput('input[autocomplete="current-password"]', 'Str0ng!Password');
+    typePasswordChangeInput('input[autocomplete="new-password"]', 'An0ther!Password');
+    passwordChangeButton().click();
+    fixture.detectChanges();
+
+    expect(authService.changePassword).toHaveBeenCalledOnceWith({
+      currentPassword: 'Str0ng!Password',
+      newPassword: 'An0ther!Password',
+    });
+    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/login');
+  });
+
+  it('should_show_password_policy_feedback_from_backend_errors', () => {
+    authService.changePassword.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            error: {
+              code: 'PASSWORD_POLICY_VIOLATION',
+              message: 'Password is invalid',
+              violations: ['TOO_SHORT', 'MISSING_SPECIAL_CHARACTER'],
+            },
+          }),
+      ),
+    );
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    typePasswordChangeInput('input[autocomplete="current-password"]', 'Str0ng!Password');
+    typePasswordChangeInput('input[autocomplete="new-password"]', 'AnotherPassword1');
+    passwordChangeButton().click();
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('A nova senha ainda não atende à política de segurança.');
+    expect(rejectedPasswordPolicyItems().map((item) => item.textContent?.trim())).toEqual([
+      'Pelo menos 12 caracteres',
+      'Um caractere especial',
+    ]);
+    expect(router.navigateByUrl).not.toHaveBeenCalledWith('/login');
   });
 
   it('should_lead_today_with_the_next_decision_before_weekly_context', () => {
@@ -985,7 +1058,27 @@ describe('ActivityDashboardComponent', () => {
   }
 
   function trainingProfileButton(): HTMLButtonElement {
-    return fixture.nativeElement.querySelector('.training-profile-panel button');
+    return fixture.nativeElement.querySelector(
+      '.training-profile-panel:not(.password-change-panel) button',
+    );
+  }
+
+  function passwordChangeButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector('.password-change-panel button[type="submit"]');
+  }
+
+  function typePasswordChangeInput(selector: string, value: string): void {
+    const input = fixture.nativeElement.querySelector(
+      `.password-change-panel ${selector}`,
+    ) as HTMLInputElement;
+    input.value = value;
+
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function rejectedPasswordPolicyItems(): HTMLElement[] {
+    return [...fixture.nativeElement.querySelectorAll('.password-policy-list li.rejected')];
   }
 
   function coachingProfileButton(): HTMLButtonElement {

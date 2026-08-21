@@ -157,6 +157,89 @@
         <p>Atualize apenas quando sua meta, disponibilidade ou conexão mudar.</p>
       </header>
 
+      <section
+        class="training-profile-panel password-change-panel"
+        aria-labelledby="password-change-title"
+      >
+        <div>
+          <span>Conta</span>
+          <strong id="password-change-title">Alterar senha</strong>
+          <p>Depois da alteração, você entrará novamente com a nova senha.</p>
+        </div>
+
+        <form novalidate (submit)="$event.preventDefault(); changePassword()">
+          <label>
+            <span>Senha atual</span>
+            <input
+              type="password"
+              autocomplete="current-password"
+              maxlength="128"
+              required
+              [value]="currentPassword()"
+              [attr.aria-invalid]="passwordChangeErrorMessage() ? 'true' : null"
+              [attr.aria-describedby]="
+                passwordChangeErrorMessage() ? 'password-change-error' : null
+              "
+              (input)="updateCurrentPassword($event)"
+            />
+          </label>
+
+          <label>
+            <span>Nova senha</span>
+            <input
+              type="password"
+              autocomplete="new-password"
+              maxlength="128"
+              required
+              [value]="newPassword()"
+              [attr.aria-invalid]="passwordPolicyViolations().length > 0 ? 'true' : null"
+              [attr.aria-describedby]="
+                passwordChangeErrorMessage()
+                  ? 'password-policy-feedback password-change-error'
+                  : 'password-policy-feedback'
+              "
+              (input)="updateNewPassword($event)"
+            />
+          </label>
+
+          <button
+            type="submit"
+            [disabled]="!canSubmitPasswordChange()"
+            [attr.aria-busy]="changingPassword()"
+          >
+            @if (changingPassword()) {
+              Alterando...
+            } @else {
+              Alterar senha
+            }
+          </button>
+        </form>
+
+        <ul
+          class="password-policy-list"
+          id="password-policy-feedback"
+          aria-label="Política da nova senha"
+        >
+          @for (requirement of passwordPolicyRequirements(); track requirement.key) {
+            <li
+              [class.satisfied]="requirement.satisfied"
+              [class.rejected]="passwordPolicyViolations().includes(requirement.key)"
+            >
+              {{ requirement.label }}
+            </li>
+          }
+          <li [class.rejected]="passwordPolicyViolations().includes('CONTAINS_CONTEXTUAL_DATA')">
+            Não usar seu nome, email ou dados pessoais
+          </li>
+        </ul>
+
+        @if (passwordChangeErrorMessage()) {
+          <p class="status error" id="password-change-error" role="alert">
+            {{ passwordChangeErrorMessage() }}
+          </p>
+        }
+      </section>
+
       @if (stravaLinkStatus(); as stravaStatus) {
         <details class="strava-panel settings-disclosure">
           <summary class="strava-status">
@@ -746,7 +829,10 @@
                         </p>
                       }
 
-                      <div class="session-controls" [attr.aria-busy]="isSessionOperating(session.id)">
+                      <div
+                        class="session-controls"
+                        [attr.aria-busy]="isSessionOperating(session.id)"
+                      >
                         <form (submit)="$event.preventDefault(); correctSessionMatch(session.id)">
                           <label [for]="'activity-match-' + session.id">
                             @if (session.matchedActivityId) {
