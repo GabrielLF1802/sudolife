@@ -7,14 +7,44 @@
 The irreversible removal of a Sudolife user account and all locally stored personal, training, Strava-imported, and account-owned data for that user. Account deletion is stronger than logout, password change, or Strava unlinking because it ends the user's relationship with Sudolife and frees the e-mail address for future registration.
 _Avoid_: Account cancellation, account deactivation, account unlinking
 
+### Account Deletion Confirmation
+
+A user-facing confirmation that account deletion completed and locally stored account-owned data was removed. In the MVP this confirmation is shown on screen after deletion; e-mail confirmation is deferred until Sudolife has an e-mail delivery capability.
+_Avoid_: Deletion receipt, removal notice
+
 ### Account-Owned Data
 
 Data that exists only because a Sudolife user account exists, including credentials, training profile, coaching profile, adaptive running plans, Strava account links, imported Strava snapshots, sync jobs, and pending Strava authorization states.
 _Avoid_: User data, account metadata
 
+### Privacy Policy
+
+A public bilingual Sudolife document, available in Portuguese and English on a single page for the MVP, that explains what personal and training data Sudolife collects, why it is used, how long it is kept, and how a user can request account deletion. The privacy policy is available before account creation and does not itself replace Strava data consent.
+_Avoid_: Legal page, privacy notice
+
 ### Strava Account Link
 
 An authorization relationship between a Sudolife user and a Strava athlete. The link stores the Strava athlete identity and token lifecycle metadata needed to call Strava on behalf of that user.
+
+### Strava Data Consent
+
+The Sudolife-owned explanation and blocking confirmation shown before sending a user to Strava OAuth. Strava data consent names the imported Strava data groups, states that the data is used for the user's own coaching experience, and states that removing the Strava link or deleting the account removes locally stored imported Strava data.
+_Avoid_: OAuth consent, Strava authorization
+
+### Consent Record
+
+A persisted record that a Sudolife user explicitly accepted a specific consent version for a specific purpose at a specific time. Consent records make privacy-sensitive actions auditable without storing sensitive imported data inside the record itself.
+_Avoid_: Checkbox state, acceptance flag
+
+### Current Consent Version
+
+The active Sudolife wording version for a consent purpose. A user with a consent record for the current consent version can perform the related action without re-accepting, while a missing or older consent version requires a new explicit confirmation; the initial Strava data consent version is `strava-data-import-and-coaching-v1`.
+_Avoid_: Latest consent, active policy
+
+### Coaching Input Data
+
+Personal, training, readiness, and imported Strava data used to generate or adapt coaching recommendations for the same user. Coaching input data can be sent to Sudolife's configured coaching engine for inference, but it is not used to train models.
+_Avoid_: AI training data, model data
 
 ### Activity Sync
 
@@ -67,6 +97,11 @@ The normalized activity type used by Sudolife product logic. Strava imports supp
 ### Adaptive Coaching
 
 A Sudolife training capability that proposes and adjusts running workout plans from a user's recent imported activities, training profile, objective, and user-reported readiness. Adaptive coaching is stronger than a static workout plan draft because it changes recommendations as the user's training context changes.
+
+### Coaching Safety Notice
+
+A recurring user-facing reminder that Sudolife adaptive coaching is not medical guidance. Coaching safety notices appear where users generate, review, or adapt coaching recommendations, but not during generic account creation or onboarding.
+_Avoid_: Medical disclaimer, health warning
 
 ### Sufficient Running History
 
