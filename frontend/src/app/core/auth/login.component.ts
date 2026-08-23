@@ -12,6 +12,9 @@ import { AuthService } from './auth.service';
   styleUrl: './auth-form.component.scss',
 })
 export class LoginComponent {
+
+  private static readonly accountDeletionConfirmationStateKey = 'accountDeletionConfirmed';
+
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
@@ -19,6 +22,9 @@ export class LoginComponent {
   protected readonly password = signal('');
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly accountDeletionConfirmationVisible = signal(
+    this.hasAccountDeletionConfirmationState(),
+  );
 
   protected login(): void {
     if (this.submitting()) {
@@ -26,6 +32,7 @@ export class LoginComponent {
     }
 
     this.errorMessage.set('');
+    this.accountDeletionConfirmationVisible.set(false);
     this.submitting.set(true);
 
     this.authService.login({ email: this.email().trim(), password: this.password() }).subscribe({
@@ -35,5 +42,11 @@ export class LoginComponent {
         this.submitting.set(false);
       },
     });
+  }
+
+  private hasAccountDeletionConfirmationState(): boolean {
+    const navigationState = this.router.getCurrentNavigation()?.extras.state;
+
+    return navigationState?.[LoginComponent.accountDeletionConfirmationStateKey] === true;
   }
 }

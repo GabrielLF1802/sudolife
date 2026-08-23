@@ -105,6 +105,7 @@ export function deriveTodayAction(state: TodayActionState): TodayAction {
   styleUrl: './activity-dashboard.component.scss',
 })
 export class ActivityDashboardComponent implements OnInit {
+
   private readonly authService = inject(AuthService);
   private readonly activityService = inject(ActivityService);
   private readonly stravaAccountService = inject(StravaAccountService);
@@ -574,7 +575,10 @@ export class ActivityDashboardComponent implements OnInit {
       })
       .pipe(finalize(() => this.deletingAccount.set(false)))
       .subscribe({
-        next: () => void this.router.navigateByUrl('/login'),
+        next: () =>
+          void this.router.navigateByUrl('/login', {
+            state: { accountDeletionConfirmed: true },
+          }),
         error: (error) => {
           this.accountDeletionErrorMessage.set(this.accountDeletionErrorMessageFor(error));
         },

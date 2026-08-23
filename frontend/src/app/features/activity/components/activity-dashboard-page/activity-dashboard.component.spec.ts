@@ -314,7 +314,9 @@ describe('ActivityDashboardComponent', () => {
     expect(authService.deleteAccount).toHaveBeenCalledOnceWith({
       currentPassword: 'Str0ng!Password',
     });
-    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/login');
+    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/login', {
+      state: { accountDeletionConfirmed: true },
+    });
   });
 
   it('should_show_invalid_credentials_error_when_account_deletion_password_is_wrong', () => {

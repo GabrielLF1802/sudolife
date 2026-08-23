@@ -5,6 +5,15 @@
     <p class="summary">Acesse o painel de atividades com sua conta Sudolife.</p>
   </div>
 
+  @if (accountDeletionConfirmationVisible()) {
+    <section class="confirmation-message" aria-labelledby="account-deletion-confirmation-title">
+      <strong id="account-deletion-confirmation-title">Conta excluída</strong>
+      <p>
+        Sua conta foi excluída e os dados armazenados localmente pela Sudolife foram removidos.
+      </p>
+    </section>
+  }
+
   <form (ngSubmit)="login()" #loginForm="ngForm">
     <label>
       Email
