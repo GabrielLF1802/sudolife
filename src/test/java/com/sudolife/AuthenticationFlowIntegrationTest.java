@@ -57,6 +57,7 @@ class AuthenticationFlowIntegrationTest {
         jdbcTemplate.update("delete from strava_activity_summaries");
         jdbcTemplate.update("delete from strava_authorization_states");
         jdbcTemplate.update("delete from strava_account_links");
+        jdbcTemplate.update("delete from strava_data_consent_records");
         jdbcTemplate.update("delete from adaptive_running_plan_sessions");
         jdbcTemplate.update("delete from adaptive_running_plans");
         jdbcTemplate.update("delete from coaching_profiles");
@@ -261,6 +262,7 @@ class AuthenticationFlowIntegrationTest {
         assertThat(countRows("strava_activity_stream_snapshots")).isZero();
         assertThat(countRows("strava_summary_sync_jobs")).isZero();
         assertThat(countRows("strava_activity_stream_sync_jobs")).isZero();
+        assertThat(countRows("strava_data_consent_records")).isZero();
     }
 
     private void registerUser() throws Exception {
@@ -349,6 +351,17 @@ class AuthenticationFlowIntegrationTest {
                     user_email,
                     expires_at
                 ) values ('state-token', ?, current_timestamp)
+                """, EMAIL);
+        jdbcTemplate.update("""
+                insert into strava_data_consent_records (
+                    user_email,
+                    purpose,
+                    consent_version,
+                    language,
+                    consented_at,
+                    source
+                ) values (?, 'STRAVA_DATA_IMPORT_AND_COACHING', 'strava-data-import-and-coaching-v1',
+                    'pt-BR', current_timestamp, 'STRAVA_CONNECTION')
                 """, EMAIL);
         jdbcTemplate.update("""
                 insert into strava_activity_summaries (

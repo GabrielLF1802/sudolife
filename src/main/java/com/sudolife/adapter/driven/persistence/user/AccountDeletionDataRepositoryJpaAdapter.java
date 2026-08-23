@@ -1,5 +1,6 @@
 package com.sudolife.adapter.driven.persistence.user;
 
+import com.sudolife.adapter.driven.persistence.strava.consent.SpringDataStravaDataConsentRecordRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityDetailSnapshotRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityStreamSnapshotRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivitySummaryRepository;
@@ -33,6 +34,7 @@ public class AccountDeletionDataRepositoryJpaAdapter implements AccountDeletionD
     private final SpringDataStravaActivitySummaryRepository activitySummaryRepository;
     private final SpringDataStravaAuthorizationStateRepository authorizationStateRepository;
     private final SpringDataStravaAccountLinkRepository accountLinkRepository;
+    private final SpringDataStravaDataConsentRecordRepository consentRecordRepository;
 
     @Override
     public List<StravaDeauthorization> findStravaDeauthorizations(String userEmail) {
@@ -53,6 +55,7 @@ public class AccountDeletionDataRepositoryJpaAdapter implements AccountDeletionD
         activitySummaryRepository.deleteByUserEmail(userEmail);
         authorizationStateRepository.deleteByUserEmail(userEmail);
         deleteAccountLinks(accountLinkIds);
+        consentRecordRepository.deleteByUserEmail(userEmail);
         adaptiveRunningPlanRepository.clearOriginalPlannedSessionReferencesByUserEmail(userEmail);
         adaptiveRunningPlanRepository.deleteSessionsByUserEmail(userEmail);
         adaptiveRunningPlanRepository.deleteByUserEmail(userEmail);

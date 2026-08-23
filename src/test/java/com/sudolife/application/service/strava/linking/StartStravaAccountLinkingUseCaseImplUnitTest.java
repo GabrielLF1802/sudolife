@@ -3,8 +3,13 @@ package com.sudolife.application.service.strava.linking;
 import com.sudolife.application.service.strava.authorization.StravaAuthorizationRequest;
 import com.sudolife.application.service.strava.authorization.StravaAuthorizationStateGenerator;
 import com.sudolife.application.model.strava.StravaAuthorizationState;
+import com.sudolife.application.model.strava.StravaDataConsentPurpose;
+import com.sudolife.application.model.strava.StravaDataConsentRecord;
+import com.sudolife.application.model.strava.StravaDataConsentVersions;
+import com.sudolife.application.service.strava.exception.MissingStravaDataConsentException;
 import com.sudolife.application.service.strava.ports.required.StravaAccountLinkRepository;
 import com.sudolife.application.service.strava.ports.required.StravaAuthorizationStateRepository;
+import com.sudolife.application.service.strava.ports.required.StravaDataConsentRepository;
 import com.sudolife.application.service.strava.ports.required.StravaOAuthProvider;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
 import org.junit.jupiter.api.Test;
@@ -22,7 +27,10 @@ import static com.sudolife.helper.StravaTestHelper.NOW;
 import static com.sudolife.helper.StravaTestHelper.STATE;
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
 import static com.sudolife.helper.StravaTestHelper.startStravaAccountLinkingCommand;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +42,9 @@ class StartStravaAccountLinkingUseCaseImplUnitTest {
 
     @Mock
     private StravaAuthorizationStateRepository authorizationStateRepository;
+
+    @Mock
+    private StravaDataConsentRepository consentRepository;
 
     @Mock
     private StravaOAuthProvider oAuthProvider;
@@ -49,7 +60,7 @@ class StartStravaAccountLinkingUseCaseImplUnitTest {
 
     @Test
     void execute_persists_state_with_user_email_and_expiration_from_time_provider() {
-        stubSuccessfulStart();
+        stubSuccessfulStartWithExistingConsent();
 
         useCase.execute(startStravaAccountLinkingCommand());
 
@@ -61,7 +72,7 @@ class StartStravaAccountLinkingUseCaseImplUnitTest {
 
     @Test
     void execute_requests_authorization_url_with_activity_read_and_optional_profile_scope() {
-        stubSuccessfulStart();
+        stubSuccessfulStartWithExistingConsent();
 
         useCase.execute(startStravaAccountLinkingCommand());
 
@@ -73,11 +84,39 @@ class StartStravaAccountLinkingUseCaseImplUnitTest {
 
     @Test
     void execute_returns_generated_authorization_url() {
-        stubSuccessfulStart();
+        stubSuccessfulStartWithExistingConsent();
 
         StravaAuthorizationUrlResult result = useCase.execute(startStravaAccountLinkingCommand());
 
         assertThat(result.authorizationUrl()).isEqualTo(AUTHORIZATION_URL);
+    }
+
+    @Test
+    void execute_rejects_oauth_start_without_current_consent() {
+        when(timeProvider.now()).thenReturn(NOW);
+        when(consentRepository.existsByUserEmailAndPurposeAndConsentVersion(USER_EMAIL,
+                StravaDataConsentPurpose.STRAVA_DATA_IMPORT_AND_COACHING, StravaDataConsentVersions.CURRENT))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.execute(startStravaAccountLinkingCommand()))
+                .isInstanceOf(MissingStravaDataConsentException.class);
+
+        verify(authorizationStateRepository, never()).save(any());
+    }
+
+    @Test
+    void execute_records_explicit_consent_before_starting_oauth() {
+        stubSuccessfulStartWithoutExistingConsent();
+        StartStravaAccountLinkingCommand command = new StartStravaAccountLinkingCommand(USER_EMAIL, true, "en");
+
+        useCase.execute(command);
+
+        StravaDataConsentRecord consentRecord = capturedConsentRecord();
+        assertThat(consentRecord.getUserEmail()).isEqualTo(USER_EMAIL);
+        assertThat(consentRecord.getPurpose()).isEqualTo(StravaDataConsentPurpose.STRAVA_DATA_IMPORT_AND_COACHING);
+        assertThat(consentRecord.getConsentVersion()).isEqualTo(StravaDataConsentVersions.CURRENT);
+        assertThat(consentRecord.getLanguage()).isEqualTo("en");
+        assertThat(consentRecord.getConsentedAt()).isEqualTo(NOW);
     }
 
     @Test
@@ -90,8 +129,20 @@ class StartStravaAccountLinkingUseCaseImplUnitTest {
         assertThat(dependsOnAccountLinkRepository).isFalse();
     }
 
-    private void stubSuccessfulStart() {
+    private void stubSuccessfulStartWithExistingConsent() {
         when(timeProvider.now()).thenReturn(NOW);
+        when(consentRepository.existsByUserEmailAndPurposeAndConsentVersion(USER_EMAIL,
+                StravaDataConsentPurpose.STRAVA_DATA_IMPORT_AND_COACHING, StravaDataConsentVersions.CURRENT))
+                .thenReturn(true);
+        when(stateGenerator.generate()).thenReturn(STATE);
+        when(oAuthProvider.buildAuthorizationUrl(capturedAnyRequest())).thenReturn(AUTHORIZATION_URL);
+    }
+
+    private void stubSuccessfulStartWithoutExistingConsent() {
+        when(timeProvider.now()).thenReturn(NOW);
+        when(consentRepository.existsByUserEmailAndPurposeAndConsentVersion(USER_EMAIL,
+                StravaDataConsentPurpose.STRAVA_DATA_IMPORT_AND_COACHING, StravaDataConsentVersions.CURRENT))
+                .thenReturn(false);
         when(stateGenerator.generate()).thenReturn(STATE);
         when(oAuthProvider.buildAuthorizationUrl(capturedAnyRequest())).thenReturn(AUTHORIZATION_URL);
     }
@@ -109,6 +160,12 @@ class StartStravaAccountLinkingUseCaseImplUnitTest {
     private StravaAuthorizationRequest capturedAuthorizationRequest() {
         ArgumentCaptor<StravaAuthorizationRequest> captor = ArgumentCaptor.forClass(StravaAuthorizationRequest.class);
         verify(oAuthProvider).buildAuthorizationUrl(captor.capture());
+        return captor.getValue();
+    }
+
+    private StravaDataConsentRecord capturedConsentRecord() {
+        ArgumentCaptor<StravaDataConsentRecord> captor = ArgumentCaptor.forClass(StravaDataConsentRecord.class);
+        verify(consentRepository).save(captor.capture());
         return captor.getValue();
     }
 }

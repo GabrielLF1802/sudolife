@@ -7,6 +7,7 @@ import com.sudolife.adapter.driving.rest.strava.webmodel.activity.StravaActivity
 import com.sudolife.adapter.driving.rest.strava.webmodel.activity.StravaActivitySyncResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.linking.StravaAuthorizationUrlResponse;
 import com.sudolife.adapter.driving.rest.strava.webmodel.linking.StravaCallbackRequest;
+import com.sudolife.adapter.driving.rest.strava.webmodel.linking.StartStravaLinkingRequest;
 import com.sudolife.adapter.driving.rest.strava.webmodel.linking.StravaLinkStatusResponse;
 import com.sudolife.application.service.strava.activity.GetStravaActivityDetailCommand;
 import com.sudolife.application.service.strava.activity.ListStravaActivitiesCommand;
@@ -15,6 +16,8 @@ import com.sudolife.application.service.strava.activity.StravaActivityDetailResu
 import com.sudolife.application.service.strava.activity.StravaActivityListItemResult;
 import com.sudolife.application.service.strava.activity.StravaActivityListResult;
 import com.sudolife.application.service.strava.activity.StravaActivitySyncResult;
+import com.sudolife.application.service.strava.consent.GetStravaDataConsentStatusCommand;
+import com.sudolife.application.service.strava.consent.StravaDataConsentStatusResult;
 import com.sudolife.application.service.strava.linking.CompleteStravaAccountLinkingCommand;
 import com.sudolife.application.service.strava.linking.GetStravaAccountLinkStatusCommand;
 import com.sudolife.application.service.strava.linking.StartStravaAccountLinkingCommand;
@@ -25,6 +28,7 @@ import com.sudolife.application.service.strava.linking.UnlinkStravaAccountComman
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaActivityDetailUseCase;
+import com.sudolife.application.service.strava.ports.provided.GetStravaDataConsentStatusUseCase;
 import com.sudolife.application.service.strava.ports.provided.ListStravaActivitiesUseCase;
 import com.sudolife.application.service.strava.ports.provided.RequestStravaActivitySyncUseCase;
 import com.sudolife.application.service.strava.ports.provided.StartStravaAccountLinkingUseCase;
@@ -38,6 +42,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,6 +60,7 @@ public class StravaAccountLinkController {
     private final StartStravaAccountLinkingUseCase startStravaAccountLinkingUseCase;
     private final CompleteStravaAccountLinkingUseCase completeStravaAccountLinkingUseCase;
     private final GetStravaAccountLinkStatusUseCase getStravaAccountLinkStatusUseCase;
+    private final GetStravaDataConsentStatusUseCase getStravaDataConsentStatusUseCase;
     private final UnlinkStravaAccountUseCase unlinkStravaAccountUseCase;
     private final RequestStravaActivitySyncUseCase requestStravaActivitySyncUseCase;
     private final ListStravaActivitiesUseCase listStravaActivitiesUseCase;
@@ -62,12 +68,23 @@ public class StravaAccountLinkController {
     private final StravaFrontendRedirectProperties stravaFrontendRedirectProperties;
 
     @PostMapping("/link")
-    public ResponseEntity<StravaAuthorizationUrlResponse> startLinking(Authentication authentication) {
+    public ResponseEntity<StravaAuthorizationUrlResponse> startLinking(Authentication authentication,
+                                                                       @RequestBody(required = false) StartStravaLinkingRequest request) {
         StravaAuthorizationUrlResult result = startStravaAccountLinkingUseCase.execute(
-                new StartStravaAccountLinkingCommand(authentication.getName())
+                new StartStravaAccountLinkingCommand(authentication.getName(), acceptedConsent(request),
+                        language(request))
         );
 
         return ResponseEntity.ok(new StravaAuthorizationUrlResponse(result.authorizationUrl()));
+    }
+
+    @GetMapping("/data-consent/status")
+    public ResponseEntity<StravaDataConsentStatusResult> consentStatus(Authentication authentication) {
+        StravaDataConsentStatusResult result = getStravaDataConsentStatusUseCase.execute(
+                new GetStravaDataConsentStatusCommand(authentication.getName())
+        );
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/status")
@@ -157,6 +174,18 @@ public class StravaAccountLinkController {
         }
 
         return result.failureReason().name();
+    }
+
+    private boolean acceptedConsent(StartStravaLinkingRequest request) {
+        return request != null && Boolean.TRUE.equals(request.acceptedStravaDataConsent());
+    }
+
+    private String language(StartStravaLinkingRequest request) {
+        if (request == null || request.language() == null || request.language().trim().isEmpty()) {
+            return "pt-BR";
+        }
+
+        return request.language();
     }
 
     private StravaActivityListResponse toResponse(StravaActivityListResult result) {

@@ -8,6 +8,7 @@ import com.sudolife.application.service.user.exception.InvalidCredentialsExcepti
 import com.sudolife.application.service.user.exception.NewPasswordMatchesCurrentPasswordException;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
+import com.sudolife.application.service.strava.exception.MissingStravaDataConsentException;
 import com.sudolife.application.service.strava.exception.StravaAccountLinkingException;
 import com.sudolife.application.service.strava.exception.StravaActivityNotFoundException;
 import com.sudolife.application.service.training.exception.InvalidCoachingProfileException;
@@ -87,6 +88,12 @@ public class RestExceptionHandler {
     public ResponseEntity<ErrorResponse> handleStravaAccountLinking(StravaAccountLinkingException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(exception.getFailureCode(), exception.getMessage()));
+    }
+
+    @ExceptionHandler(MissingStravaDataConsentException.class)
+    public ResponseEntity<ErrorResponse> handleMissingStravaDataConsent(MissingStravaDataConsentException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("STRAVA_DATA_CONSENT_REQUIRED", exception.getMessage()));
     }
 
     @ExceptionHandler(StravaActivityNotFoundException.class)

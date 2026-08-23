@@ -1,5 +1,6 @@
 package com.sudolife.adapter.driven.persistence.user;
 
+import com.sudolife.adapter.driven.persistence.strava.consent.SpringDataStravaDataConsentRecordRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityDetailSnapshotRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityStreamSnapshotRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivitySummaryRepository;
@@ -66,6 +67,9 @@ class AccountDeletionDataRepositoryJpaAdapterUnitTest {
     @Mock
     private SpringDataStravaAccountLinkRepository accountLinkRepository;
 
+    @Mock
+    private SpringDataStravaDataConsentRecordRepository consentRecordRepository;
+
     @InjectMocks
     private AccountDeletionDataRepositoryJpaAdapter repository;
 
@@ -77,7 +81,7 @@ class AccountDeletionDataRepositoryJpaAdapterUnitTest {
 
         InOrder cleanupOrder = inOrder(streamSyncJobRepository, summarySyncJobRepository, streamSnapshotRepository,
                 detailSnapshotRepository, activitySummaryRepository, authorizationStateRepository,
-                accountLinkRepository, adaptiveRunningPlanRepository, coachingProfileRepository,
+                accountLinkRepository, consentRecordRepository, adaptiveRunningPlanRepository, coachingProfileRepository,
                 trainingProfileRepository);
         cleanupOrder.verify(streamSyncJobRepository).cancelOpenByUserEmail(USER_EMAIL, NOW);
         cleanupOrder.verify(summarySyncJobRepository).cancelOpenByUserEmail(USER_EMAIL, NOW);
@@ -88,6 +92,7 @@ class AccountDeletionDataRepositoryJpaAdapterUnitTest {
         cleanupOrder.verify(activitySummaryRepository).deleteByUserEmail(USER_EMAIL);
         cleanupOrder.verify(authorizationStateRepository).deleteByUserEmail(USER_EMAIL);
         cleanupOrder.verify(accountLinkRepository).deleteByIdIn(List.of(ACCOUNT_LINK_ID));
+        cleanupOrder.verify(consentRecordRepository).deleteByUserEmail(USER_EMAIL);
         cleanupOrder.verify(adaptiveRunningPlanRepository).clearOriginalPlannedSessionReferencesByUserEmail(USER_EMAIL);
         cleanupOrder.verify(adaptiveRunningPlanRepository).deleteSessionsByUserEmail(USER_EMAIL);
         cleanupOrder.verify(adaptiveRunningPlanRepository).deleteByUserEmail(USER_EMAIL);

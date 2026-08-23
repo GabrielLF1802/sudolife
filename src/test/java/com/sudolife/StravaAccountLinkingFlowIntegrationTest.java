@@ -1,5 +1,6 @@
 package com.sudolife;
 
+import com.sudolife.adapter.driven.persistence.strava.consent.SpringDataStravaDataConsentRecordRepository;
 import com.sudolife.adapter.driven.persistence.strava.linking.SpringDataStravaAccountLinkRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityDetailSnapshotRepository;
 import com.sudolife.adapter.driven.persistence.strava.activity.SpringDataStravaActivityStreamSnapshotRepository;
@@ -116,6 +117,9 @@ class StravaAccountLinkingFlowIntegrationTest {
     private SpringDataStravaSummarySyncJobRepository summarySyncJobRepository;
 
     @Autowired
+    private SpringDataStravaDataConsentRecordRepository consentRecordRepository;
+
+    @Autowired
     private FakeStravaOAuthProvider oAuthProvider;
 
     @Autowired
@@ -130,6 +134,7 @@ class StravaAccountLinkingFlowIntegrationTest {
         activityDetailSnapshotRepository.deleteAll();
         activitySummaryRepository.deleteAll();
         accountLinkRepository.deleteAll();
+        consentRecordRepository.deleteAll();
         jdbcTemplate.update("delete from users");
         oAuthProvider.reset();
         activityProvider.reset();
@@ -140,6 +145,11 @@ class StravaAccountLinkingFlowIntegrationTest {
         register(USER_NAME, USER_EMAIL);
         String token = login(USER_EMAIL);
 
+        mockMvc.perform(get("/api/strava/data-consent/status").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.currentConsentVersion").value("strava-data-import-and-coaching-v1"))
+                .andExpect(jsonPath("$.purpose").value("STRAVA_DATA_IMPORT_AND_COACHING"));
         String state = startLinking(token, ACCESS_TOKEN, REFRESH_TOKEN);
         String redirect = callback(state, CODE, SCOPE);
         String status = getStatus(token)
@@ -155,10 +165,41 @@ class StravaAccountLinkingFlowIntegrationTest {
 
         assertThat(redirect).isEqualTo(SUCCESS_REDIRECT_URL);
         assertThat(status).doesNotContain(ACCESS_TOKEN, REFRESH_TOKEN);
+        assertThat(consentRecordRepository.existsByUserEmailAndPurposeAndConsentVersion(USER_EMAIL,
+                com.sudolife.application.model.strava.StravaDataConsentPurpose.STRAVA_DATA_IMPORT_AND_COACHING,
+                "strava-data-import-and-coaching-v1")).isTrue();
+        mockMvc.perform(get("/api/strava/data-consent/status").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valid").value(true));
         assertSafeObservability(output, ACCESS_TOKEN, REFRESH_TOKEN, CODE);
         assertThat(output).contains("Strava account linking started for userEmail=" + USER_EMAIL);
         assertThat(output).contains("Strava account linking completed for userEmail=" + USER_EMAIL);
         assertThat(output).contains("athleteId=" + ATHLETE_ID);
+    }
+
+    @Test
+    void oauth_start_is_blocked_without_current_strava_data_consent() throws Exception {
+        register(USER_NAME, USER_EMAIL);
+        String token = login(USER_EMAIL);
+
+        mockMvc.perform(post("/api/strava/link").header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("STRAVA_DATA_CONSENT_REQUIRED"));
+
+        assertThat(authorizationStateRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void older_consent_version_does_not_allow_oauth_start_without_new_acceptance() throws Exception {
+        register(USER_NAME, USER_EMAIL);
+        String token = login(USER_EMAIL);
+        insertOldConsent(USER_EMAIL);
+
+        mockMvc.perform(post("/api/strava/link").header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("STRAVA_DATA_CONSENT_REQUIRED"));
+
+        assertThat(authorizationStateRepository.findAll()).isEmpty();
     }
 
     @Test
@@ -371,7 +412,15 @@ class StravaAccountLinkingFlowIntegrationTest {
     private String startLinking(String token, String accessToken, String refreshToken) throws Exception {
         oAuthProvider.authorize(new StravaTokenAuthorization(ATHLETE_ID, accessToken, refreshToken, EXPIRES_AT, SCOPE));
 
-        String response = mockMvc.perform(post("/api/strava/link").header("Authorization", "Bearer " + token))
+        String response = mockMvc.perform(post("/api/strava/link")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "acceptedStravaDataConsent": true,
+                                  "language": "pt-BR"
+                                }
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authorizationUrl").exists())
                 .andExpect(jsonPath("$.authorizationUrl").value(containsString("activity:read")))
@@ -471,6 +520,16 @@ class StravaAccountLinkingFlowIntegrationTest {
                         ) values (?, ?, ?, ?, ?, 'NORMAL', 'QUEUED', 0, ?, ?, ?)
                         """,
                 activitySummaryId, activitySummaryId, linkId, email, sourceActivityId, NOW, NOW, NOW);
+    }
+
+    private void insertOldConsent(String email) {
+        jdbcTemplate.update("""
+                        insert into strava_data_consent_records (
+                            user_email, purpose, consent_version, language, consented_at, source
+                        ) values (?, 'STRAVA_DATA_IMPORT_AND_COACHING', 'strava-data-import-and-coaching-v0',
+                            'pt-BR', ?, 'STRAVA_CONNECTION')
+                        """,
+                email, NOW);
     }
 
     private String stateFrom(String authorizationUrl) {
