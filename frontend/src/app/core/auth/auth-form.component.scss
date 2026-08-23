@@ -85,6 +85,11 @@ input:focus {
   line-height: 1.45;
 }
 
+.auth-links {
+  display: grid;
+  gap: var(--space-sm);
+}
+
 .switch-link {
   margin: 0;
   color: var(--color-muted);
