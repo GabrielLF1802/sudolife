@@ -28,4 +28,13 @@ describe('RegisterComponent', () => {
 
     expect(privacyLink?.textContent).toContain('Política de Privacidade');
   });
+
+  it('should_not_show_coaching_safety_notice', () => {
+    const safetyNotice = fixture.nativeElement.querySelector(
+      '[aria-label="Coaching Safety Notice"]',
+    );
+
+    expect(safetyNotice).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Aviso de segurança do coaching');
+  });
 });

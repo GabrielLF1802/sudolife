@@ -671,6 +671,34 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).not.toContain('diagnóstico');
   });
 
+  it('should_show_coaching_safety_notice_near_injury_concern_recovery_guidance', () => {
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    toggleInjuryConcern(true);
+
+    const guidance = fixture.nativeElement.querySelector('.injury-guidance') as HTMLElement;
+    expect(guidance.textContent).toContain('Aviso de segurança do coaching');
+    expect(guidance.textContent).toContain('não é orientação médica');
+  });
+
+  it('should_show_coaching_safety_notice_near_conservative_plan_generation', () => {
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+    coachingProfileService.generateConservativeRunningPlan.and.returnValue(
+      of(conservativeRunningPlanWithFutureSession()),
+    );
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+
+    expect(planSafetyNotices().length).toBeGreaterThan(0);
+    expect(planSafetyNotices()[0].textContent).toContain('não é orientação médica');
+  });
+
   it('should_render_conservative_classification_and_planned_sessions_for_incomplete_history', () => {
     coachingProfileService.get.and.returnValue(
       of({
@@ -704,6 +732,20 @@ describe('ActivityDashboardComponent', () => {
     expect(pageText()).toContain('O plano foi validado pelo Sudolife');
   });
 
+  it('should_show_coaching_safety_notice_near_adaptive_plan_generation', () => {
+    coachingProfileService.get.and.returnValue(
+      of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
+    );
+    coachingProfileService.getRunningHistory.and.returnValue(of(runningHistory(true)));
+    fixture.detectChanges();
+
+    dashboardNavigationButton('Plano').click();
+    fixture.detectChanges();
+
+    expect(planSafetyNotices().length).toBeGreaterThan(0);
+    expect(planSafetyNotices()[0].textContent).toContain('não é orientação médica');
+  });
+
   it('should_render_next_session_before_history_and_translate_all_session_states', () => {
     coachingProfileService.get.and.returnValue(
       of({ ...coachingProfile(true), readiness: 'MODERATE', injuryConcern: false }),
@@ -721,6 +763,22 @@ describe('ActivityDashboardComponent', () => {
     expect(planText).toContain('Concluída');
     expect(planText).toContain('Perdida');
     expect(planText).toContain('Substituída');
+  });
+
+  it('should_show_coaching_safety_notice_near_active_adaptive_plan_summary', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    const summary = fixture.nativeElement.querySelector('.adaptive-plan') as HTMLElement;
+    expect(summary.textContent).toContain('Seu plano está em andamento');
+    expect(summary.querySelector('[aria-label="Coaching Safety Notice"]')).not.toBeNull();
+  });
+
+  it('should_show_coaching_safety_notice_near_low_readiness_adaptation_action', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    const nextSession = fixture.nativeElement.querySelector('.next-session') as HTMLElement;
+    expect(nextSession.textContent).toContain('Minha prontidão caiu');
+    expect(nextSession.querySelector('[aria-label="Coaching Safety Notice"]')).not.toBeNull();
   });
 
   it('should_order_adaptive_history_by_date_and_replacement_chain_deterministically', () => {
@@ -799,6 +857,15 @@ describe('ActivityDashboardComponent', () => {
       plannedSessionId: 11,
       activityId: 99,
     });
+  });
+
+  it('should_show_coaching_safety_notice_near_perceived_effort_submission', () => {
+    loadCurrentAdaptivePlanWithActivities();
+
+    const effortInput = fixture.nativeElement.querySelector('#perceived-effort-11');
+    const effortForm = effortInput.closest('form') as HTMLElement;
+    expect(effortForm.textContent).toContain('Esforço percebido');
+    expect(effortForm.querySelector('[aria-label="Coaching Safety Notice"]')).not.toBeNull();
   });
 
   it('should_reject_empty_session_match_without_sending_activity_zero', () => {
@@ -1151,6 +1218,12 @@ describe('ActivityDashboardComponent', () => {
     return fixture.nativeElement.querySelector(selector);
   }
 
+  function planSafetyNotices(): HTMLElement[] {
+    return [
+      ...dashboardView('.plan-view').querySelectorAll('[aria-label="Coaching Safety Notice"]'),
+    ] as HTMLElement[];
+  }
+
   function recoveryButton(label: string): HTMLButtonElement {
     return [...fixture.nativeElement.querySelectorAll('.recovery-panel button')].find(
       (button: HTMLButtonElement) => button.textContent.trim() === label,
@@ -1461,6 +1534,22 @@ describe('ActivityDashboardComponent', () => {
             minimumPerceivedEffort: 2,
             maximumPerceivedEffort: 4,
           },
+        },
+      ],
+    };
+  }
+
+  function conservativeRunningPlanWithFutureSession() {
+    const plan = conservativeRunningPlan();
+
+    return {
+      ...plan,
+      plannedSessions: [
+        ...plan.plannedSessions,
+        {
+          ...plan.plannedSessions[0],
+          weekNumber: 2,
+          scheduledDate: '2026-07-23',
         },
       ],
     };

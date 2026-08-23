@@ -359,9 +359,9 @@
             <section class="strava-consent-panel" aria-labelledby="strava-consent-title">
               <strong id="strava-consent-title">Consentimento para dados do Strava</strong>
               <p>
-                Autorizo o Sudolife a importar meu perfil de atleta, atividades recentes,
-                detalhes de atividades, fluxos de performance, dados de frequência cardíaca
-                quando disponíveis e zonas de frequência cardíaca quando disponíveis.
+                Autorizo o Sudolife a importar meu perfil de atleta, atividades recentes, detalhes
+                de atividades, fluxos de performance, dados de frequência cardíaca quando
+                disponíveis e zonas de frequência cardíaca quando disponíveis.
               </p>
               <p>
                 Esses dados serão usados para minha experiência de treino e recomendações de
@@ -664,6 +664,13 @@
                       Não haverá progressão de carga ou treino intenso enquanto essa preocupação
                       estiver informada.
                     </p>
+                    <section class="coaching-safety-notice" aria-label="Coaching Safety Notice">
+                      <strong>Aviso de segurança do coaching</strong>
+                      <p>
+                        O coaching do Sudolife orienta treinos, não é orientação médica e não
+                        substitui profissionais de saúde.
+                      </p>
+                    </section>
                   </section>
                 }
               </fieldset>
@@ -741,6 +748,14 @@
               }
             </div>
 
+            <section class="coaching-safety-notice" aria-label="Coaching Safety Notice">
+              <strong>Aviso de segurança do coaching</strong>
+              <p>
+                O coaching do Sudolife orienta treinos, não é orientação médica e não substitui
+                profissionais de saúde.
+              </p>
+            </section>
+
             <ol class="planned-session-list">
               @for (
                 session of futurePlanSessions();
@@ -778,6 +793,14 @@
             <p>Em andamento desde {{ plan.acceptedAt | date: 'dd/MM/yyyy' }}</p>
           </header>
 
+          <section class="coaching-safety-notice" aria-label="Coaching Safety Notice">
+            <strong>Aviso de segurança do coaching</strong>
+            <p>
+              O coaching do Sudolife orienta treinos, não é orientação médica e não substitui
+              profissionais de saúde.
+            </p>
+          </section>
+
           <section class="next-session" aria-labelledby="next-session-title">
             <div class="next-session-heading">
               <span>Seu próximo passo</span>
@@ -801,6 +824,13 @@
                   Esta sessão considera {{ adaptationTriggerLabel(nextSession.adaptationTrigger) }}.
                 </p>
               }
+              <section class="coaching-safety-notice compact" aria-label="Coaching Safety Notice">
+                <strong>Aviso de segurança do coaching</strong>
+                <p>
+                  O coaching do Sudolife orienta treinos, não é orientação médica e não substitui
+                  profissionais de saúde.
+                </p>
+              </section>
               <button
                 type="button"
                 class="readiness-action"
@@ -829,6 +859,13 @@
           <section class="adaptation-update" aria-live="polite" aria-atomic="true">
             @if (adaptationAnnouncement()) {
               <strong>{{ adaptationAnnouncement() }}</strong>
+              <section class="coaching-safety-notice compact" aria-label="Coaching Safety Notice">
+                <strong>Aviso de segurança do coaching</strong>
+                <p>
+                  O coaching do Sudolife orienta treinos, não é orientação médica e não substitui
+                  profissionais de saúde.
+                </p>
+              </section>
               @if (previousNextSession(); as previousSession) {
                 <div class="adaptation-comparison">
                   <p>
@@ -1003,6 +1040,16 @@
                             <p id="perceived-effort-guidance-{{ session.id }}">
                               1 muito leve · 5 moderado · 10 esforço máximo percebido
                             </p>
+                            <section
+                              class="coaching-safety-notice compact"
+                              aria-label="Coaching Safety Notice"
+                            >
+                              <strong>Aviso de segurança do coaching</strong>
+                              <p>
+                                O coaching do Sudolife orienta treinos, não é orientação médica e
+                                não substitui profissionais de saúde.
+                              </p>
+                            </section>
                             <div>
                               <input
                                 type="number"
@@ -1061,6 +1108,14 @@
               <p>Alguns detalhes foram ajustados para manter os limites seguros de treino.</p>
             }
           </div>
+
+          <section class="coaching-safety-notice" aria-label="Coaching Safety Notice">
+            <strong>Aviso de segurança do coaching</strong>
+            <p>
+              O coaching do Sudolife orienta treinos, não é orientação médica e não substitui
+              profissionais de saúde.
+            </p>
+          </section>
 
           @if (plan.plannedSessions[0]; as nextSession) {
             <div class="conservative-plan-heading" aria-label="Próxima sessão atual">
