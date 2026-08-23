@@ -331,20 +331,57 @@ dd {
   padding: var(--space-lg);
 }
 
-.password-change-panel > div {
+.password-change-panel > div,
+.account-deletion-panel > div {
   display: grid;
   gap: var(--space-xs);
 }
 
-.password-change-panel p {
+.password-change-panel p,
+.account-deletion-panel p {
   margin: 0;
   color: var(--color-muted);
   line-height: 1.5;
 }
 
-.password-change-panel .status.error {
+.password-change-panel .status.error,
+.account-deletion-panel .status.error {
   color: var(--color-error);
   font-weight: 700;
+}
+
+.account-deletion-confirmation {
+  display: flex;
+  align-items: center;
+  max-width: 420px;
+}
+
+.account-deletion-confirmation input {
+  width: 20px;
+  min-height: 20px;
+  accent-color: var(--color-error);
+  padding: 0;
+}
+
+.account-deletion-confirmation span {
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+.danger-action {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-surface);
+}
+
+.danger-action:hover:not(:disabled) {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-surface);
+  filter: brightness(0.9);
 }
 
 .training-profile-panel form {

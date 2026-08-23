@@ -75,4 +75,19 @@ describe('AuthService', () => {
     expect(authService.token()).toBeNull();
     expect(authService.isAuthenticated()).toBeFalse();
   });
+
+  it('should_send_account_deletion_request_and_remove_token_after_success', () => {
+    localStorage.setItem('sudolife.jwt', 'jwt-token');
+    const command = { currentPassword: 'Str0ng!Password' };
+
+    authService.deleteAccount(command).subscribe();
+
+    const request = httpTestingController.expectOne('/api/users/me');
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.body).toEqual(command);
+    request.flush(null);
+
+    expect(authService.token()).toBeNull();
+    expect(authService.isAuthenticated()).toBeFalse();
+  });
 });

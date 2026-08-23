@@ -64,6 +64,11 @@ interface PasswordChangeErrorResponse {
   violations?: PasswordPolicyViolation[];
 }
 
+interface AccountDeletionErrorResponse {
+  code?: string;
+  message?: string;
+}
+
 export type TodayAction =
   | 'CONNECT_STRAVA'
   | 'COMPLETE_PROFILE'
@@ -137,6 +142,10 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly changingPassword = signal(false);
   protected readonly passwordChangeErrorMessage = signal('');
   protected readonly passwordPolicyViolations = signal<PasswordPolicyViolation[]>([]);
+  protected readonly accountDeletionPassword = signal('');
+  protected readonly accountDeletionConfirmed = signal(false);
+  protected readonly deletingAccount = signal(false);
+  protected readonly accountDeletionErrorMessage = signal('');
   protected readonly sessionOperationIds = signal<ReadonlySet<number>>(new Set());
   protected readonly sessionErrors = signal<Readonly<Partial<Record<number, string>>>>({});
   protected readonly sessionSuccesses = signal<Readonly<Partial<Record<number, string>>>>({});
@@ -227,6 +236,12 @@ export class ActivityDashboardComponent implements OnInit {
       this.currentPassword().trim() !== '' &&
       this.newPassword().trim() !== '' &&
       !this.changingPassword(),
+  );
+  protected readonly canDeleteAccount = computed(
+    () =>
+      this.accountDeletionPassword().trim() !== '' &&
+      this.accountDeletionConfirmed() &&
+      !this.deletingAccount(),
   );
   protected readonly futurePlanSessions = computed(
     () =>
@@ -410,6 +425,16 @@ export class ActivityDashboardComponent implements OnInit {
     this.passwordChangeErrorMessage.set('');
   }
 
+  protected updateAccountDeletionPassword(event: Event): void {
+    this.accountDeletionPassword.set((event.target as HTMLInputElement).value);
+    this.accountDeletionErrorMessage.set('');
+  }
+
+  protected updateAccountDeletionConfirmation(event: Event): void {
+    this.accountDeletionConfirmed.set((event.target as HTMLInputElement).checked);
+    this.accountDeletionErrorMessage.set('');
+  }
+
   protected updateTargetDistance(event: Event): void {
     this.targetDistanceKilometers.set((event.target as HTMLInputElement).value);
   }
@@ -516,6 +541,30 @@ export class ActivityDashboardComponent implements OnInit {
         next: () => void this.router.navigateByUrl('/login'),
         error: (error) => {
           this.passwordChangeErrorMessage.set(this.passwordChangeErrorMessageFor(error));
+        },
+      });
+  }
+
+  protected deleteAccount(): void {
+    if (!this.canDeleteAccount()) {
+      this.accountDeletionErrorMessage.set(
+        'Informe sua senha atual e confirme que entende a exclusão irreversível.',
+      );
+      return;
+    }
+
+    this.deletingAccount.set(true);
+    this.accountDeletionErrorMessage.set('');
+
+    this.authService
+      .deleteAccount({
+        currentPassword: this.accountDeletionPassword(),
+      })
+      .pipe(finalize(() => this.deletingAccount.set(false)))
+      .subscribe({
+        next: () => void this.router.navigateByUrl('/login'),
+        error: (error) => {
+          this.accountDeletionErrorMessage.set(this.accountDeletionErrorMessageFor(error));
         },
       });
   }
@@ -1388,6 +1437,21 @@ export class ActivityDashboardComponent implements OnInit {
   }
 
   private isPasswordChangeErrorResponse(value: unknown): value is PasswordChangeErrorResponse {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private accountDeletionErrorMessageFor(error: unknown): string {
+    const response = error instanceof HttpErrorResponse ? error.error : null;
+    const errorResponse = this.isAccountDeletionErrorResponse(response) ? response : null;
+
+    if (errorResponse?.code === 'INVALID_CREDENTIALS') {
+      return 'A senha atual não confere. Revise a senha e tente excluir novamente.';
+    }
+
+    return 'Não foi possível excluir sua conta agora. Nenhum dado foi removido; tente novamente.';
+  }
+
+  private isAccountDeletionErrorResponse(value: unknown): value is AccountDeletionErrorResponse {
     return typeof value === 'object' && value !== null;
   }
 

@@ -102,11 +102,13 @@ describe('ActivityDashboardComponent', () => {
       'currentUser',
       'logout',
       'changePassword',
+      'deleteAccount',
     ]);
     authService.currentUser.and.returnValue(
       of({ id: 1, name: 'Gabriel', email: 'gabriel@example.com' }),
     );
     authService.changePassword.and.returnValue(of(undefined));
+    authService.deleteAccount.and.returnValue(of(undefined));
 
     router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
     router.navigateByUrl.and.resolveTo(true);
@@ -269,6 +271,73 @@ describe('ActivityDashboardComponent', () => {
       'Pelo menos 12 caracteres',
       'Um caractere especial',
     ]);
+    expect(router.navigateByUrl).not.toHaveBeenCalledWith('/login');
+  });
+
+  it('should_prevent_account_deletion_when_current_password_is_empty', () => {
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    accountDeletionButton().click();
+    fixture.detectChanges();
+
+    expect(accountDeletionButton().disabled).toBeTrue();
+    expect(authService.deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('should_require_explicit_confirmation_before_account_deletion', () => {
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    typeAccountDeletionPassword('Str0ng!Password');
+    accountDeletionButton().click();
+    fixture.detectChanges();
+
+    expect(accountDeletionButton().disabled).toBeTrue();
+    expect(authService.deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('should_delete_account_and_navigate_to_login_after_confirmation', () => {
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    typeAccountDeletionPassword('Str0ng!Password');
+    confirmAccountDeletion();
+    accountDeletionButton().click();
+    fixture.detectChanges();
+
+    expect(authService.deleteAccount).toHaveBeenCalledOnceWith({
+      currentPassword: 'Str0ng!Password',
+    });
+    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/login');
+  });
+
+  it('should_show_invalid_credentials_error_when_account_deletion_password_is_wrong', () => {
+    authService.deleteAccount.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 401,
+            error: {
+              code: 'INVALID_CREDENTIALS',
+              message: 'Invalid credentials',
+            },
+          }),
+      ),
+    );
+    fixture.detectChanges();
+    dashboardNavigationButton('Ajustes').click();
+    fixture.detectChanges();
+
+    typeAccountDeletionPassword('wrong-password');
+    confirmAccountDeletion();
+    accountDeletionButton().click();
+    fixture.detectChanges();
+
+    expect(pageText()).toContain('A senha atual não confere.');
     expect(router.navigateByUrl).not.toHaveBeenCalledWith('/login');
   });
 
@@ -1059,12 +1128,16 @@ describe('ActivityDashboardComponent', () => {
 
   function trainingProfileButton(): HTMLButtonElement {
     return fixture.nativeElement.querySelector(
-      '.training-profile-panel:not(.password-change-panel) button',
+      '.training-profile-panel:not(.password-change-panel):not(.account-deletion-panel) button',
     );
   }
 
   function passwordChangeButton(): HTMLButtonElement {
     return fixture.nativeElement.querySelector('.password-change-panel button[type="submit"]');
+  }
+
+  function accountDeletionButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector('.account-deletion-panel button[type="submit"]');
   }
 
   function typePasswordChangeInput(selector: string, value: string): void {
@@ -1079,6 +1152,26 @@ describe('ActivityDashboardComponent', () => {
 
   function rejectedPasswordPolicyItems(): HTMLElement[] {
     return [...fixture.nativeElement.querySelectorAll('.password-policy-list li.rejected')];
+  }
+
+  function typeAccountDeletionPassword(value: string): void {
+    const input = fixture.nativeElement.querySelector(
+      '.account-deletion-panel input[type="password"]',
+    ) as HTMLInputElement;
+    input.value = value;
+
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  function confirmAccountDeletion(): void {
+    const input = fixture.nativeElement.querySelector(
+      '.account-deletion-panel input[type="checkbox"]',
+    ) as HTMLInputElement;
+    input.checked = true;
+
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
   }
 
   function coachingProfileButton(): HTMLButtonElement {

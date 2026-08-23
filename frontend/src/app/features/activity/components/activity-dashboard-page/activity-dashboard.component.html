@@ -240,6 +240,70 @@
         }
       </section>
 
+      <section
+        class="training-profile-panel account-deletion-panel"
+        aria-labelledby="account-deletion-title"
+      >
+        <div>
+          <span>Zona irreversível</span>
+          <strong id="account-deletion-title">Excluir conta Sudolife</strong>
+          <p>
+            Esta ação remove sua conta, perfis de treino, planos, vínculo com Strava e atividades
+            importadas. Depois da exclusão, não há recuperação.
+          </p>
+        </div>
+
+        <form novalidate (submit)="$event.preventDefault(); deleteAccount()">
+          <label>
+            <span>Senha atual</span>
+            <input
+              type="password"
+              autocomplete="current-password"
+              maxlength="128"
+              required
+              [value]="accountDeletionPassword()"
+              [attr.aria-invalid]="accountDeletionErrorMessage() ? 'true' : null"
+              [attr.aria-describedby]="
+                accountDeletionErrorMessage()
+                  ? 'account-deletion-guidance account-deletion-error'
+                  : 'account-deletion-guidance'
+              "
+              (input)="updateAccountDeletionPassword($event)"
+            />
+          </label>
+
+          <label class="account-deletion-confirmation">
+            <input
+              type="checkbox"
+              [checked]="accountDeletionConfirmed()"
+              (change)="updateAccountDeletionConfirmation($event)"
+            />
+            <span id="account-deletion-guidance">
+              Entendo que esta exclusão é permanente e quero remover minha conta.
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            class="danger-action"
+            [disabled]="!canDeleteAccount()"
+            [attr.aria-busy]="deletingAccount()"
+          >
+            @if (deletingAccount()) {
+              Excluindo...
+            } @else {
+              Excluir conta
+            }
+          </button>
+        </form>
+
+        @if (accountDeletionErrorMessage()) {
+          <p class="status error" id="account-deletion-error" role="alert">
+            {{ accountDeletionErrorMessage() }}
+          </p>
+        }
+      </section>
+
       @if (stravaLinkStatus(); as stravaStatus) {
         <details class="strava-panel settings-disclosure">
           <summary class="strava-status">

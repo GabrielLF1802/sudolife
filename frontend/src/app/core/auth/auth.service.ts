@@ -18,6 +18,10 @@ export interface ChangePasswordCommand {
   newPassword: string;
 }
 
+export interface DeleteAccountCommand {
+  currentPassword: string;
+}
+
 export interface CurrentUser {
   id: number;
   name: string;
@@ -47,6 +51,10 @@ export class AuthService {
 
   changePassword(command: ChangePasswordCommand): Observable<void> {
     return this.http.patch<void>('/api/users/me/password', command).pipe(tap(() => this.logout()));
+  }
+
+  deleteAccount(command: DeleteAccountCommand): Observable<void> {
+    return this.http.delete<void>('/api/users/me', { body: command }).pipe(tap(() => this.logout()));
   }
 
   currentUser(): Observable<CurrentUser> {
