@@ -253,6 +253,26 @@ button:disabled {
   margin-top: var(--space-lg);
 }
 
+.strava-consent-panel {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.strava-consent-panel p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.strava-consent-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-sm);
+  align-items: start;
+}
+
 .strava-panel span,
 .training-profile-panel span,
 .conservative-plan-heading span,

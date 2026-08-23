@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { StravaAccountGateway, STRAVA_ACCOUNT_GATEWAY } from './strava-account.gateway';
 import { StravaActivitySyncResult } from './dtos/strava-activity-sync';
 import { StravaAuthorizationUrl } from './dtos/strava-authorization-url';
+import { StravaDataConsentStatus } from './dtos/strava-data-consent';
 import { StravaLinkStatus } from './dtos/strava-link-status';
 
 @Injectable({ providedIn: 'root' })
@@ -14,8 +15,15 @@ export class StravaAccountService {
     return this.stravaAccountGateway.status();
   }
 
-  startLinking(): Observable<StravaAuthorizationUrl> {
-    return this.stravaAccountGateway.startLinking();
+  consentStatus(): Observable<StravaDataConsentStatus> {
+    return this.stravaAccountGateway.consentStatus();
+  }
+
+  startLinking(acceptedStravaDataConsent: boolean): Observable<StravaAuthorizationUrl> {
+    return this.stravaAccountGateway.startLinking({
+      acceptedStravaDataConsent,
+      language: 'pt-BR',
+    });
   }
 
   requestSync(): Observable<StravaActivitySyncResult> {

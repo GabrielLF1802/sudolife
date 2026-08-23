@@ -30,6 +30,7 @@ import {
   StravaActivitySyncResult,
   StravaActivitySyncStatus,
 } from '../../services/dtos/strava-activity-sync';
+import { StravaDataConsentStatus } from '../../services/dtos/strava-data-consent';
 import { StravaLinkStatus } from '../../services/dtos/strava-link-status';
 import { StravaAccountService } from '../../services/strava-account.service';
 import { TrainingProfile } from '../../services/dtos/training-profile';
@@ -114,6 +115,7 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly currentUser = signal<CurrentUser | null>(null);
   protected readonly activityList = signal<ActivityList | null>(null);
   protected readonly stravaLinkStatus = signal<StravaLinkStatus | null>(null);
+  protected readonly stravaDataConsentStatus = signal<StravaDataConsentStatus | null>(null);
   protected readonly trainingProfile = signal<TrainingProfile | null>(null);
   protected readonly coachingProfile = signal<CoachingProfile | null>(null);
   protected readonly runningHistory = signal<RunningHistorySnapshot | null>(null);
@@ -132,6 +134,8 @@ export class ActivityDashboardComponent implements OnInit {
   protected readonly pageErrorMessage = signal('');
   protected readonly planErrorMessage = signal('');
   protected readonly linkingErrorMessage = signal('');
+  protected readonly stravaDataConsentAccepted = signal(false);
+  protected readonly stravaDataConsentErrorMessage = signal('');
   protected readonly syncErrorMessage = signal('');
   protected readonly trainingProfileErrorMessage = signal('');
   protected readonly trainingProfileSuccessMessage = signal('');
@@ -360,6 +364,7 @@ export class ActivityDashboardComponent implements OnInit {
       currentUser: this.authService.currentUser(),
       activityList: this.activityService.list(),
       stravaLinkStatus: this.stravaAccountService.status(),
+      stravaDataConsentStatus: this.stravaAccountService.consentStatus(),
       trainingProfile: this.trainingProfileService.get(),
       coachingProfile: this.coachingProfileService.get(),
       runningHistory: this.coachingProfileService.getRunningHistory(),
@@ -368,6 +373,7 @@ export class ActivityDashboardComponent implements OnInit {
         currentUser,
         activityList,
         stravaLinkStatus,
+        stravaDataConsentStatus,
         trainingProfile,
         coachingProfile,
         runningHistory,
@@ -375,6 +381,7 @@ export class ActivityDashboardComponent implements OnInit {
         this.currentUser.set(currentUser);
         this.activityList.set(activityList);
         this.stravaLinkStatus.set(stravaLinkStatus);
+        this.stravaDataConsentStatus.set(stravaDataConsentStatus);
         this.trainingProfile.set(trainingProfile);
         this.coachingProfile.set(coachingProfile);
         this.runningHistory.set(runningHistory);
@@ -453,6 +460,11 @@ export class ActivityDashboardComponent implements OnInit {
 
   protected updateInjuryConcern(event: Event): void {
     this.injuryConcern.set((event.target as HTMLInputElement).checked);
+  }
+
+  protected updateStravaDataConsent(event: Event): void {
+    this.stravaDataConsentAccepted.set((event.target as HTMLInputElement).checked);
+    this.stravaDataConsentErrorMessage.set('');
   }
 
   protected updatePreferredRunningDay(day: RunningDay, event: Event): void {
@@ -570,10 +582,17 @@ export class ActivityDashboardComponent implements OnInit {
   }
 
   protected startStravaLinking(): void {
+    if (this.requiresStravaDataConsent() && !this.stravaDataConsentAccepted()) {
+      this.stravaDataConsentErrorMessage.set(
+        'Aceite o uso dos dados do Strava para continuar a conexão.',
+      );
+      return;
+    }
+
     this.linking.set(true);
     this.linkingErrorMessage.set('');
 
-    this.stravaAccountService.startLinking().subscribe({
+    this.stravaAccountService.startLinking(this.requiresStravaDataConsent()).subscribe({
       next: (result) => {
         window.location.assign(result.authorizationUrl);
       },
@@ -584,6 +603,10 @@ export class ActivityDashboardComponent implements OnInit {
         );
       },
     });
+  }
+
+  protected requiresStravaDataConsent(): boolean {
+    return this.stravaDataConsentStatus()?.valid !== true;
   }
 
   protected requestActivitySync(): void {

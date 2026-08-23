@@ -355,6 +355,38 @@
             }
           </div>
 
+          @if (requiresStravaDataConsent()) {
+            <section class="strava-consent-panel" aria-labelledby="strava-consent-title">
+              <strong id="strava-consent-title">Consentimento para dados do Strava</strong>
+              <p>
+                Autorizo o Sudolife a importar meu perfil de atleta, atividades recentes,
+                detalhes de atividades, fluxos de performance, dados de frequência cardíaca
+                quando disponíveis e zonas de frequência cardíaca quando disponíveis.
+              </p>
+              <p>
+                Esses dados serão usados para minha experiência de treino e recomendações de
+                coaching no Sudolife. Eles não serão usados para treinar modelos.
+              </p>
+              <label class="strava-consent-check">
+                <input
+                  type="checkbox"
+                  [checked]="stravaDataConsentAccepted()"
+                  [attr.aria-invalid]="stravaDataConsentErrorMessage() ? 'true' : null"
+                  [attr.aria-describedby]="
+                    stravaDataConsentErrorMessage() ? 'strava-consent-error' : null
+                  "
+                  (change)="updateStravaDataConsent($event)"
+                />
+                <span>Li e aceito o uso dos meus dados do Strava nesta versão.</span>
+              </label>
+              @if (stravaDataConsentErrorMessage()) {
+                <p class="status error" id="strava-consent-error" role="alert">
+                  {{ stravaDataConsentErrorMessage() }}
+                </p>
+              }
+            </section>
+          }
+
           @if (stravaUnlinkConfirmationOpen()) {
             <section class="unlink-strava-confirmation" aria-labelledby="unlink-strava-title">
               <strong id="unlink-strava-title">Desvincular conta Strava?</strong>

@@ -46,14 +46,34 @@ describe('StravaAccountGatewayImpl', () => {
   });
 
   it('should_start_strava_linking', () => {
-    gateway.startLinking().subscribe((result) => {
+    gateway
+      .startLinking({ acceptedStravaDataConsent: true, language: 'pt-BR' })
+      .subscribe((result) => {
       expect(result.authorizationUrl).toBe('https://strava.example/oauth');
     });
 
     const request = httpTestingController.expectOne('/api/strava/link');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({});
+    expect(request.request.body).toEqual({
+      acceptedStravaDataConsent: true,
+      language: 'pt-BR',
+    });
     request.flush({ authorizationUrl: 'https://strava.example/oauth' });
+  });
+
+  it('should_load_strava_data_consent_status', () => {
+    gateway.consentStatus().subscribe((status) => {
+      expect(status.valid).toBeTrue();
+      expect(status.currentConsentVersion).toBe('strava-data-import-and-coaching-v1');
+    });
+
+    const request = httpTestingController.expectOne('/api/strava/data-consent/status');
+    expect(request.request.method).toBe('GET');
+    request.flush({
+      valid: true,
+      currentConsentVersion: 'strava-data-import-and-coaching-v1',
+      purpose: 'STRAVA_DATA_IMPORT_AND_COACHING',
+    });
   });
 
   it('should_request_manual_activity_sync', () => {

@@ -11,11 +11,13 @@ describe('StravaAccountService', () => {
   beforeEach(() => {
     stravaAccountGateway = jasmine.createSpyObj<StravaAccountGateway>('StravaAccountGateway', [
       'status',
+      'consentStatus',
       'startLinking',
       'requestSync',
       'unlink',
     ]);
     stravaAccountGateway.status.and.returnValue(of(stravaStatus()));
+    stravaAccountGateway.consentStatus.and.returnValue(of(stravaDataConsentStatus()));
     stravaAccountGateway.startLinking.and.returnValue(
       of({ authorizationUrl: 'https://strava.example/oauth' }),
     );
@@ -50,11 +52,23 @@ describe('StravaAccountService', () => {
   });
 
   it('should_start_strava_linking', () => {
-    service.startLinking().subscribe((result) => {
+    service.startLinking(true).subscribe((result) => {
       expect(result.authorizationUrl).toBe('https://strava.example/oauth');
     });
 
-    expect(stravaAccountGateway.startLinking).toHaveBeenCalledOnceWith();
+    expect(stravaAccountGateway.startLinking).toHaveBeenCalledOnceWith({
+      acceptedStravaDataConsent: true,
+      language: 'pt-BR',
+    });
+  });
+
+  it('should_load_strava_data_consent_status', () => {
+    service.consentStatus().subscribe((status) => {
+      expect(status.valid).toBeTrue();
+      expect(status.currentConsentVersion).toBe('strava-data-import-and-coaching-v1');
+    });
+
+    expect(stravaAccountGateway.consentStatus).toHaveBeenCalledOnceWith();
   });
 
   it('should_request_manual_activity_sync', () => {
@@ -91,6 +105,14 @@ describe('StravaAccountService', () => {
       importedActivityCount: 4,
       streamsReadyActivityCount: 1,
       failureReason: null,
+    };
+  }
+
+  function stravaDataConsentStatus() {
+    return {
+      valid: true,
+      currentConsentVersion: 'strava-data-import-and-coaching-v1',
+      purpose: 'STRAVA_DATA_IMPORT_AND_COACHING' as const,
     };
   }
 });

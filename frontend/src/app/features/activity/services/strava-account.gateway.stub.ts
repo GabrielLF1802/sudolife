@@ -4,6 +4,7 @@ import { Observable, of } from 'rxjs';
 import { StravaAccountGateway } from './strava-account.gateway';
 import { StravaActivitySyncResult } from './dtos/strava-activity-sync';
 import { StravaAuthorizationUrl } from './dtos/strava-authorization-url';
+import { StartStravaLinkingRequest, StravaDataConsentStatus } from './dtos/strava-data-consent';
 import { StravaLinkStatus } from './dtos/strava-link-status';
 
 @Injectable()
@@ -24,7 +25,15 @@ export class StravaAccountGatewayStub implements StravaAccountGateway {
     });
   }
 
-  startLinking(): Observable<StravaAuthorizationUrl> {
+  consentStatus(): Observable<StravaDataConsentStatus> {
+    return of({
+      valid: false,
+      currentConsentVersion: 'strava-data-import-and-coaching-v1',
+      purpose: 'STRAVA_DATA_IMPORT_AND_COACHING',
+    });
+  }
+
+  startLinking(_request: StartStravaLinkingRequest): Observable<StravaAuthorizationUrl> {
     return of({ authorizationUrl: 'https://strava.example/oauth' });
   }
 

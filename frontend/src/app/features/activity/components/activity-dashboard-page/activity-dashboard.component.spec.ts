@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/auth.service';
 import {
@@ -37,11 +37,13 @@ describe('ActivityDashboardComponent', () => {
 
     stravaAccountService = jasmine.createSpyObj<StravaAccountService>('StravaAccountService', [
       'status',
+      'consentStatus',
       'startLinking',
       'requestSync',
       'unlink',
     ]);
     stravaAccountService.status.and.returnValue(of(stravaStatus('UNLINKED')));
+    stravaAccountService.consentStatus.and.returnValue(of(stravaDataConsentStatus(false)));
     stravaAccountService.startLinking.and.returnValue(
       of({ authorizationUrl: 'https://strava.example/oauth' }),
     );
@@ -1021,6 +1023,7 @@ describe('ActivityDashboardComponent', () => {
 
   it('should_show_linking_error_when_oauth_launch_fails', () => {
     stravaAccountService.startLinking.and.returnValue(throwError(() => new Error('failed')));
+    stravaAccountService.consentStatus.and.returnValue(of(stravaDataConsentStatus(true)));
     fixture.detectChanges();
 
     stravaButton().click();
@@ -1030,6 +1033,43 @@ describe('ActivityDashboardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Não foi possível abrir a conexão com o Strava.',
     );
+  });
+
+  it('should_block_strava_oauth_until_data_consent_is_checked', () => {
+    fixture.detectChanges();
+
+    stravaButton().click();
+    fixture.detectChanges();
+
+    expect(stravaAccountService.startLinking).not.toHaveBeenCalled();
+    expect(pageText()).toContain('Aceite o uso dos dados do Strava para continuar a conexão.');
+  });
+
+  it('should_start_strava_oauth_with_explicit_data_consent_when_checked', () => {
+    stravaAccountService.startLinking.and.returnValue(NEVER);
+    fixture.detectChanges();
+
+    const consentCheckbox = fixture.nativeElement.querySelector(
+      '.strava-consent-check input',
+    ) as HTMLInputElement;
+    consentCheckbox.checked = true;
+    consentCheckbox.dispatchEvent(new Event('change'));
+    stravaButton().click();
+    fixture.detectChanges();
+
+    expect(stravaAccountService.startLinking).toHaveBeenCalledOnceWith(true);
+  });
+
+  it('should_start_strava_oauth_without_reprompting_when_current_consent_exists', () => {
+    stravaAccountService.consentStatus.and.returnValue(of(stravaDataConsentStatus(true)));
+    stravaAccountService.startLinking.and.returnValue(NEVER);
+    fixture.detectChanges();
+
+    stravaButton().click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.strava-consent-panel')).toBeNull();
+    expect(stravaAccountService.startLinking).toHaveBeenCalledOnceWith(false);
   });
 
   it('should_show_manual_sync_result', () => {
@@ -1300,6 +1340,14 @@ describe('ActivityDashboardComponent', () => {
       streamsReadyActivityCount: 0,
       failureReason:
         permissionState === 'PERMISSION_UPGRADE_REQUIRED' ? 'PERMISSION_UPGRADE_REQUIRED' : null,
+    };
+  }
+
+  function stravaDataConsentStatus(valid: boolean) {
+    return {
+      valid,
+      currentConsentVersion: 'strava-data-import-and-coaching-v1',
+      purpose: 'STRAVA_DATA_IMPORT_AND_COACHING' as const,
     };
   }
 
