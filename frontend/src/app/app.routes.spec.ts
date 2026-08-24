@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
 import { PrivacyPolicyComponent } from './core/privacy/privacy-policy.component';
+import { PasswordRecoveryCompleteComponent } from './core/auth/password-recovery-complete.component';
 import { routes } from './app.routes';
 
 describe('routes', () => {
@@ -22,5 +23,12 @@ describe('routes', () => {
     const privacyRoute = routes.find((route) => route.path === 'privacy-policy');
 
     expect(privacyRoute?.canActivate).toBeUndefined();
+  });
+
+  it('should_keep_password_recovery_complete_route_public', () => {
+    const recoveryRoute = routes.find((route) => route.path === 'password-recovery/complete');
+
+    expect(recoveryRoute?.component).toBe(PasswordRecoveryCompleteComponent);
+    expect(recoveryRoute?.canActivate).toBeUndefined();
   });
 });

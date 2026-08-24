@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 export class LoginComponent {
 
   private static readonly accountDeletionConfirmationStateKey = 'accountDeletionConfirmed';
+  private static readonly passwordRecoveryConfirmationStateKey = 'passwordRecoveryCompleted';
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -25,6 +26,9 @@ export class LoginComponent {
   protected readonly accountDeletionConfirmationVisible = signal(
     this.hasAccountDeletionConfirmationState(),
   );
+  protected readonly passwordRecoveryConfirmationVisible = signal(
+    this.hasPasswordRecoveryConfirmationState(),
+  );
 
   protected login(): void {
     if (this.submitting()) {
@@ -33,6 +37,7 @@ export class LoginComponent {
 
     this.errorMessage.set('');
     this.accountDeletionConfirmationVisible.set(false);
+    this.passwordRecoveryConfirmationVisible.set(false);
     this.submitting.set(true);
 
     this.authService.login({ email: this.email().trim(), password: this.password() }).subscribe({
@@ -48,5 +53,11 @@ export class LoginComponent {
     const navigationState = this.router.getCurrentNavigation()?.extras.state;
 
     return navigationState?.[LoginComponent.accountDeletionConfirmationStateKey] === true;
+  }
+
+  private hasPasswordRecoveryConfirmationState(): boolean {
+    const navigationState = this.router.getCurrentNavigation()?.extras.state;
+
+    return navigationState?.[LoginComponent.passwordRecoveryConfirmationStateKey] === true;
   }
 }

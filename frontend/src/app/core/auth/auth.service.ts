@@ -26,6 +26,11 @@ export interface StartPasswordRecoveryCommand {
   email: string;
 }
 
+export interface CompletePasswordRecoveryCommand {
+  token: string;
+  newPassword: string;
+}
+
 export interface CurrentUser {
   id: number;
   name: string;
@@ -55,6 +60,10 @@ export class AuthService {
 
   startPasswordRecovery(command: StartPasswordRecoveryCommand): Observable<void> {
     return this.http.post<void>('/api/auth/password-recovery', command);
+  }
+
+  completePasswordRecovery(command: CompletePasswordRecoveryCommand): Observable<void> {
+    return this.http.post<void>('/api/auth/password-recovery/complete', command);
   }
 
   changePassword(command: ChangePasswordCommand): Observable<void> {

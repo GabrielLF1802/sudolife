@@ -62,6 +62,19 @@ describe('AuthService', () => {
     expect(authService.token()).toBeNull();
   });
 
+  it('should_complete_password_recovery_without_storing_token', () => {
+    const command = { token: 'raw-token', newPassword: 'Str0ng!Password' };
+
+    authService.completePasswordRecovery(command).subscribe();
+
+    const request = httpTestingController.expectOne('/api/auth/password-recovery/complete');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(command);
+    request.flush(null);
+
+    expect(authService.token()).toBeNull();
+  });
+
   it('should_remove_token_after_logout', () => {
     localStorage.setItem('sudolife.jwt', 'jwt-token');
 

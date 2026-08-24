@@ -14,6 +14,13 @@
     </section>
   }
 
+  @if (passwordRecoveryConfirmationVisible()) {
+    <section class="confirmation-message" aria-labelledby="password-recovery-confirmation-title">
+      <strong id="password-recovery-confirmation-title">Senha alterada</strong>
+      <p>Entre com sua nova senha para voltar ao painel de atividades.</p>
+    </section>
+  }
+
   <form (ngSubmit)="login()" #loginForm="ngForm">
     <label>
       Email

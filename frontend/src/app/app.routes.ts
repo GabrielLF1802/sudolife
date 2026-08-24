@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './core/auth/auth.guard';
 import { LoginComponent } from './core/auth/login.component';
+import { PasswordRecoveryCompleteComponent } from './core/auth/password-recovery-complete.component';
 import { PasswordRecoveryRequestComponent } from './core/auth/password-recovery-request.component';
 import { RegisterComponent } from './core/auth/register.component';
 import { PrivacyPolicyComponent } from './core/privacy/privacy-policy.component';
@@ -20,6 +21,10 @@ export const routes: Routes = [
   {
     path: 'password-recovery',
     component: PasswordRecoveryRequestComponent,
+  },
+  {
+    path: 'password-recovery/complete',
+    component: PasswordRecoveryCompleteComponent,
   },
   {
     path: 'privacy-policy',

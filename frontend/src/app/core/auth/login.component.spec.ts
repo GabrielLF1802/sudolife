@@ -39,6 +39,19 @@ describe('LoginComponent', () => {
     expect(confirmation?.textContent).not.toContain('Strava');
   });
 
+  it('should_show_password_recovery_confirmation_when_redirect_state_is_present', () => {
+    spyOn(router, 'getCurrentNavigation').and.returnValue({
+      extras: { state: { passwordRecoveryCompleted: true } },
+    } as unknown as Navigation);
+    fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const confirmation = fixture.nativeElement.querySelector('.confirmation-message');
+
+    expect(confirmation?.textContent).toContain('Senha alterada');
+    expect(confirmation?.textContent).toContain('Entre com sua nova senha');
+  });
+
   it('should_link_to_privacy_policy', () => {
     fixture = TestBed.createComponent(LoginComponent);
     fixture.detectChanges();
