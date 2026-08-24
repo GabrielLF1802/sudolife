@@ -70,6 +70,9 @@ class AccountDeletionDataRepositoryJpaAdapterUnitTest {
     @Mock
     private SpringDataStravaDataConsentRecordRepository consentRecordRepository;
 
+    @Mock
+    private PasswordRecoveryTokenJpaRepository passwordRecoveryTokenRepository;
+
     @InjectMocks
     private AccountDeletionDataRepositoryJpaAdapter repository;
 
@@ -82,7 +85,7 @@ class AccountDeletionDataRepositoryJpaAdapterUnitTest {
         InOrder cleanupOrder = inOrder(streamSyncJobRepository, summarySyncJobRepository, streamSnapshotRepository,
                 detailSnapshotRepository, activitySummaryRepository, authorizationStateRepository,
                 accountLinkRepository, consentRecordRepository, adaptiveRunningPlanRepository, coachingProfileRepository,
-                trainingProfileRepository);
+                trainingProfileRepository, passwordRecoveryTokenRepository);
         cleanupOrder.verify(streamSyncJobRepository).cancelOpenByUserEmail(USER_EMAIL, NOW);
         cleanupOrder.verify(summarySyncJobRepository).cancelOpenByUserEmail(USER_EMAIL, NOW);
         cleanupOrder.verify(streamSyncJobRepository).deleteByUserEmail(USER_EMAIL);
@@ -98,6 +101,7 @@ class AccountDeletionDataRepositoryJpaAdapterUnitTest {
         cleanupOrder.verify(adaptiveRunningPlanRepository).deleteByUserEmail(USER_EMAIL);
         cleanupOrder.verify(coachingProfileRepository).deleteByUserEmail(USER_EMAIL);
         cleanupOrder.verify(trainingProfileRepository).deleteByUserEmail(USER_EMAIL);
+        cleanupOrder.verify(passwordRecoveryTokenRepository).deleteByUserEmail(USER_EMAIL);
     }
 
     @Test

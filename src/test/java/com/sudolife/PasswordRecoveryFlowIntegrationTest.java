@@ -1,0 +1,137 @@
+package com.sudolife;
+
+import com.sudolife.application.service.user.IssuedPasswordRecoveryToken;
+import com.sudolife.application.service.user.StartPasswordRecoveryCommand;
+import com.sudolife.application.service.user.ports.required.PasswordRecoveryTokenProvider;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.sudolife.helper.UserTestHelper.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ActiveProfiles("test")
+@SpringBootTest
+@AutoConfigureMockMvc
+@Import({
+        PasswordRecoveryFlowIntegrationTest.FixedPasswordRecoveryTokenProviderConfiguration.class,
+        com.sudolife.helper.FixedTimeProvider.class
+})
+class PasswordRecoveryFlowIntegrationTest {
+
+    private static final String RAW_TOKEN = "deterministic-recovery-token";
+    private static final String GENERIC_MESSAGE = "Se uma conta existir para esse email, instruções de recuperação de senha serão enviadas.";
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate.update("delete from password_recovery_tokens");
+        jdbcTemplate.update("delete from users");
+    }
+
+    @Test
+    void start_creates_hashed_token_for_registered_email_and_replaces_active_tokens() throws Exception {
+        registerUser();
+        startRecovery(EMAIL);
+        Map<String, Object> firstToken = onlyToken();
+
+        startRecovery(EMAIL);
+
+        assertThat(tokenCount()).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject(
+                "select used_at from password_recovery_tokens where id = ?",
+                Object.class,
+                ((Number) firstToken.get("ID")).longValue()
+        )).isNotNull();
+        assertThat(onlyActiveToken().get("EXPIRES_AT").toString()).startsWith("2026-05-11T12:30");
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from password_recovery_tokens where user_email = ? and used_at is null",
+                Integer.class,
+                EMAIL
+        )).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from password_recovery_tokens where token_hash like ?",
+                Integer.class,
+                RAW_TOKEN + "%"
+        )).isZero();
+    }
+
+    @Test
+    void start_returns_same_response_without_token_for_unregistered_email() throws Exception {
+        startRecovery(EMAIL);
+
+        assertThat(tokenCount()).isZero();
+    }
+
+    private void startRecovery(String email) throws Exception {
+        StartPasswordRecoveryCommand command = new StartPasswordRecoveryCommand(email);
+
+        mockMvc.perform(post("/api/auth/password-recovery")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(GENERIC_MESSAGE));
+    }
+
+    private void registerUser() {
+        jdbcTemplate.update(
+                "insert into users (name, email, password) values (?, ?, ?)",
+                NAME,
+                EMAIL,
+                PASSWORD
+        );
+    }
+
+    private Map<String, Object> onlyToken() {
+        return jdbcTemplate.queryForMap("select * from password_recovery_tokens");
+    }
+
+    private Map<String, Object> onlyActiveToken() {
+        return jdbcTemplate.queryForMap("select * from password_recovery_tokens where used_at is null");
+    }
+
+    private int tokenCount() {
+        return jdbcTemplate.queryForObject("select count(*) from password_recovery_tokens", Integer.class);
+    }
+
+    @TestConfiguration
+    static class FixedPasswordRecoveryTokenProviderConfiguration {
+
+        private final AtomicInteger sequence = new AtomicInteger();
+
+        @Bean
+        @Primary
+        PasswordRecoveryTokenProvider fixedPasswordRecoveryTokenProvider() {
+            return () -> {
+                String rawToken = RAW_TOKEN + sequence.incrementAndGet();
+
+                return new IssuedPasswordRecoveryToken(rawToken, "hashed-" + rawToken);
+            };
+        }
+    }
+}

@@ -35,6 +35,7 @@ public class AccountDeletionDataRepositoryJpaAdapter implements AccountDeletionD
     private final SpringDataStravaAuthorizationStateRepository authorizationStateRepository;
     private final SpringDataStravaAccountLinkRepository accountLinkRepository;
     private final SpringDataStravaDataConsentRecordRepository consentRecordRepository;
+    private final PasswordRecoveryTokenJpaRepository passwordRecoveryTokenRepository;
 
     @Override
     public List<StravaDeauthorization> findStravaDeauthorizations(String userEmail) {
@@ -61,6 +62,7 @@ public class AccountDeletionDataRepositoryJpaAdapter implements AccountDeletionD
         adaptiveRunningPlanRepository.deleteByUserEmail(userEmail);
         coachingProfileRepository.deleteByUserEmail(userEmail);
         trainingProfileRepository.deleteByUserEmail(userEmail);
+        passwordRecoveryTokenRepository.deleteByUserEmail(userEmail);
     }
 
     private void cancelOpenStravaJobs(String userEmail, Instant now) {

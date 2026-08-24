@@ -62,6 +62,7 @@ class AuthenticationFlowIntegrationTest {
         jdbcTemplate.update("delete from adaptive_running_plans");
         jdbcTemplate.update("delete from coaching_profiles");
         jdbcTemplate.update("delete from training_profiles");
+        jdbcTemplate.update("delete from password_recovery_tokens");
         jdbcTemplate.update("delete from users");
     }
 
