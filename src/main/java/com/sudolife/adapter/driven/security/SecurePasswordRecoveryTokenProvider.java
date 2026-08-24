@@ -32,7 +32,8 @@ public class SecurePasswordRecoveryTokenProvider implements PasswordRecoveryToke
         return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
     }
 
-    private String hash(String token) {
+    @Override
+    public String hash(String token) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));

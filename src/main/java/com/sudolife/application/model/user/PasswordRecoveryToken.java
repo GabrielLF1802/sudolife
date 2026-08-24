@@ -38,4 +38,20 @@ public class PasswordRecoveryToken {
         this.usedAt = usedAt;
         this.createdAt = createdAt;
     }
+
+    public boolean canBeUsedAt(Instant now) {
+        if (now == null) {
+            throw new IllegalArgumentException("Reference time cant be null");
+        }
+
+        return usedAt == null && expiresAt.isAfter(now);
+    }
+
+    public PasswordRecoveryToken consume(Instant usedAt) {
+        if (usedAt == null) {
+            throw new IllegalArgumentException("Usage date cant be null");
+        }
+
+        return new PasswordRecoveryToken(id, userEmail, tokenHash, expiresAt, usedAt, createdAt);
+    }
 }

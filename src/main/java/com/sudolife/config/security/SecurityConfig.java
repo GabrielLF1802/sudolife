@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/register").permitAll()
                         .requestMatchers("/api/users/login").permitAll()
                         .requestMatchers("/api/auth/password-recovery").permitAll()
+                        .requestMatchers("/api/auth/password-recovery/complete").permitAll()
                         .requestMatchers("/api/strava/callback").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/api/strava/**").authenticated()

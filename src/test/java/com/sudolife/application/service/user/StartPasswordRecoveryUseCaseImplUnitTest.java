@@ -53,8 +53,7 @@ class StartPasswordRecoveryUseCaseImplUnitTest {
     void execute_creates_recovery_token_and_sends_email_for_registered_email() {
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user()));
         when(timeProvider.now()).thenReturn(NOW);
-        when(passwordRecoveryTokenProvider.provide())
-                .thenReturn(new IssuedPasswordRecoveryToken(RAW_TOKEN, TOKEN_HASH));
+        when(passwordRecoveryTokenProvider.provide()).thenReturn(new IssuedPasswordRecoveryToken(RAW_TOKEN, TOKEN_HASH));
 
         PasswordRecoveryStartResult result = useCase.execute(new StartPasswordRecoveryCommand(EMAIL));
 

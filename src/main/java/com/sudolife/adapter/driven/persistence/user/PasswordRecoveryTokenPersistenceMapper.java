@@ -17,4 +17,15 @@ public class PasswordRecoveryTokenPersistenceMapper {
 
         return entity;
     }
+
+    public PasswordRecoveryToken toDomain(PasswordRecoveryTokenEntity entity) {
+        return new PasswordRecoveryToken(
+                entity.getId(),
+                entity.getUserEmail(),
+                entity.getTokenHash(),
+                entity.getExpiresAt(),
+                entity.getUsedAt(),
+                entity.getCreatedAt()
+        );
+    }
 }

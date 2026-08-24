@@ -1,7 +1,9 @@
 package com.sudolife.adapter.driving.rest.auth.controller;
 
+import com.sudolife.application.service.user.CompletePasswordRecoveryCommand;
 import com.sudolife.application.service.user.PasswordRecoveryStartResult;
 import com.sudolife.application.service.user.StartPasswordRecoveryCommand;
+import com.sudolife.application.service.user.ports.provided.CompletePasswordRecoveryUseCase;
 import com.sudolife.application.service.user.ports.provided.StartPasswordRecoveryUseCase;
 import com.sudolife.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,9 @@ class PasswordRecoveryControllerWebMvcTest {
     @MockitoBean
     StartPasswordRecoveryUseCase startPasswordRecoveryUseCase;
 
+    @MockitoBean
+    CompletePasswordRecoveryUseCase completePasswordRecoveryUseCase;
+
     @Test
     void start_returns_generic_success_response() throws Exception {
         StartPasswordRecoveryCommand command = new StartPasswordRecoveryCommand(EMAIL);
@@ -50,5 +55,15 @@ class PasswordRecoveryControllerWebMvcTest {
                         .content(objectMapper.writeValueAsString(command)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value(GENERIC_MESSAGE));
+    }
+
+    @Test
+    void complete_returns_no_content() throws Exception {
+        CompletePasswordRecoveryCommand command = new CompletePasswordRecoveryCommand("raw-token", "Str0ng!Password");
+
+        mockMvc.perform(post("/api/auth/password-recovery/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isNoContent());
     }
 }

@@ -5,6 +5,7 @@ import com.sudolife.application.service.ratelimit.exception.LoginRateLimitExceed
 import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
 import com.sudolife.application.service.user.exception.AuthenticatedUserNotFoundException;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
+import com.sudolife.application.service.user.exception.InvalidPasswordRecoveryTokenException;
 import com.sudolife.application.service.user.exception.NewPasswordMatchesCurrentPasswordException;
 import com.sudolife.application.service.user.exception.UserAlreadyExistsException;
 import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteOwnershipException;
@@ -66,6 +67,12 @@ public class RestExceptionHandler {
                         exception.getMessage(),
                         exception.violations().stream().map(Enum::name).toList()
                 ));
+    }
+
+    @ExceptionHandler(InvalidPasswordRecoveryTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPasswordRecoveryToken(InvalidPasswordRecoveryTokenException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_PASSWORD_RECOVERY_TOKEN", exception.getMessage()));
     }
 
     @ExceptionHandler(NewPasswordMatchesCurrentPasswordException.class)

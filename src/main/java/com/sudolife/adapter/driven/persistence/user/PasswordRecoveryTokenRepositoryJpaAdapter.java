@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -18,6 +19,11 @@ public class PasswordRecoveryTokenRepositoryJpaAdapter implements PasswordRecove
     @Override
     public void save(PasswordRecoveryToken token) {
         jpaRepository.save(mapper.toEntity(token));
+    }
+
+    @Override
+    public Optional<PasswordRecoveryToken> findByTokenHash(String tokenHash) {
+        return jpaRepository.findByTokenHash(tokenHash).map(mapper::toDomain);
     }
 
     @Override

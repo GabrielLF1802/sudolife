@@ -6,8 +6,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.Optional;
 
 public interface PasswordRecoveryTokenJpaRepository extends JpaRepository<PasswordRecoveryTokenEntity, Long> {
+
+    Optional<PasswordRecoveryTokenEntity> findByTokenHash(String tokenHash);
 
     @Modifying
     @Query("""
