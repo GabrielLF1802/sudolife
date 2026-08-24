@@ -12,6 +12,16 @@ _Avoid_: Account cancellation, account deactivation, account unlinking
 A user-facing confirmation that account deletion completed and locally stored account-owned data was removed. In the MVP this confirmation is shown on screen after deletion; e-mail confirmation is deferred until Sudolife has an e-mail delivery capability.
 _Avoid_: Deletion receipt, removal notice
 
+### Password Recovery
+
+A flow that lets a Sudolife user who can access the account e-mail replace the account password without an authenticated session. Password recovery proves temporary access to the account e-mail, not ownership of an active browser session.
+_Avoid_: Forgot password, password reset
+
+### Password Recovery Token
+
+A temporary single-use secret that authorizes one password replacement during password recovery. A password recovery token is not a login credential and must expire quickly.
+_Avoid_: Recovery code, reset token
+
 ### Account-Owned Data
 
 Data that exists only because a Sudolife user account exists, including credentials, training profile, coaching profile, adaptive running plans, Strava account links, imported Strava snapshots, sync jobs, and pending Strava authorization states.
