@@ -49,6 +49,19 @@ describe('AuthService', () => {
     expect(authService.isAuthenticated()).toBeTrue();
   });
 
+  it('should_start_password_recovery_without_storing_token', () => {
+    const command = { email: 'gabriel@example.com' };
+
+    authService.startPasswordRecovery(command).subscribe();
+
+    const request = httpTestingController.expectOne('/api/auth/password-recovery');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(command);
+    request.flush({ message: 'generic' });
+
+    expect(authService.token()).toBeNull();
+  });
+
   it('should_remove_token_after_logout', () => {
     localStorage.setItem('sudolife.jwt', 'jwt-token');
 

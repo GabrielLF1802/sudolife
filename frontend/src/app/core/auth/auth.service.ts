@@ -22,6 +22,10 @@ export interface DeleteAccountCommand {
   currentPassword: string;
 }
 
+export interface StartPasswordRecoveryCommand {
+  email: string;
+}
+
 export interface CurrentUser {
   id: number;
   name: string;
@@ -47,6 +51,10 @@ export class AuthService {
       tap((result) => localStorage.setItem(AuthService.tokenStorageKey, result.token)),
       map(() => undefined),
     );
+  }
+
+  startPasswordRecovery(command: StartPasswordRecoveryCommand): Observable<void> {
+    return this.http.post<void>('/api/auth/password-recovery', command);
   }
 
   changePassword(command: ChangePasswordCommand): Observable<void> {
