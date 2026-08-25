@@ -10,6 +10,9 @@ public record RestRateLimitProperties(RateLimitPolicyProperties loginIp,
                                       RateLimitPolicyProperties loginEmailOrigin,
                                       RateLimitPolicyProperties registrationOrigin,
                                       RateLimitPolicyProperties registrationEmail,
+                                      RateLimitPolicyProperties passwordRecoveryStartOrigin,
+                                      RateLimitPolicyProperties passwordRecoveryStartEmail,
+                                      RateLimitPolicyProperties passwordRecoveryCompleteOrigin,
                                       RateLimitPolicyProperties genericApi) {
 
     public RestRateLimitProperties {
@@ -18,6 +21,9 @@ public record RestRateLimitProperties(RateLimitPolicyProperties loginIp,
         loginEmailOrigin = requirePolicy(loginEmailOrigin, "login-email-origin");
         registrationOrigin = requirePolicy(registrationOrigin, "registration-origin");
         registrationEmail = requirePolicy(registrationEmail, "registration-email");
+        passwordRecoveryStartOrigin = requirePolicy(passwordRecoveryStartOrigin, "password-recovery-start-origin");
+        passwordRecoveryStartEmail = requirePolicy(passwordRecoveryStartEmail, "password-recovery-start-email");
+        passwordRecoveryCompleteOrigin = requirePolicy(passwordRecoveryCompleteOrigin, "password-recovery-complete-origin");
         genericApi = requirePolicy(genericApi, "generic-api");
     }
 
@@ -28,6 +34,9 @@ public record RestRateLimitProperties(RateLimitPolicyProperties loginIp,
             case LOGIN_EMAIL_ORIGIN -> loginEmailOrigin;
             case REGISTRATION_ORIGIN -> registrationOrigin;
             case REGISTRATION_EMAIL -> registrationEmail;
+            case PASSWORD_RECOVERY_START_ORIGIN -> passwordRecoveryStartOrigin;
+            case PASSWORD_RECOVERY_START_EMAIL -> passwordRecoveryStartEmail;
+            case PASSWORD_RECOVERY_COMPLETE_ORIGIN -> passwordRecoveryCompleteOrigin;
             case GENERIC_API -> genericApi;
         };
     }

@@ -2,6 +2,7 @@ package com.sudolife.adapter.driving.rest;
 
 import com.sudolife.application.model.user.InvalidPasswordException;
 import com.sudolife.application.service.ratelimit.exception.LoginRateLimitExceededException;
+import com.sudolife.application.service.ratelimit.exception.PasswordRecoveryRateLimitExceededException;
 import com.sudolife.application.service.ratelimit.exception.RegisterRateLimitExceededException;
 import com.sudolife.application.service.user.exception.AuthenticatedUserNotFoundException;
 import com.sudolife.application.service.user.exception.InvalidCredentialsException;
@@ -45,6 +46,14 @@ public class RestExceptionHandler {
     public ResponseEntity<ErrorResponse> handleRegisterRateLimitExceeded(RegisterRateLimitExceededException exception) {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(new ErrorResponse("REGISTER_RATE_LIMIT_EXCEEDED", exception.getMessage()));
+    }
+
+    @ExceptionHandler(PasswordRecoveryRateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handlePasswordRecoveryRateLimitExceeded(
+            PasswordRecoveryRateLimitExceededException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse("PASSWORD_RECOVERY_RATE_LIMIT_EXCEEDED", exception.getMessage()));
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)

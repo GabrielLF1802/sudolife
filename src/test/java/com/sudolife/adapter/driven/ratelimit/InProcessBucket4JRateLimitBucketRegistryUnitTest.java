@@ -89,7 +89,7 @@ class InProcessBucket4JRateLimitBucketRegistryUnitTest {
         RateLimitPolicyProperties fallbackPolicy = enabledPolicy(100, Duration.ofMinutes(1));
 
         return new RestRateLimitProperties(loginIpPolicy, fallbackPolicy, fallbackPolicy, fallbackPolicy,
-                fallbackPolicy, fallbackPolicy);
+                fallbackPolicy, fallbackPolicy, fallbackPolicy, fallbackPolicy, fallbackPolicy);
     }
 
     private RateLimitPolicyProperties enabledPolicy(long capacity, Duration refillPeriod) {

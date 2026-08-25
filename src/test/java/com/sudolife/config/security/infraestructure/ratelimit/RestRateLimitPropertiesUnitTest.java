@@ -28,7 +28,8 @@ class RestRateLimitPropertiesUnitTest {
     void properties_with_missing_policy_rejects_configuration() {
         RateLimitPolicyProperties policy = new RateLimitPolicyProperties(true, 1, Duration.ofMinutes(1));
 
-        assertThatThrownBy(() -> new RestRateLimitProperties(null, policy, policy, policy, policy, policy))
+        assertThatThrownBy(() -> new RestRateLimitProperties(null, policy, policy, policy, policy, policy, policy,
+                policy, policy))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Rate limit policy login-ip is required");
     }

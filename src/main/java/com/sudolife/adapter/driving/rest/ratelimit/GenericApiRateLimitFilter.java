@@ -29,6 +29,8 @@ public class GenericApiRateLimitFilter extends OncePerRequestFilter {
     private static final Set<String> EXCLUDED_PATHS = Set.of(
             "/api/users/login",
             "/api/users/register",
+            "/api/auth/password-recovery",
+            "/api/auth/password-recovery/complete",
             "/api/strava/callback",
             "/actuator/health"
     );
