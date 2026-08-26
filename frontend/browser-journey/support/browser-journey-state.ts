@@ -50,7 +50,7 @@ export interface SaveBrowserJourneyCoachingProfileCommand {
 
 export function createBrowserJourneyState(): BrowserJourneyState {
   return {
-    registered: true,
+    registered: false,
     authenticated: false,
     stravaLinked: false,
     stravaDataConsentValid: false,

@@ -2,7 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, forkJoin, finalize } from 'rxjs';
+import { catchError, forkJoin, finalize, of, switchMap } from 'rxjs';
 
 import { AuthService, CurrentUser } from '../../../../core/auth/auth.service';
 import { ActivityService } from '../../services/activity.service';
@@ -628,6 +628,7 @@ export class ActivityDashboardComponent implements OnInit {
             const status = this.stravaLinkStatus();
             if (status !== null)
               this.stravaLinkStatus.set({ ...status, activitySummaryStatus: 'COMPLETED' });
+            this.refreshActivitiesAndRunningHistory();
           }
         },
         error: () => {
@@ -856,10 +857,19 @@ export class ActivityDashboardComponent implements OnInit {
         injuryConcern: this.injuryConcern(),
         preferredRunningDays: this.preferredRunningDays(),
       })
+      .pipe(
+        switchMap((profile) =>
+          forkJoin({
+            profile: of(profile),
+            runningHistory: this.coachingProfileService.getRunningHistory(),
+          }),
+        ),
+      )
       .pipe(finalize(() => this.savingCoachingProfile.set(false)))
       .subscribe({
-        next: (profile) => {
+        next: ({ profile, runningHistory }) => {
           this.coachingProfile.set(profile);
+          this.runningHistory.set(runningHistory);
           this.fillCoachingProfileForm(profile);
           this.coachingProfileSuccessMessage.set(
             'Meta e prontidão salvas. Seu plano será atualizado com essas informações.',
@@ -869,11 +879,8 @@ export class ActivityDashboardComponent implements OnInit {
           this.currentAdaptiveRunningPlan.set(null);
           this.runningGoalAssessment.set(null);
 
-          const runningHistory = this.runningHistory();
-          if (runningHistory !== null) {
-            this.loadConservativeRunningPlan(profile, runningHistory);
-            this.loadAdaptiveRunningPlan(profile, runningHistory);
-          }
+          this.loadConservativeRunningPlan(profile, runningHistory);
+          this.loadAdaptiveRunningPlan(profile, runningHistory);
           this.loadRunningGoalAssessment(profile);
         },
         error: () => {
@@ -1191,6 +1198,18 @@ export class ActivityDashboardComponent implements OnInit {
     periodStart.setDate(periodStart.getDate() - this.selectedPeriodDays());
 
     return new Date(startDate) >= periodStart;
+  }
+
+  private refreshActivitiesAndRunningHistory(): void {
+    this.activityService.list().subscribe({
+      next: (activityList) => this.activityList.set(activityList),
+      error: () => undefined,
+    });
+
+    this.coachingProfileService.getRunningHistory().subscribe({
+      next: (runningHistory) => this.runningHistory.set(runningHistory),
+      error: () => undefined,
+    });
   }
 
   private loadConservativeRunningPlan(
