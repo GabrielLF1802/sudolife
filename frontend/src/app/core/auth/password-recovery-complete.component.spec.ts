@@ -62,13 +62,15 @@ describe('PasswordRecoveryCompleteComponent', () => {
     submitPassword('weak');
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Sua senha ainda não atende à política de segurança');
-    expect(text).toContain('Use pelo menos 12 caracteres');
-    expect(text).toContain('Inclua uma letra maiúscula');
+    expect(text).toContain('A nova senha ainda não atende à política de segurança');
+    expect(rejectedPasswordPolicyItems().map((item) => item.textContent?.trim())).toEqual([
+      'Pelo menos 12 caracteres',
+      'Uma letra maiúscula',
+    ]);
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
-  it('should_show_invalid_link_failure_state', () => {
+  it('should_show_invalid_link_next_action_after_invalid_expired_or_used_token', () => {
     authService.completePasswordRecovery.and.returnValue(throwError(() => new HttpErrorResponse({
       status: 400,
       error: {
@@ -80,12 +82,14 @@ describe('PasswordRecoveryCompleteComponent', () => {
     submitPassword('Valid!Password1');
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Este link é inválido ou expirou');
+    expect(text).toContain('Link indisponível');
+    expect(text).toContain('expirou ou já foi usado');
     expect(text).toContain('Solicitar novo link');
+    expect(fixture.nativeElement.querySelector('form')).toBeNull();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
-  it('should_disable_submit_when_link_has_no_token', async () => {
+  it('should_show_invalid_link_next_action_when_link_has_no_token', async () => {
     TestBed.resetTestingModule();
 
     await TestBed.configureTestingModule({
@@ -104,9 +108,9 @@ describe('PasswordRecoveryCompleteComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    const button = fixture.nativeElement.querySelector('button');
-    expect(text).toContain('Link inválido');
-    expect(button.disabled).toBeTrue();
+    expect(text).toContain('Link indisponível');
+    expect(text).toContain('Solicitar novo link');
+    expect(fixture.nativeElement.querySelector('form')).toBeNull();
   });
 
   function submitPassword(password: string): void {
@@ -117,5 +121,9 @@ describe('PasswordRecoveryCompleteComponent', () => {
 
     fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit');
     fixture.detectChanges();
+  }
+
+  function rejectedPasswordPolicyItems(): HTMLElement[] {
+    return [...fixture.nativeElement.querySelectorAll('.policy-list li.rejected')];
   }
 });

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -22,6 +22,12 @@ interface PasswordPolicyErrorResponse {
   violations: PasswordPolicyViolation[];
 }
 
+interface PasswordPolicyRequirement {
+  key: PasswordPolicyViolation;
+  label: string;
+  satisfied: boolean;
+}
+
 interface ErrorResponse {
   code: string;
   message: string;
@@ -41,25 +47,51 @@ export class PasswordRecoveryCompleteComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  protected readonly passwordPolicyMessages: Record<PasswordPolicyViolation, string> = {
-    BLANK: 'Informe uma nova senha.',
-    TOO_SHORT: 'Use pelo menos 12 caracteres.',
-    TOO_LONG: 'Use no máximo 128 caracteres.',
-    MISSING_UPPERCASE: 'Inclua uma letra maiúscula.',
-    MISSING_LOWERCASE: 'Inclua uma letra minúscula.',
-    MISSING_NUMBER: 'Inclua um número.',
-    MISSING_SPECIAL_CHARACTER: 'Inclua um caractere especial.',
-    CONTAINS_CONTEXTUAL_DATA: 'Evite usar seu nome ou email na senha.',
-  };
-
   protected readonly newPassword = signal('');
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly passwordPolicyViolations = signal<PasswordPolicyViolation[]>([]);
   protected readonly token = signal(this.route.snapshot.queryParamMap.get('token')?.trim() ?? '');
+  protected readonly invalidLinkVisible = signal(!this.token());
+  protected readonly passwordPolicyRequirements = computed<PasswordPolicyRequirement[]>(() => {
+    const password = this.newPassword();
+
+    return [
+      {
+        key: 'TOO_SHORT',
+        label: 'Pelo menos 12 caracteres',
+        satisfied: password.length >= 12,
+      },
+      {
+        key: 'TOO_LONG',
+        label: 'No máximo 128 caracteres',
+        satisfied: password.length <= 128,
+      },
+      {
+        key: 'MISSING_UPPERCASE',
+        label: 'Uma letra maiúscula',
+        satisfied: /[A-Z]/.test(password),
+      },
+      {
+        key: 'MISSING_LOWERCASE',
+        label: 'Uma letra minúscula',
+        satisfied: /[a-z]/.test(password),
+      },
+      {
+        key: 'MISSING_NUMBER',
+        label: 'Um número',
+        satisfied: /\d/.test(password),
+      },
+      {
+        key: 'MISSING_SPECIAL_CHARACTER',
+        label: 'Um caractere especial',
+        satisfied: /[^A-Za-z0-9]/.test(password),
+      },
+    ];
+  });
 
   protected completePasswordRecovery(): void {
-    if (this.submitting() || !this.token()) {
+    if (this.submitting() || this.invalidLinkVisible()) {
       this.showInvalidLink();
       return;
     }
@@ -83,7 +115,9 @@ export class PasswordRecoveryCompleteComponent {
     this.submitting.set(false);
 
     if (this.isPasswordPolicyError(error.error)) {
-      this.errorMessage.set('Sua senha ainda não atende à política de segurança.');
+      this.errorMessage.set(
+        'A nova senha ainda não atende à política de segurança. Revise os itens marcados.',
+      );
       this.passwordPolicyViolations.set(error.error.violations);
       return;
     }
@@ -98,8 +132,9 @@ export class PasswordRecoveryCompleteComponent {
 
   private showInvalidLink(): void {
     this.submitting.set(false);
+    this.invalidLinkVisible.set(true);
     this.passwordPolicyViolations.set([]);
-    this.errorMessage.set('Este link é inválido ou expirou. Solicite uma nova recuperação de senha.');
+    this.errorMessage.set('');
   }
 
   private isPasswordPolicyError(error: unknown): error is PasswordPolicyErrorResponse {
@@ -120,18 +155,10 @@ export class PasswordRecoveryCompleteComponent {
   }
 
   protected passwordDescribedBy(): string | null {
-    if (this.errorMessage() && this.passwordPolicyViolations().length) {
-      return 'password-recovery-complete-error password-policy-errors';
-    }
-
     if (this.errorMessage()) {
-      return 'password-recovery-complete-error';
+      return 'password-policy-feedback password-recovery-complete-error';
     }
 
-    if (this.passwordPolicyViolations().length) {
-      return 'password-policy-errors';
-    }
-
-    return null;
+    return 'password-policy-feedback';
   }
 }

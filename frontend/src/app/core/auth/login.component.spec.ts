@@ -52,6 +52,15 @@ describe('LoginComponent', () => {
     expect(confirmation?.textContent).toContain('Entre com sua nova senha');
   });
 
+  it('should_link_to_password_recovery_from_login', () => {
+    fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const recoveryLink = fixture.nativeElement.querySelector('a[href="/password-recovery"]');
+
+    expect(recoveryLink?.textContent).toContain('Recuperar senha');
+  });
+
   it('should_link_to_privacy_policy', () => {
     fixture = TestBed.createComponent(LoginComponent);
     fixture.detectChanges();
