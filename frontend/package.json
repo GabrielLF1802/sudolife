@@ -6,7 +6,10 @@
     "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test --watch=false --browsers=ChromeHeadless"
+    "test": "ng test --watch=false --browsers=ChromeHeadless",
+    "browser-journey": "playwright test",
+    "browser-journey:ui": "playwright test --ui",
+    "browser-journey:report": "playwright show-report"
   },
   "prettier": {
     "printWidth": 100,
@@ -36,6 +39,7 @@
     "@angular/build": "^20.3.30",
     "@angular/cli": "^20.3.30",
     "@angular/compiler-cli": "^20.3.0",
+    "@playwright/test": "^1.62.1",
     "@types/jasmine": "~5.1.0",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
