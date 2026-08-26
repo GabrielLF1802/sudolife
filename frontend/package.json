@@ -9,7 +9,10 @@
     "test": "ng test --watch=false --browsers=ChromeHeadless",
     "browser-journey": "playwright test",
     "browser-journey:ui": "playwright test --ui",
-    "browser-journey:report": "playwright show-report"
+    "browser-journey:report": "playwright show-report",
+    "integrated-smoke": "playwright test --config integrated-smoke.config.ts",
+    "integrated-smoke:ui": "playwright test --config integrated-smoke.config.ts --ui",
+    "integrated-smoke:report": "playwright show-report playwright-report/integrated-smoke"
   },
   "prettier": {
     "printWidth": 100,
