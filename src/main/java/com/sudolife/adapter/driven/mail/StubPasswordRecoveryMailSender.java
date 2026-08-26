@@ -1,4 +1,4 @@
-package com.sudolife.helper;
+package com.sudolife.adapter.driven.mail;
 
 import com.sudolife.application.service.user.PasswordRecoveryEmail;
 import com.sudolife.application.service.user.ports.required.PasswordRecoveryMailSender;

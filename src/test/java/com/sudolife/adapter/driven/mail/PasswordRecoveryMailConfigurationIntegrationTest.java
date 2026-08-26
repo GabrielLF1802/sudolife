@@ -16,10 +16,13 @@ class PasswordRecoveryMailConfigurationIntegrationTest {
             .withPropertyValues("password-recovery.mail.frontend-base-url=https://app.sudolife.example");
 
     @Test
-    void non_production_context_does_not_create_runtime_mail_sender_without_resend_credentials() {
+    void non_production_context_uses_stub_password_recovery_mail_sender_without_resend_credentials() {
         contextRunner
+                .withPropertyValues("password-recovery.mail.delivery=stub")
                 .run(context -> assertThat(context)
-                        .doesNotHaveBean(PasswordRecoveryMailSender.class));
+                        .hasSingleBean(PasswordRecoveryMailSender.class)
+                        .getBean(PasswordRecoveryMailSender.class)
+                        .isInstanceOf(StubPasswordRecoveryMailSender.class));
     }
 
     @Test
@@ -54,6 +57,7 @@ class PasswordRecoveryMailConfigurationIntegrationTest {
     @EnableConfigurationProperties(PasswordRecoveryMailProperties.class)
     @Import({
             PasswordRecoveryLinkBuilder.class,
+            StubPasswordRecoveryMailSender.class,
             ResendPasswordRecoveryMailSender.class
     })
     static class PasswordRecoveryMailConfiguration {

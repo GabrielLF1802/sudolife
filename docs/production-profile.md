@@ -15,6 +15,10 @@ Run the backend with `SPRING_PROFILES_ACTIVE=prod` so production values come fro
 | `API_SECURITY_TOKEN_SECRET` | JWT signing secret. |
 | `API_SECURITY_TOKEN_ISSUER` | JWT issuer. |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated explicit HTTPS browser origins. |
+| `PASSWORD_RECOVERY_MAIL_DELIVERY` | Password Recovery mail adapter. Use `resend` in production. |
+| `FRONTEND_BASE_URL` | Frontend base URL used to build Password Recovery links. |
+| `RESEND_API_KEY` | Resend API key used to send Password Recovery e-mails. |
+| `PASSWORD_RECOVERY_MAIL_SENDER` | Verified sender address configured in Resend. |
 | `STRAVA_CLIENT_ID` | Strava OAuth client id. |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth client secret. |
 | `STRAVA_AUTHORIZATION_URL` | Strava authorization endpoint. |

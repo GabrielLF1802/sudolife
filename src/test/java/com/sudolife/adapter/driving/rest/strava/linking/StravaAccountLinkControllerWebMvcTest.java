@@ -28,6 +28,7 @@ import com.sudolife.application.service.strava.exception.DuplicateStravaAthleteO
 import com.sudolife.application.service.strava.ports.provided.CompleteStravaAccountLinkingUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaActivityDetailUseCase;
 import com.sudolife.application.service.strava.ports.provided.GetStravaAccountLinkStatusUseCase;
+import com.sudolife.application.service.strava.ports.provided.GetStravaDataConsentStatusUseCase;
 import com.sudolife.application.service.strava.ports.provided.ListStravaActivitiesUseCase;
 import com.sudolife.application.service.strava.ports.provided.RequestStravaActivitySyncUseCase;
 import com.sudolife.application.service.strava.ports.provided.StartStravaAccountLinkingUseCase;
@@ -105,6 +106,9 @@ class StravaAccountLinkControllerWebMvcTest {
 
     @MockitoBean
     private GetStravaActivityDetailUseCase getStravaActivityDetailUseCase;
+
+    @MockitoBean
+    private GetStravaDataConsentStatusUseCase getStravaDataConsentStatusUseCase;
 
     @MockitoBean
     private UserToken userToken;

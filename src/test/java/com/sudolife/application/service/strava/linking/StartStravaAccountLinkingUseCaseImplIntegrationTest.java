@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static com.sudolife.helper.StravaTestHelper.USER_EMAIL;
-import static com.sudolife.helper.StravaTestHelper.startStravaAccountLinkingCommand;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
@@ -56,7 +55,7 @@ class StartStravaAccountLinkingUseCaseImplIntegrationTest {
 
     @Test
     void execute_persists_state_and_returns_provider_authorization_url_without_linking_account() {
-        StartStravaAccountLinkingCommand command = startStravaAccountLinkingCommand();
+        StartStravaAccountLinkingCommand command = new StartStravaAccountLinkingCommand(USER_EMAIL, true, "pt-BR");
 
         StravaAuthorizationUrlResult result = useCase.execute(command);
 
