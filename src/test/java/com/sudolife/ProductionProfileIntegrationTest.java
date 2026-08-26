@@ -42,6 +42,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "STRAVA_REDIRECT_URI=https://api.sudolife.example/api/strava/callback",
         "STRAVA_FRONTEND_SUCCESS_REDIRECT_URL=https://app.sudolife.example/settings/connections/strava/success",
         "STRAVA_FRONTEND_FAILURE_REDIRECT_URL=https://app.sudolife.example/settings/connections/strava/failure",
+        "FRONTEND_BASE_URL=https://app.sudolife.example",
+        "RESEND_API_KEY=re_test_key",
+        "PASSWORD_RECOVERY_MAIL_SENDER=Sudolife <security@sudolife.example>",
         "AI_RUNNING_PLAN_PROVIDER_URL=http://ollama-sudolife:11434",
         "AI_RUNNING_PLAN_PROVIDER_MODEL=llama3:8b"
 })
@@ -93,6 +96,8 @@ class ProductionProfileIntegrationTest {
     @Test
     void production_profile_uses_environment_driven_external_settings() {
         assertThat(environment.getRequiredProperty("ai.running-plan-provider-url")).isEqualTo("http://ollama-sudolife:11434");
+        assertThat(environment.getRequiredProperty("password-recovery.mail.frontend-base-url")).isEqualTo("https://app.sudolife.example");
+        assertThat(environment.getRequiredProperty("password-recovery.mail.resend.sender")).isEqualTo("Sudolife <security@sudolife.example>");
         assertThat(environment.getRequiredProperty("strava.redirect-uri")).isEqualTo("https://api.sudolife.example/api/strava/callback");
         assertThat(environment.getRequiredProperty("api.cors.allowed-origins")).isEqualTo("https://app.sudolife.example");
         assertThat(environment.getRequiredProperty("management.endpoints.web.exposure.include")).isEqualTo("health");

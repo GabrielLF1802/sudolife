@@ -3,12 +3,14 @@ package com.sudolife.application.service.user;
 import com.sudolife.application.model.user.PasswordRecoveryToken;
 import com.sudolife.application.model.user.User;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
+import com.sudolife.application.service.user.exception.PasswordRecoveryMailDeliveryException;
 import com.sudolife.application.service.user.ports.provided.StartPasswordRecoveryUseCase;
 import com.sudolife.application.service.user.ports.required.PasswordRecoveryMailSender;
 import com.sudolife.application.service.user.ports.required.PasswordRecoveryTokenProvider;
 import com.sudolife.application.service.user.ports.required.PasswordRecoveryTokenRepository;
 import com.sudolife.application.service.user.ports.required.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -17,6 +19,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StartPasswordRecoveryUseCaseImpl implements StartPasswordRecoveryUseCase {
 
     private static final Duration TOKEN_DURATION = Duration.ofMinutes(30);
@@ -50,6 +53,14 @@ public class StartPasswordRecoveryUseCaseImpl implements StartPasswordRecoveryUs
 
         passwordRecoveryTokenRepository.invalidateActiveTokens(user.getEmail().value(), now);
         passwordRecoveryTokenRepository.save(recoveryToken);
-        passwordRecoveryMailSender.send(new PasswordRecoveryEmail(user.getEmail().value(), issuedToken.rawToken()));
+        sendRecoveryEmail(user, issuedToken);
+    }
+
+    private void sendRecoveryEmail(User user, IssuedPasswordRecoveryToken issuedToken) {
+        try {
+            passwordRecoveryMailSender.send(new PasswordRecoveryEmail(user.getEmail().value(), issuedToken.rawToken()));
+        } catch (PasswordRecoveryMailDeliveryException exception) {
+            log.warn("Password recovery mail delivery failed email={}", user.getEmail().value());
+        }
     }
 }

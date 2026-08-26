@@ -2,6 +2,7 @@ package com.sudolife.application.service.user;
 
 import com.sudolife.application.model.user.PasswordRecoveryToken;
 import com.sudolife.application.service.strava.ports.required.TimeProvider;
+import com.sudolife.application.service.user.exception.PasswordRecoveryMailDeliveryException;
 import com.sudolife.application.service.user.ports.required.PasswordRecoveryMailSender;
 import com.sudolife.application.service.user.ports.required.PasswordRecoveryTokenProvider;
 import com.sudolife.application.service.user.ports.required.PasswordRecoveryTokenRepository;
@@ -21,6 +22,7 @@ import static com.sudolife.helper.UserTestHelper.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -78,6 +80,20 @@ class StartPasswordRecoveryUseCaseImplUnitTest {
         verifyNoInteractions(passwordRecoveryTokenRepository);
         verifyNoInteractions(passwordRecoveryTokenProvider);
         verifyNoInteractions(passwordRecoveryMailSender);
+    }
+
+    @Test
+    void execute_returns_generic_response_when_mail_delivery_fails() {
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user()));
+        when(timeProvider.now()).thenReturn(NOW);
+        when(passwordRecoveryTokenProvider.provide()).thenReturn(new IssuedPasswordRecoveryToken(RAW_TOKEN, TOKEN_HASH));
+        doThrow(new PasswordRecoveryMailDeliveryException()).when(passwordRecoveryMailSender)
+                .send(new PasswordRecoveryEmail(EMAIL, RAW_TOKEN));
+
+        PasswordRecoveryStartResult result = useCase.execute(new StartPasswordRecoveryCommand(EMAIL));
+
+        assertThat(result.message()).isEqualTo(GENERIC_MESSAGE);
+        assertThat(capturedToken().getTokenHash()).isEqualTo(TOKEN_HASH);
     }
 
     private PasswordRecoveryToken capturedToken() {
